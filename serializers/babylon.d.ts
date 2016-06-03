@@ -5713,6 +5713,12 @@ declare module BABYLON {
     }
 }
 
+declare module BABYLON {
+    class VRRoomScaleCamera {
+      constructor();
+    }
+}
+
 declare var HMDVRDevice: any;
 declare var PositionSensorVRDevice: any;
 declare module BABYLON {
