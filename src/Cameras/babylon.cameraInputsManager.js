@@ -103,10 +103,12 @@ var BABYLON;
             serializedCamera.inputsmgr = inputs;
         };
         CameraInputsManager.prototype.parse = function (parsedCamera) {
+            console.log('parsedCamera', parsedCamera);
             var parsedInputs = parsedCamera.inputsmgr;
             if (parsedInputs) {
                 this.clear();
                 for (var n in parsedInputs) {
+                    console.log('n', n);
                     var construct = BABYLON.CameraInputTypes[n];
                     if (construct) {
                         var parsedinput = parsedInputs[n];
@@ -118,6 +120,7 @@ var BABYLON;
             else {
                 //2016-03-08 this part is for managing backward compatibility
                 for (var n in this.attached) {
+                    console.log('else n', n, this.attached[n].getTypeName());
                     var construct = BABYLON.CameraInputTypes[this.attached[n].getTypeName()];
                     if (construct) {
                         var input = BABYLON.SerializationHelper.Parse(function () { return new construct(); }, parsedCamera, null);

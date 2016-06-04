@@ -1,5 +1,5 @@
 ﻿module BABYLON {
-    export class FreeCamera extends TargetCamera {        
+    export class FreeCamera extends TargetCamera {
         @serializeAsVector3()
         public ellipsoid = new Vector3(0.5, 1, 0.5);
 
@@ -8,83 +8,83 @@
 
         @serialize()
         public applyGravity = false;
-                
+
         public inputs : FreeCameraInputsManager;
-        
+
         //-- begin properties for backward compatibility for inputs
         public get angularSensibility() {
             var mouse = <FreeCameraMouseInput>this.inputs.attached["mouse"];
             if (mouse)
                 return mouse.angularSensibility;
         }
-        
+
         public set angularSensibility(value) {
             var mouse = <FreeCameraMouseInput>this.inputs.attached["mouse"];
             if (mouse)
                 mouse.angularSensibility = value;
         }
-        
+
         public get keysUp() {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 return keyboard.keysUp;
         }
-        
+
         public set keysUp(value) {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 keyboard.keysUp = value;
         }
-        
+
         public get keysDown() {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 return keyboard.keysDown;
         }
-        
+
         public set keysDown(value) {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 keyboard.keysDown = value;
         }
-        
+
         public get keysLeft() {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 return keyboard.keysLeft;
         }
-        
+
         public set keysLeft(value) {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 keyboard.keysLeft = value;
         }
-        
+
         public get keysRight() {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 return keyboard.keysRight;
         }
-        
+
         public set keysRight(value) {
             var keyboard = <FreeCameraKeyboardMoveInput>this.inputs.attached["keyboard"];
             if (keyboard)
                 keyboard.keysRight = value;
         }
-        
+
         //-- end properties for backward compatibility for inputs
-        
+
         public onCollide: (collidedMesh: AbstractMesh) => void;
-        
+
         private _collider = new Collider();
         private _needMoveForGravity = false;
         private _oldPosition = Vector3.Zero();
         private _diffPosition = Vector3.Zero();
         private _newPosition = Vector3.Zero();
-        
+
         public _localDirection: Vector3;
-        public _transformedDirection: Vector3;        
-        
+        public _transformedDirection: Vector3;
+
         constructor(name: string, position: Vector3, scene: Scene) {
             super(name, position, scene);
             this.inputs = new FreeCameraInputsManager(this);
@@ -94,11 +94,11 @@
         // Controls
         public attachControl(element: HTMLElement, noPreventDefault?: boolean): void {
             this.inputs.attachElement(element, noPreventDefault);
-        }        
+        }
 
         public detachControl(element: HTMLElement): void {
             this.inputs.detachElement(element);
-            
+
             this.cameraDirection = new Vector3(0, 0, 0);
             this.cameraRotation = new Vector2(0, 0);
         }
@@ -117,7 +117,7 @@
 
             //no need for clone, as long as gravity is not on.
             var actualVelocity = velocity;
-			
+
             //add gravity to the velocity to prevent the dual-collision checking
             if (this.applyGravity) {
                 //this prevents mending with cameraDirection, a global variable of the free camera class.
@@ -177,9 +177,9 @@
             this.inputs.clear();
             super.dispose();
         }
-        
+
         public getTypeName(): string {
             return "FreeCamera";
         }
-    }    
-} 
+    }
+}

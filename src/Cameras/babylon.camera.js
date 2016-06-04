@@ -496,7 +496,7 @@ var BABYLON;
                 case "VRDeviceOrientationFreeCamera":
                     return function () { return new BABYLON.VRDeviceOrientationFreeCamera(name, BABYLON.Vector3.Zero(), scene); };
                 case "VRRoomScaleCamera":
-                    return function () { return new BABYLON.VRRoomScaleCamera(name, BABYLON.Vector3.Zero(), scene); }; 
+                    return function () { return new BABYLON.VRRoomScaleCamera(name, BABYLON.Vector3.Zero, scene); };
                 case "AnaglyphArcRotateCamera":
                     return function () { return new BABYLON.AnaglyphArcRotateCamera(name, 0, 0, 1.0, BABYLON.Vector3.Zero(), interaxial_distance, scene); };
                 case "AnaglyphFreeCamera":

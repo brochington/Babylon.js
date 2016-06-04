@@ -38,7 +38,7 @@ module BABYLON {
             this.attached[type] = input;
 
             input.camera = this.camera;
-            
+
             //for checkInputs, we are dynamically creating a function
             //the goal is to avoid the performance penalty of looping for inputs in the render loop
             if (input.checkInputs) {
@@ -144,11 +144,13 @@ module BABYLON {
         }
 
         public parse(parsedCamera) {
+          console.log('parsedCamera', parsedCamera);
             var parsedInputs = parsedCamera.inputsmgr;
             if (parsedInputs) {
                 this.clear();
 
                 for (var n in parsedInputs) {
+                    console.log('n',n);
                     var construct = CameraInputTypes[n];
                     if (construct) {
                         var parsedinput = parsedInputs[n];
@@ -156,9 +158,10 @@ module BABYLON {
                         this.add(input as any);
                     }
                 }
-            } else { 
+            } else {
                 //2016-03-08 this part is for managing backward compatibility
                 for (var n in this.attached) {
+                    console.log('else n', n, this.attached[n].getTypeName());
                     var construct = CameraInputTypes[this.attached[n].getTypeName()];
                     if (construct) {
                         var input = SerializationHelper.Parse(() => { return new construct() }, parsedCamera, null);
@@ -169,5 +172,4 @@ module BABYLON {
             }
         }
     }
-} 
-
+}
