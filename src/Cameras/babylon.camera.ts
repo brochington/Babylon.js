@@ -592,7 +592,7 @@
                 case "VRDeviceOrientationFreeCamera":
                     return () => new VRDeviceOrientationFreeCamera(name, Vector3.Zero(), scene);
                 case "VRRoomScaleCamera":
-                    return () => new VRRoomScaleCamera(name, Vector3.Zero, scene);
+                    return () => new VRRoomScaleCamera(name, Vector3.Zero(), scene);
                 case "AnaglyphArcRotateCamera":
                     return () => new AnaglyphArcRotateCamera(name, 0, 0, 1.0, Vector3.Zero(), interaxial_distance, scene);
                 case "AnaglyphFreeCamera":

@@ -40,8 +40,6 @@ var BABYLON;
             return this;
         };
         FreeCameraInputsManager.prototype.addVRDisplay = function () {
-            console.log("adding vrDisplay!!");
-            console.dir(BABYLON.FreeCameraVRDisplayInput);
             this.add(new BABYLON.FreeCameraVRDisplayInput());
             return this;
         };
