@@ -15,6 +15,7 @@
         private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED = 12;
         private static _RIG_MODE_STEREOSCOPIC_OVERUNDER = 13;
         private static _RIG_MODE_VR = 20;
+        private static _RIG_MODE_VIVE = 21;
 
         public static get PERSPECTIVE_CAMERA(): number {
             return Camera._PERSPECTIVE_CAMERA;
@@ -54,6 +55,10 @@
 
         public static get RIG_MODE_VR(): number {
             return Camera._RIG_MODE_VR;
+        }
+
+        public static get RIG_MODE_VIVE(): number {
+            return Camera._RIG_MODE_VIVE;
         }
 
         public static ForceAttachControlToAlwaysPreventDefault = false;
@@ -493,6 +498,15 @@
                         this._rigCameras[1]._rigPostProcess = new VRDistortionCorrectionPostProcess("VR_Distort_Compensation_Right", this._rigCameras[1], true, metrics);
                     }
                     break;
+                case Camera.RIG_MODE_VIVE:
+                    this._rigCameras[0].viewport = new Viewport(0, 0, 0.5, 1.0);
+                    this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new Matrix();
+                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+
+                    this._rigCameras[1].viewport = new Viewport(0.5, 0, 0.5, 1.0);
+                    this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new Matrix();
+                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    break;
             }
 
             this._cascadePostProcessesToRigCams();
@@ -502,6 +516,11 @@
         private _getVRProjectionMatrix(): Matrix {
             Matrix.PerspectiveFovLHToRef(this._cameraRigParams.vrMetrics.aspectRatioFov, this._cameraRigParams.vrMetrics.aspectRatio, this.minZ, this.maxZ, this._cameraRigParams.vrWorkMatrix);
             this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
+            return this._projectionMatrix;
+        }
+
+        private _getVRRoomScaleProjectionMatrix(): Matrix {
+            console.log('_getVRRoomScaleProjectionMatrix');
             return this._projectionMatrix;
         }
 

@@ -114,6 +114,13 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Camera, "RIG_MODE_VIVE", {
+            get: function () {
+                return Camera._RIG_MODE_VIVE;
+            },
+            enumerable: true,
+            configurable: true
+        });
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
@@ -410,6 +417,14 @@ var BABYLON;
                         this._rigCameras[1]._rigPostProcess = new BABYLON.VRDistortionCorrectionPostProcess("VR_Distort_Compensation_Right", this._rigCameras[1], true, metrics);
                     }
                     break;
+                case Camera.RIG_MODE_VIVE:
+                    this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
+                    this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
+                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
+                    this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
+                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    break;
             }
             this._cascadePostProcessesToRigCams();
             this._update();
@@ -417,6 +432,10 @@ var BABYLON;
         Camera.prototype._getVRProjectionMatrix = function () {
             BABYLON.Matrix.PerspectiveFovLHToRef(this._cameraRigParams.vrMetrics.aspectRatioFov, this._cameraRigParams.vrMetrics.aspectRatio, this.minZ, this.maxZ, this._cameraRigParams.vrWorkMatrix);
             this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
+            return this._projectionMatrix;
+        };
+        Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
+            console.log('_getVRRoomScaleProjectionMatrix');
             return this._projectionMatrix;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {
@@ -567,6 +586,7 @@ var BABYLON;
         Camera._RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED = 12;
         Camera._RIG_MODE_STEREOSCOPIC_OVERUNDER = 13;
         Camera._RIG_MODE_VR = 20;
+        Camera._RIG_MODE_VIVE = 21;
         Camera.ForceAttachControlToAlwaysPreventDefault = false;
         __decorate([
             BABYLON.serializeAsVector3()

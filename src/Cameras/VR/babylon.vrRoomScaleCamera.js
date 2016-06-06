@@ -11,60 +11,47 @@ var BABYLON;
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
             var that = this;
+            this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, {});
             this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
             this._updatePosition = this._updatePosition.bind(this);
             this.inputs.addVRDisplay();
             this.rotationQuaternion = new BABYLON.Quaternion();
+            this.poseMatrix = new BABYLON.Matrix();
+            this.viewMatrix = new BABYLON.Matrix();
             console.log('rotationQuaternion', this.rotationQuaternion);
-            // let vrDisplays = navigator.getVRDisplays().then(displays => {
-            //   // console.log('got this far...', displays[0]);
-            //   console.log(scene);
-            //   if (displays.length > 0) {
-            //       this._vrDisplay = displays[0];
-            //       let leftEye = this._vrDisplay.getEyeParameters('left');
-            //       let rightEye = this._vrDisplay.getEyeParameters('right');
-            //
-            //       let webglCanvas = scene.getEngine().getRenderingCanvas();
-            //
-            //       // console.log(leftEye, rightEye);
-            //       console.log(webglCanvas);
-            //       this._vrDisplay.requestPresent([{source: webglCanvas}]).then(b => {
-            //         console.log('inside....',this._vrDisplay.isPresenting, b);
-            //           console.log(this._vrDisplay);
-            //           console.log(this._vrDisplay.getLayers());
-            //           console.log(this._vrDisplay.getPose());
-            //           // this._vrDisplay.requestAnimationFrame(onAnimationFrame);
-            //       });
-            //   }
-            //
-            //   function onAnimationFrame (t) {
-            //     that._vrDisplay.requestAnimationFrame(onAnimationFrame);
-            //     // console.log(that._vrDisplay.getPose().orientation[0]);
-            //     // let leftEye = that._vrDisplay.getEyeParameters('left');
-            //     // let rightEye = that._vrDisplay.getEyeParameters('right');
-            //     // console.log(leftEye.fieldOfView.downDegrees);
-            //   }
-            // })
-            // console.log('vrDisplay', navigator.getVRDisplays().then(result => console.log(result)));
         }
-        // var updatePosition = (newPos) => {
-        //     this._newPosition.copyFrom(newPos);
-        //
-        //     this._newPosition.subtractToRef(this._oldPosition, this._diffPosition);
-        //
-        //     var oldPosition = this.position.clone();
-        //     if (this._diffPosition.length() > Engine.CollisionsEpsilon) {
-        //         this.position.addInPlace(this._diffPosition);
-        //         if (this.onCollide && collidedMesh) {
-        //             this.onCollide(collidedMesh);
-        //         }
-        //     }
-        // }
+        // stolen from http://glmatrix.net/docs/mat4.js.html#line1449
+        VRRoomScaleCamera.prototype.fromRotationTranslation = function (out, q, v) {
+            // Quaternion math
+            var x = q[0], y = q[1], z = q[2], w = q[3], x2 = x + x, y2 = y + y, z2 = z + z, xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
+            out[0] = 1 - (yy + zz);
+            out[1] = xy + wz;
+            out[2] = xz - wy;
+            out[3] = 0;
+            out[4] = xy - wz;
+            out[5] = 1 - (xx + zz);
+            out[6] = yz + wx;
+            out[7] = 0;
+            out[8] = xz + wy;
+            out[9] = yz - wx;
+            out[10] = 1 - (xx + yy);
+            out[11] = 0;
+            out[12] = v[0];
+            out[13] = v[1];
+            out[14] = v[2];
+            out[15] = 1;
+            return out;
+        };
+        VRRoomScaleCamera.prototype.renderSceneView = function (eye) {
+        };
         VRRoomScaleCamera.prototype._updatePosition = function () {
+            console.log('_updatePosition');
+            console.log('_rigCameras');
+            console.log(this._rigCameras);
             var oldPosition = this.position;
             var pose = this._vrDisplay.getPose();
             var position = pose.position, orientation = pose.orientation;
-            this.position.x = position[0];
+            this.position.x = position[0]; // need to take into account height
             this.position.y = position[1];
             this.position.z = position[2];
             this.rotationQuaternion.x = orientation[0];
@@ -73,10 +60,13 @@ var BABYLON;
             this.rotationQuaternion.w = orientation[3];
             this.rotationQuaternion.z *= -1;
             this.rotationQuaternion.w *= -1;
+            this.fromRotationTranslation(this.poseMatrix, orientation, position);
+            this.renderSceneView(this._vrDisplay.getEyeParameters('left'));
+            this.renderSceneView(this._vrDisplay.getEyeParameters('right'));
             this._vrDisplay.submitFrame(pose);
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
-            this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+            // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
             this._updatePosition();
         };
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
@@ -88,13 +78,18 @@ var BABYLON;
                         _this._vrEnabled = true;
                     }
                     if (_this._vrEnabled) {
-                        console.log("this is vr Enabled!!");
-                        console.dir(_this);
-                        var renderingCanvas = _this.getEngine().getRenderingCanvas();
-                        _this._vrDisplay.requestPresent([{ source: renderingCanvas }]).then(function () {
+                        console.log("Engine");
+                        console.dir(_this.getEngine());
+                        var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
+                        _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
                                 var pose = _this._vrDisplay.getPose();
                                 console.log('pose', pose);
+                                var leftEye = _this._vrDisplay.getEyeParameters('left');
+                                var rightEye = _this._vrDisplay.getEyeParameters('right');
+                                // console.log('eyes..', leftEye, rightEye);
+                                renderingCanvas_1.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
+                                renderingCanvas_1.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
                                 _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
                         });
