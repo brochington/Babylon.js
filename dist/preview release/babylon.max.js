@@ -11748,7 +11748,10 @@ var BABYLON;
         Camera.prototype._getViewMatrix = function () {
             return BABYLON.Matrix.Identity();
         };
+        // I think the View matrix positions the camera, if you will.
+        // need to use position and orientation to change the view matrix.
         Camera.prototype.getViewMatrix = function (force) {
+            // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
             if (!force && this._isSynchronizedViewMatrix()) {
                 return this._computedViewMatrix;
@@ -11858,10 +11861,12 @@ var BABYLON;
                 case Camera.RIG_MODE_VIVE:
                     this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    // this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
                     this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    // this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
                     break;
             }
             this._cascadePostProcessesToRigCams();
@@ -11872,8 +11877,16 @@ var BABYLON;
             this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
             return this._projectionMatrix;
         };
+        // The projection matrix "flattens" the 3d stuff to 2d, and can distort it if needed for things
+        // like separate eyes.
         Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
-            console.log('_getVRRoomScaleProjectionMatrix');
+            // console.log('_getVRRoomScaleProjectionMatrix');
+            // console.log("Do I get this far???");
+            // Matrix.PerspectiveFovLHToRef(this._cameraRigParams.roomScaleMetrics)
+            // this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.)
+            // var metrics = this._rigCameras[0]._cameraRigParams.roomScaleMetrics;
+            // Matrix.PerspectiveFovLHToRef(0.959931, 0.5555, -1, 1, this._projectionMatrix, this.fovMode === Camera.FOVMODE_VERTICAL_FIXED);
+            // this._projectionMatrix.multiply()
             return this._projectionMatrix;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {
@@ -12760,9 +12773,18 @@ var BABYLON;
             // }
             // window.addEventListener("deviceorientation", this._deviceOrientationHandler);
         };
+        // this is called by FreeCamera _checkInputs.
+        FreeCameraVRDisplayInput.prototype.checkInputs = function () {
+            // console.log('calling this, yo');
+            // Quaternion.RotationYawPitchRollToRef(BABYLON.Tools.ToRadians(this._alpha), BABYLON.Tools.ToRadians(this._beta), -BABYLON.Tools.ToRadians(this._gamma), this.camera.rotationQuaternion)
+            // this._camera.rotationQuaternion.multiplyInPlace(this._screenQuaternion);
+            // this._camera.rotationQuaternion.multiplyInPlace(this._constantTranform);
+            //Mirror on XY Plane
+            // this._camera.rotationQuaternion.z *= -1;
+            // this._camera.rotationQuaternion.w *= -1;
+        };
         FreeCameraVRDisplayInput.prototype.detachControl = function (element) {
             console.log('detachControl', HTMLElement);
-            // window.removeEventListener("deviceorientation", this._deviceOrientationHandler);
         };
         FreeCameraVRDisplayInput.prototype.getTypeName = function () {
             return "FreeCameraVRDisplayInput";
@@ -13437,7 +13459,7 @@ var BABYLON;
                 BABYLON.Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this.upVector);
             }
             else {
-                BABYLON.Matrix.RotationYawPitchRollToRef(this.rotation.y, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
+                BABYLON.Matrix.RotationYawPitchRollToRef(this.rotation.y + 1, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
             }
         };
         TargetCamera.prototype._getViewMatrix = function () {
@@ -13489,6 +13511,7 @@ var BABYLON;
          * Override Camera._updateRigCameras
          */
         TargetCamera.prototype._updateRigCameras = function () {
+            // console.log("_updateRigCameras!");
             var camLeft = this._rigCameras[0];
             var camRight = this._rigCameras[1];
             switch (this.cameraRigMode) {
@@ -13505,6 +13528,12 @@ var BABYLON;
                     camRight.setTarget(this.getTarget());
                     break;
                 case BABYLON.Camera.RIG_MODE_VR:
+                    camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                    camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                    camLeft.position.copyFrom(this.position);
+                    camRight.position.copyFrom(this.position);
+                    break;
+                case BABYLON.Camera.RIG_MODE_VIVE:
                     camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camLeft.position.copyFrom(this.position);
@@ -45966,6 +45995,91 @@ var BABYLON;
     BABYLON.VRCameraMetrics = VRCameraMetrics;
 })(BABYLON || (BABYLON = {}));
 
+var BABYLON;
+(function (BABYLON) {
+    var VRRoomScaleMetrics = (function () {
+        function VRRoomScaleMetrics(leftEye, rightEye) {
+            this.compensateDistortion = true;
+            this.leftEyeFOVdownDegrees = leftEye.fieldOfView.downDegrees;
+            this.leftEyeFOVleftDegrees = leftEye.fieldOfView.leftDegrees;
+            this.leftEyeFOVrightDegrees = leftEye.fieldOfView.rightDegrees;
+            this.leftEyeFOVupDegrees = leftEye.fieldOfView.upDegrees;
+            this.rightEyeFOVdownDegrees = rightEye.fieldOfView.downDegrees;
+            this.rightEyeFOVleftDegrees = rightEye.fieldOfView.leftDegrees;
+            this.rightEyeFOVrightDegrees = rightEye.fieldOfView.rightDegrees;
+            this.rightEyeFOVupDegrees = rightEye.fieldOfView.upDegrees;
+            this.leftEyeOffset = leftEye.offset;
+            this.rightEyeOffset = rightEye.offset;
+            this.leftEyeRenderHeight = leftEye.renderHeight;
+            this.leftEyeRenderWidth = leftEye.renderWidth;
+            this.rightEyeRenderHeight = rightEye.renderHeight;
+            this.rightEyeRenderWidth = rightEye.renderWidth;
+        }
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "aspectRatio", {
+            get: function () {
+                return this.leftEyeRenderHeight / (2 * this.leftEyeRenderWidth);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "aspectRatioFov", {
+            get: function () {
+                return (2 * Math.atan((this.postProcessScaleFactor * this.vScreenSize) / (2 * this.eyeToScreenDistance)));
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "leftHMatrix", {
+            get: function () {
+                var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
+                var h = (4 * meters) / this.hScreenSize;
+                return BABYLON.Matrix.Translation(h, 0, 0);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "rightHMatrix", {
+            get: function () {
+                var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
+                var h = (4 * meters) / this.hScreenSize;
+                return BABYLON.Matrix.Translation(-h, 0, 0);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "leftPreViewMatrix", {
+            get: function () {
+                return BABYLON.Matrix.Translation(0.5 * this.interpupillaryDistance, 0, 0);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "rightPreViewMatrix", {
+            get: function () {
+                return BABYLON.Matrix.Translation(-0.5 * this.interpupillaryDistance, 0, 0);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "renderingHeight", {
+            get: function () {
+                return Math.max(this.leftEyeRenderHeight, this.rightEyeRenderHeight);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(VRRoomScaleMetrics.prototype, "renderingWidth", {
+            get: function () {
+                return Math.max(this.leftEyeRenderWidth, this.rightEyeRenderWidth) * 2;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return VRRoomScaleMetrics;
+    }());
+    BABYLON.VRRoomScaleMetrics = VRRoomScaleMetrics;
+})(BABYLON || (BABYLON = {}));
+
 
 
 
@@ -46017,15 +46131,13 @@ var BABYLON;
         function VRRoomScaleCamera(name, position, scene, compensateDistortion) {
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
-            var that = this;
-            this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, {});
+            this.inputs.addVRDisplay();
             this.onAnimationFrame = this.onAnimationFrame.bind(this);
             this._updatePosition = this._updatePosition.bind(this);
-            this.inputs.addVRDisplay();
             this.rotationQuaternion = new BABYLON.Quaternion();
-            this.poseMatrix = new BABYLON.Matrix();
-            this.viewMatrix = new BABYLON.Matrix();
-            console.log('rotationQuaternion', this.rotationQuaternion);
+            this.minZ = -1;
+            this.maxZ = 1;
+            this._viewMatrix = BABYLON.Matrix.Identity();
         }
         VRRoomScaleCamera.prototype.fromRotationTranslation = function (out, q, v) {
             var x = q[0], y = q[1], z = q[2], w = q[3], x2 = x + x, y2 = y + y, z2 = z + z, xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
@@ -46049,34 +46161,40 @@ var BABYLON;
         };
         VRRoomScaleCamera.prototype.renderSceneView = function (eye) {
         };
-        VRRoomScaleCamera.prototype._updatePosition = function () {
-            console.log('_updatePosition');
-            console.log('_rigCameras');
-            console.log(this._rigCameras);
+        VRRoomScaleCamera.prototype._updatePosition2 = function () {
             var oldPosition = this.position;
             var pose = this._vrDisplay.getPose();
+            var _a = this._vrDisplay.stageParameters, sittingToStandingTransform = _a.sittingToStandingTransform, sizeX = _a.sizeX, sizeZ = _a.sizeZ;
+            var standMatrix = BABYLON.Matrix.FromArray(sittingToStandingTransform);
             var position = pose.position, orientation = pose.orientation;
-            this.position.x = position[0];
-            this.position.y = position[1];
-            this.position.z = position[2];
+            if (position === null || orientation === null) {
+                console.warn('position or orientation are null...', pose);
+                return;
+            }
+            this.position.x = ((position[0] + 1) / (2 / sizeX));
+            this.position.y = position[1] * 2;
+            this.position.z = ((position[2] + 1) / (2 / sizeZ) * -1);
+            var myMatrix = BABYLON.Matrix.Compose(new BABYLON.Vector3(0, 0, 0), new BABYLON.Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]), new BABYLON.Vector3(position[0], position[1], position[2]));
+            myMatrix.multiplyToRef(standMatrix, myMatrix);
+            this._viewMatrix = myMatrix;
             this.rotationQuaternion.x = orientation[0];
             this.rotationQuaternion.y = orientation[1];
             this.rotationQuaternion.z = orientation[2];
             this.rotationQuaternion.w = orientation[3];
             this.rotationQuaternion.z *= -1;
             this.rotationQuaternion.w *= -1;
-            this.fromRotationTranslation(this.poseMatrix, orientation, position);
-            this.renderSceneView(this._vrDisplay.getEyeParameters('left'));
-            this.renderSceneView(this._vrDisplay.getEyeParameters('right'));
             this._vrDisplay.submitFrame(pose);
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
-            this._updatePosition();
+            this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+            this._updatePosition2();
         };
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
+            console.log("attach control!!");
             if (navigator.getVRDisplays) {
                 navigator.getVRDisplays().then(function (displays) {
+                    console.log('YOYOYOYOY');
                     if (displays.length > 0) {
                         _this._vrDisplay = displays[0];
                         _this._vrEnabled = true;
@@ -46084,6 +46202,8 @@ var BABYLON;
                     if (_this._vrEnabled) {
                         console.log("Engine");
                         console.dir(_this.getEngine());
+                        console.log('this camera');
+                        console.dir(_this);
                         var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
@@ -46091,8 +46211,12 @@ var BABYLON;
                                 console.log('pose', pose);
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
                                 var rightEye = _this._vrDisplay.getEyeParameters('right');
-                                renderingCanvas_1.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
-                                renderingCanvas_1.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+                                console.log(leftEye, rightEye);
+                                var metrics = new BABYLON.VRRoomScaleMetrics(leftEye, rightEye);
+                                console.log('metrics 2', metrics);
+                                _this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, { vrRoomScaleMetrics: metrics });
+                                renderingCanvas_1.width = metrics.renderingWidth;
+                                renderingCanvas_1.height = metrics.renderingHeight;
                                 _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
                         });
@@ -46102,6 +46226,25 @@ var BABYLON;
         };
         VRRoomScaleCamera.prototype.detachControl = function (element) {
             console.log('detachControl', HTMLElement);
+            _super.prototype.detachControl.call(this, element);
+        };
+        VRRoomScaleCamera.prototype.createRigCamera = function (name, cameraIndex) {
+            var rigCamera = new BABYLON.FreeCamera(name, this.position.clone(), this.getScene());
+            if (!this.rotationQuaternion) {
+                this.rotationQuaternion = new BABYLON.Quaternion();
+            }
+            rigCamera.rotationQuaternion = new BABYLON.Quaternion();
+            rigCamera._cameraRigParams = {};
+            return rigCamera;
+        };
+        VRRoomScaleCamera.prototype._updateRigCameras = function () {
+            for (var i = 0; i < this._rigCameras.length; i++) {
+                this._rigCameras[i].position.copyFrom(this.position);
+                this._rigCameras[i].rotationQuaternion.copyFrom(this.rotationQuaternion);
+            }
+        };
+        VRRoomScaleCamera.prototype._getViewMatrix = function () {
+            return this._viewMatrix;
         };
         VRRoomScaleCamera.prototype.getTypeName = function () {
             return "VRRoomScaleCamera";

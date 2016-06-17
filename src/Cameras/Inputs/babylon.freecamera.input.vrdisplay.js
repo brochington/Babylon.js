@@ -38,9 +38,18 @@ var BABYLON;
             // }
             // window.addEventListener("deviceorientation", this._deviceOrientationHandler);
         };
+        // this is called by FreeCamera _checkInputs.
+        FreeCameraVRDisplayInput.prototype.checkInputs = function () {
+            // console.log('calling this, yo');
+            // Quaternion.RotationYawPitchRollToRef(BABYLON.Tools.ToRadians(this._alpha), BABYLON.Tools.ToRadians(this._beta), -BABYLON.Tools.ToRadians(this._gamma), this.camera.rotationQuaternion)
+            // this._camera.rotationQuaternion.multiplyInPlace(this._screenQuaternion);
+            // this._camera.rotationQuaternion.multiplyInPlace(this._constantTranform);
+            //Mirror on XY Plane
+            // this._camera.rotationQuaternion.z *= -1;
+            // this._camera.rotationQuaternion.w *= -1;
+        };
         FreeCameraVRDisplayInput.prototype.detachControl = function (element) {
             console.log('detachControl', HTMLElement);
-            // window.removeEventListener("deviceorientation", this._deviceOrientationHandler);
         };
         FreeCameraVRDisplayInput.prototype.getTypeName = function () {
             return "FreeCameraVRDisplayInput";

@@ -310,7 +310,10 @@ var BABYLON;
         Camera.prototype._getViewMatrix = function () {
             return BABYLON.Matrix.Identity();
         };
+        // I think the View matrix positions the camera, if you will.
+        // need to use position and orientation to change the view matrix.
         Camera.prototype.getViewMatrix = function (force) {
+            // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
             if (!force && this._isSynchronizedViewMatrix()) {
                 return this._computedViewMatrix;
@@ -420,10 +423,12 @@ var BABYLON;
                 case Camera.RIG_MODE_VIVE:
                     this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    // this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
                     this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    // this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
                     break;
             }
             this._cascadePostProcessesToRigCams();
@@ -434,8 +439,16 @@ var BABYLON;
             this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
             return this._projectionMatrix;
         };
+        // The projection matrix "flattens" the 3d stuff to 2d, and can distort it if needed for things
+        // like separate eyes.
         Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
-            console.log('_getVRRoomScaleProjectionMatrix');
+            // console.log('_getVRRoomScaleProjectionMatrix');
+            // console.log("Do I get this far???");
+            // Matrix.PerspectiveFovLHToRef(this._cameraRigParams.roomScaleMetrics)
+            // this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.)
+            // var metrics = this._rigCameras[0]._cameraRigParams.roomScaleMetrics;
+            // Matrix.PerspectiveFovLHToRef(0.959931, 0.5555, -1, 1, this._projectionMatrix, this.fovMode === Camera.FOVMODE_VERTICAL_FIXED);
+            // this._projectionMatrix.multiply()
             return this._projectionMatrix;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {

@@ -2,25 +2,23 @@ module BABYLON {
     export class VRRoomScaleCamera extends FreeCamera {
         constructor(name: string, position: Vector3, scene: Scene, compensateDistortion = true) {
           super(name, position, scene);
-          let that = this;
 
-          this.setCameraRigMode(Camera.RIG_MODE_VIVE, {});
-          this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
-          this._updatePosition = this._updatePosition.bind(this);
           this.inputs.addVRDisplay();
 
+          this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
+          this._updatePosition = this._updatePosition.bind(this);
           this.rotationQuaternion = new Quaternion();
 
-          this.poseMatrix = new Matrix();
-          this.viewMatrix = new Matrix();
+          this.minZ = -1;
+          this.maxZ = 1;
 
-          console.log('rotationQuaternion', this.rotationQuaternion);
+          this._viewMatrix = Matrix.Identity();
         }
 
         private _vrDisplay; // VRDisplay
         private _vrEnabled; // bool
-        private poseMatrix;
-        private viewMatrix;
+        public _viewMatrix;
+
 
         // stolen from http://glmatrix.net/docs/mat4.js.html#line1449
         fromRotationTranslation(out, q, v) {
@@ -60,42 +58,76 @@ module BABYLON {
         renderSceneView(eye) {
         }
 
-        _updatePosition() {
-          console.log('_updatePosition');
-          console.log('_rigCameras');
-          console.log(this._rigCameras);
+        _updatePosition2() {
           const oldPosition = this.position;
           const pose = this._vrDisplay.getPose();
+          const {sittingToStandingTransform, sizeX, sizeZ} = this._vrDisplay.stageParameters;
+          var standMatrix = Matrix.FromArray(sittingToStandingTransform);
           const {position, orientation} = pose;
+          // var sst = Matrix.FromArray(sittingToStandingTransform);
 
-          this.position.x = position[0]; // need to take into account height
-          this.position.y = position[1];
-          this.position.z = position[2];
+          if (position === null || orientation === null) {
+            console.warn('position or orientation are null...', pose);
+            return;
+          }
+          // this.position.x = position[0];
+          // this.position.y = position[1];
+          // this.position.z = position[2];
+          this.position.x = ((position[0] + 1) / (2 / sizeX));
+          this.position.y = position[1] * 2;
+          this.position.z = ((position[2] + 1) / (2 / sizeZ) * -1); // needs to be -
+          // this.position.addInPlace(new Vector3(position[0], position[1], position[2]));
+          var myMatrix = Matrix.Compose(
+            new Vector3(0, 0, 0),
+            new Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]),
+            new Vector3(position[0], position[1], position[2])
+          );
 
+          // Matrix.multiplyToRef(sittingToStandingTransform, myMatrix);
+          myMatrix.multiplyToRef(standMatrix, myMatrix);
+          this._viewMatrix = myMatrix;
+          // console.log(myMatrix);
           this.rotationQuaternion.x = orientation[0];
           this.rotationQuaternion.y = orientation[1];
           this.rotationQuaternion.z = orientation[2];
           this.rotationQuaternion.w = orientation[3];
-
+          // this.position.addInPlace(this.cameraDirection);
           this.rotationQuaternion.z *= -1;
           this.rotationQuaternion.w *= -1;
+          // console.time('tempPoseMatrix');
+          // let tempPoseMatrix = Matrix.Identity();
+          // console.timeEnd('tempPoseMatrix');
+          // console.log("before", tempPoseMatrix);
+          // console.dir(Matrix.FromArray(sittingToStandingTransform));
+          // this.fromRotationTranslation(tempPoseMatrix, orientation, position);
+          // let newPoseMatrix = new Matrix();
+          // console.log('after', tempPoseMatrix.multiply(standMatrix));
+          // tempPoseMatrix = tempPoseMatrix.multiply(standMatrix);
 
-          this.fromRotationTranslation(this.poseMatrix, orientation, position);
-
-          this.renderSceneView(this._vrDisplay.getEyeParameters('left'));
-          this.renderSceneView(this._vrDisplay.getEyeParameters('right'));
-
+          // this.viewMatrix = tempPoseMatrix;
+          // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(tempPoseMatrix);
+          // console.dir(this.rotationQuaternion.fromRotationMatrix(tempPoseMatrix));
+          // this.renderSceneView(this._vrDisplay.getEyeParameters('left'));
+          // this.renderSceneView(this._vrDisplay.getEyeParameters('right'));
+          // console.log(this.getViewMatrix());
           this._vrDisplay.submitFrame(pose);
         }
 
         onAnimationFrame() {
-          // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
-          this._updatePosition();
+          // Should this be moved externally to something like engine.runRenderLoop()?
+          this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+          this._updatePosition2();
         }
+        //
+        // public _checkInputs(): void {
+        //   super._checkInputs();
+        // }
 
         attachControl(element: HTMLElement, noPreventDefault?: boolean) {
+          console.log("attach control!!")
           if (navigator.getVRDisplays) {
             navigator.getVRDisplays().then(displays => {
+              console.log('YOYOYOYOY');
               if (displays.length > 0) {
                 this._vrDisplay = displays[0];
                 this._vrEnabled = true;
@@ -104,18 +136,28 @@ module BABYLON {
               if (this._vrEnabled) {
                 console.log("Engine");
                 console.dir(this.getEngine());
+                console.log('this camera');
+                console.dir(this);
+
                 const renderingCanvas = this.getEngine().getRenderingCanvas();
+
                 this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
                   if (this._vrDisplay.isPresenting) {
                     const pose = this._vrDisplay.getPose();
                     console.log('pose', pose);
                     const leftEye = this._vrDisplay.getEyeParameters('left');
                     const rightEye = this._vrDisplay.getEyeParameters('right');
+                    console.log(leftEye, rightEye);
 
-                    // console.log('eyes..', leftEye, rightEye);
+                    // setting up camera rig here so that we can get eye parameter
+                    // data into the metrics.
+                    var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
+                    console.log('metrics 2', metrics);
+                    this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
+                    // Will need to update camera rigs with eye parameters
 
-                    renderingCanvas.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
-                    renderingCanvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+                    renderingCanvas.width = metrics.renderingWidth;
+                    renderingCanvas.height = metrics.renderingHeight;
 
                     this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
                   }
@@ -123,13 +165,48 @@ module BABYLON {
               }
             });
           }
-          // window.addEventListener("deviceorientation", this._deviceOrientationHandler);
         }
 
         detachControl(element: HTMLElement) {
           console.log('detachControl', HTMLElement);
-          // window.removeEventListener("deviceorientation", this._deviceOrientationHandler);
+          super.detachControl(element);
         }
+
+        public createRigCamera(name: string, cameraIndex: number): Camera {
+            var rigCamera = new FreeCamera(name, this.position.clone(), this.getScene());
+
+            if (!this.rotationQuaternion) {
+              this.rotationQuaternion = new Quaternion();
+            }
+
+            rigCamera.rotationQuaternion = new Quaternion();
+            rigCamera._cameraRigParams = {};
+            // rigCamera._cameraRigParams.vrActualUp = new Vector3(0, 0, 0);
+            // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
+
+            return rigCamera;
+        }
+
+        public _updateRigCameras() {
+          for (var i = 0; i < this._rigCameras.length; i++) {
+            this._rigCameras[i].position.copyFrom(this.position);
+            // Why is rotationQuaternion not present on the Camera?
+            this._rigCameras[i].rotationQuaternion.copyFrom(this.rotationQuaternion);
+            // console.log(this._rigCameras[i].rotationQuaternion);
+            // console.log(this._rigCameras[i].cameraDirection);
+            // Why does minZ and maxZ seem to break things?
+              // this._rigCameras[i].minZ = this.minZ;
+              // this._rigCameras[i].maxZ = this.maxZ;
+              // this._rigCameras[i].fov = this.fov;
+          }
+        }
+
+        public _getViewMatrix(): Matrix {
+            // console.log('_getVRViewMatrix.....');
+            return this._viewMatrix;
+            // return Matrix.Identity();
+        }
+        // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
 
         public getTypeName(): string {
             return "VRRoomScaleCamera";

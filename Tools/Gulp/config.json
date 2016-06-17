@@ -190,6 +190,7 @@
       "../../src/Rendering/babylon.outlineRenderer.js",
       "../../src/Tools/babylon.assetsManager.js",
       "../../src/Cameras/VR/babylon.vrCameraMetrics.js",
+      "../../src/Cameras/VR/babylon.vrRoomScaleMetrics.js",
       "../../src/Cameras/VR/babylon.vrDeviceOrientationCamera.js",
       "../../src/Cameras/VR/babylon.vrRoomScaleCamera.js",
       "../../src/Cameras/VR/babylon.webVRCamera.js",

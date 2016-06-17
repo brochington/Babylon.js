@@ -210,7 +210,7 @@
                 //update the up vector!
                 BABYLON.Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this.upVector);
             } else {
-                Matrix.RotationYawPitchRollToRef(this.rotation.y, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
+                Matrix.RotationYawPitchRollToRef(this.rotation.y + 1, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
                 //if (this.upVector.x !== 0 || this.upVector.y !== 1.0 || this.upVector.z !== 0) {
                 //    Matrix.LookAtLHToRef(Vector3.Zero(), this._referencePoint, this.upVector, this._lookAtTemp);
                 //    this._lookAtTemp.multiplyToRef(this._cameraRotationMatrix, this._tempMatrix);
@@ -278,6 +278,7 @@
          * Override Camera._updateRigCameras
          */
         public _updateRigCameras() {
+          // console.log("_updateRigCameras!");
             var camLeft = <TargetCamera>this._rigCameras[0];
             var camRight = <TargetCamera>this._rigCameras[1];
 
@@ -297,6 +298,13 @@
                     break;
 
                 case Camera.RIG_MODE_VR:
+                    camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                    camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                    camLeft.position.copyFrom(this.position);
+                    camRight.position.copyFrom(this.position);
+
+                    break;
+                case Camera.RIG_MODE_VIVE:
                     camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camLeft.position.copyFrom(this.position);
@@ -323,4 +331,4 @@
             return "TargetCamera";
         }
     }
-} 
+}
