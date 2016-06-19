@@ -11766,7 +11766,6 @@ var BABYLON;
                 this._computedViewMatrix.invertToRef(this._worldMatrix);
                 this._worldMatrix.multiplyToRef(this.parent.getWorldMatrix(), this._computedViewMatrix);
                 this._globalPosition.copyFromFloats(this._computedViewMatrix.m[12], this._computedViewMatrix.m[13], this._computedViewMatrix.m[14]);
-                // console.log('_globalPosition', this._globalPosition);
                 this._computedViewMatrix.invert();
                 this._markSyncedWithParent();
             }
