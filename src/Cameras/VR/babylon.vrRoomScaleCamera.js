@@ -17,6 +17,8 @@ var BABYLON;
             this.minZ = -1;
             this.maxZ = 1;
             this._viewMatrix = BABYLON.Matrix.Identity();
+            this._consoleTimer = 0;
+            this._hmdOrigin = new BABYLON.Vector3(0, 0, 0);
         }
         // stolen from http://glmatrix.net/docs/mat4.js.html#line1449
         VRRoomScaleCamera.prototype.fromRotationTranslation = function (out, q, v) {
@@ -48,22 +50,47 @@ var BABYLON;
             var _a = this._vrDisplay.stageParameters, sittingToStandingTransform = _a.sittingToStandingTransform, sizeX = _a.sizeX, sizeZ = _a.sizeZ;
             var standMatrix = BABYLON.Matrix.FromArray(sittingToStandingTransform);
             var position = pose.position, orientation = pose.orientation;
+            var x = position[0], y = position[1], z = position[2];
             // var sst = Matrix.FromArray(sittingToStandingTransform);
             if (position === null || orientation === null) {
                 console.warn('position or orientation are null...', pose);
                 return;
             }
-            // this.position.x = position[0];
+            var workMatrix = BABYLON.Matrix.Identity().toArray();
+            // var positionVector = new Vector(x, y, z);
+            workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
+            workMatrix = BABYLON.Matrix.FromArray(workMatrix);
+            workMatrix = workMatrix.multiply(standMatrix);
+            // const temp = this._hmdOrigin.subtractFromFloats(x, y, z);
+            // this.position = temp;
+            // this.position.x = x;
+            this.position.y = workMatrix.toArray()[13];
+            // this.position.z = z;
+            // this.position.x = ((temp.x + 1) / (2 / sizeX));
+            // this.position.addInPlace(temp);
             // this.position.y = position[1];
             // this.position.z = position[2];
-            this.position.x = ((position[0] + 1) / (2 / sizeX));
-            this.position.y = position[1] * 2;
-            this.position.z = ((position[2] + 1) / (2 / sizeZ) * -1); // needs to be -
-            // this.position.addInPlace(new Vector3(position[0], position[1], position[2]));
-            var myMatrix = BABYLON.Matrix.Compose(new BABYLON.Vector3(0, 0, 0), new BABYLON.Quaternion(orientation[0], orientation[1], orientation[2], orientation[3]), new BABYLON.Vector3(position[0], position[1], position[2]));
+            // this.position.x = ((position[0] + 1) / (2 / sizeX));
+            // this.position.y = position[1];
+            // this.position.z = ((position[2] + 1) / (2 / sizeZ)); // needs to be -
+            if (this._consoleTimer % 20 === 0) {
+                console.log("HMD location", position);
+                // console.log('temp', temp, this.position, orientation);
+                console.log('workMatrix', workMatrix, this.position);
+            }
+            //
+            // var myMatrix = Matrix.Compose(
+            //   new Vector3(0, 0, 0),
+            //   new Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])),
+            //   new Vector3(0, 3, 0)
+            // );
+            // if (this._consoleTimer % 20 === 0) {
+            //   console.log('myMatrix', myMatrix);
+            // }
             // Matrix.multiplyToRef(sittingToStandingTransform, myMatrix);
-            myMatrix.multiplyToRef(standMatrix, myMatrix);
-            this._viewMatrix = myMatrix;
+            // myMatrix.multiplyToRef(standMatrix, myMatrix);
+            // var orientationMatrix = Matrix.FromArray
+            // this._viewMatrix = workMatrix;
             // console.log(myMatrix);
             this.rotationQuaternion.x = orientation[0];
             this.rotationQuaternion.y = orientation[1];
@@ -93,6 +120,7 @@ var BABYLON;
             // Should this be moved externally to something like engine.runRenderLoop()?
             this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
             this._updatePosition2();
+            this._consoleTimer += 1;
         };
         //
         // public _checkInputs(): void {
@@ -100,10 +128,8 @@ var BABYLON;
         // }
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
-            console.log("attach control!!");
             if (navigator.getVRDisplays) {
                 navigator.getVRDisplays().then(function (displays) {
-                    console.log('YOYOYOYOY');
                     if (displays.length > 0) {
                         _this._vrDisplay = displays[0];
                         _this._vrEnabled = true;
@@ -116,6 +142,9 @@ var BABYLON;
                         var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
+                                // reset position and pose.
+                                _this._vrDisplay.resetPose();
+                                _this.position = new BABYLON.Vector3(0, 3, 0);
                                 var pose = _this._vrDisplay.getPose();
                                 console.log('pose', pose);
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
@@ -129,6 +158,8 @@ var BABYLON;
                                 // Will need to update camera rigs with eye parameters
                                 renderingCanvas_1.width = metrics.renderingWidth;
                                 renderingCanvas_1.height = metrics.renderingHeight;
+                                // this._hmdOrigin = new Vector3(pose.position[0], pose.position[1], pose.position[2]);
+                                console.log("_hmdOrigin", _this._hmdOrigin);
                                 _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
                         });
