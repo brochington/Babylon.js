@@ -210,7 +210,8 @@
                 //update the up vector!
                 BABYLON.Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this.upVector);
             } else {
-                Matrix.RotationYawPitchRollToRef(this.rotation.y + 1, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
+              Matrix.RotationYawPitchRollToRef(this.rotation.y, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
+
                 //if (this.upVector.x !== 0 || this.upVector.y !== 1.0 || this.upVector.z !== 0) {
                 //    Matrix.LookAtLHToRef(Vector3.Zero(), this._referencePoint, this.upVector, this._lookAtTemp);
                 //    this._lookAtTemp.multiplyToRef(this._cameraRotationMatrix, this._tempMatrix);
@@ -304,6 +305,7 @@
                     camRight.position.copyFrom(this.position);
 
                     break;
+                // might be able to condense this.
                 case Camera.RIG_MODE_VIVE:
                     camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
