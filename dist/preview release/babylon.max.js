@@ -46127,6 +46127,9 @@ var BABYLON;
         function VRRoomScaleCamera(name, position, scene, compensateDistortion) {
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
+            this.myPosX = 0;
+            this.myPosY = 0;
+            this.myPosZ = 0;
             this.inputs.addVRDisplay();
             this.onAnimationFrame = this.onAnimationFrame.bind(this);
             this._updatePosition = this._updatePosition.bind(this);
@@ -46195,10 +46198,12 @@ var BABYLON;
             workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
             var workMatrix2 = BABYLON.Matrix.FromArray(Array.prototype.slice.call(workMatrix));
             workMatrix2 = workMatrix2.multiply(standMatrix);
+            workMatrix2.invertToRef(invertedWorkMatrix);
+            var workMatrix2Arr = workMatrix2.toArray();
+            this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
+            this.position.y = workMatrix2Arr[13];
+            this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
             if (this._consoleTimer % 20 === 0) {
-                console.log("HMD location", position, orientation, this.position);
-                console.log(this.rotationQuaternion);
-                console.log(workMatrix2);
             }
             this.rotationQuaternion.x = orientation[0];
             this.rotationQuaternion.y = orientation[1];

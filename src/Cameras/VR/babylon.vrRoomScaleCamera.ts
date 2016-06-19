@@ -25,6 +25,11 @@ module BABYLON {
         private _consoleTimer;
         private _hmdOrigin;
 
+        public myPosX = 0;
+        public myPosY = 0;
+        public myPosZ = 0;
+
+
 
         // stolen from http://glmatrix.net/docs/mat4.js.html#line1449
         fromRotationTranslation(out, q, v) {
@@ -107,21 +112,29 @@ module BABYLON {
           workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
           var workMatrix2 = Matrix.FromArray(Array.prototype.slice.call(workMatrix));
           workMatrix2 = workMatrix2.multiply(standMatrix);
-          // workMatrix2.invertToRef(invertedWorkMatrix);
-          // var workMatrix2Arr = invertedWorkMatrix.toArray();
-
-          // this.position.x = workMatrix2Arr[12];
+          workMatrix2.invertToRef(invertedWorkMatrix);
+          var workMatrix2Arr = workMatrix2.toArray();
+          //
+          // this.position.x = workMatrix2Arr[12] * sizeX;
           // this.position.y = workMatrix2Arr[13];
-          // this.position.z = workMatrix2Arr[14];
-          // this.position.x = x;
+          // this.position.z = workMatrix2Arr[14] * sizeZ * -1;
+
+          // this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
+          this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
+          this.position.y = workMatrix2Arr[13];
+          this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
+          // this.position.x = this.myPosX;
+          // this.position.x = this.myPosX;
+          // this.position.y = this.myPosY;
+          // this.position.z = this.myPosZ;
           // this.position.y = 1;
-          // this.position.z = z;
+          // this.position.z = sizeZ * -1;
 
           if (this._consoleTimer % 20 === 0) {
-            console.log("HMD location", position, orientation, this.position);
+            // console.log("HMD location", sizeX, sizeZ, position, this.position);
+            // console.log('workMatrix2Arr', workMatrix2Arr[12], workMatrix2Arr[13], workMatrix2Arr[14]);
             // console.log(workMatrix2);
-            console.log(this.rotationQuaternion);
-            console.log(workMatrix2);
+            // console.log(workMatrix2, invertedWorkMatrix);
           }
 
           //
@@ -131,18 +144,7 @@ module BABYLON {
           //   new Vector3(0, 3, 0)
           // );
 
-          // if (this._consoleTimer % 20 === 0) {
-          //   console.log('myMatrix', myMatrix);
-          // }
-
-          // Matrix.multiplyToRef(sittingToStandingTransform, myMatrix);
-          // myMatrix.multiplyToRef(standMatrix, myMatrix);
-          // var orientationMatrix = Matrix.FromArray
-          // this._viewMatrix = workMatrix.invert();
-          // this._viewMatrix = invertedWorkMatrix;
-          // console.log(myMatrix);
-
-          // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(invertedWorkMatrix);
+          // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(workMatrix2);
           this.rotationQuaternion.x = orientation[0];
           this.rotationQuaternion.y = orientation[1];
           this.rotationQuaternion.z = orientation[2];
@@ -150,15 +152,6 @@ module BABYLON {
 
           this.rotationQuaternion.z *= -1;
           this.rotationQuaternion.w *= -1;
-          // console.time('tempPoseMatrix');
-          // let tempPoseMatrix = Matrix.Identity();
-          // console.timeEnd('tempPoseMatrix');
-          // console.log("before", tempPoseMatrix);
-          // console.dir(Matrix.FromArray(sittingToStandingTransform));
-          // this.fromRotationTranslation(tempPoseMatrix, orientation, position);
-          // let newPoseMatrix = new Matrix();
-          // console.log('after', tempPoseMatrix.multiply(standMatrix));
-          // tempPoseMatrix = tempPoseMatrix.multiply(standMatrix);
 
           this._vrDisplay.submitFrame(pose);
         }
