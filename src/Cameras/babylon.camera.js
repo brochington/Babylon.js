@@ -442,14 +442,9 @@ var BABYLON;
         // The projection matrix "flattens" the 3d stuff to 2d, and can distort it if needed for things
         // like separate eyes.
         Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
-            // console.log('_getVRRoomScaleProjectionMatrix');
-            // console.log("Do I get this far???");
-            // Matrix.PerspectiveFovLHToRef(this._cameraRigParams.roomScaleMetrics)
-            // this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.)
-            // var metrics = this._rigCameras[0]._cameraRigParams.roomScaleMetrics;
-            // Matrix.PerspectiveFovLHToRef(0.959931, 0.5555, -1, 1, this._projectionMatrix, this.fovMode === Camera.FOVMODE_VERTICAL_FIXED);
-            // this._projectionMatrix.multiply()
+            // var tempProMat = Matrix.FromArray([2.215695858001709, 0, 0, 0, 0, 1.3763818740844727, 0, 0, 0, 0, -1.0001953840255737, -1, 0, 0, -0.20001953840255737, 0]);
             return this._projectionMatrix;
+            // return tempProMat;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {
             if (!this._cameraRigParams) {

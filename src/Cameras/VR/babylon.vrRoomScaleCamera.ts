@@ -61,6 +61,28 @@ module BABYLON {
             return out;
         }
 
+        perspective(out, fovy, aspect, near, far) {
+          var f = 1.0 / Math.tan(fovy / 2),
+              nf = 1 / (near - far);
+          out[0] = f / aspect;
+          out[1] = 0;
+          out[2] = 0;
+          out[3] = 0;
+          out[4] = 0;
+          out[5] = f;
+          out[6] = 0;
+          out[7] = 0;
+          out[8] = 0;
+          out[9] = 0;
+          out[10] = (far + near) * nf;
+          out[11] = -1;
+          out[12] = 0;
+          out[13] = 0;
+          out[14] = (2 * far * near) * nf;
+          out[15] = 0;
+          return out;
+      }
+
         renderSceneView(eye) {
         }
 
@@ -79,31 +101,27 @@ module BABYLON {
           }
 
           var workMatrix = Matrix.Identity().toArray();
+          // corrent...
 
-          // var positionVector = new Vector(x, y, z);
-
+          var invertedWorkMatrix = Matrix.Identity();
           workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
-          workMatrix = Matrix.FromArray(workMatrix);
-          workMatrix = workMatrix.multiply(standMatrix);
-          // const temp = this._hmdOrigin.subtractFromFloats(x, y, z);
-          // this.position = temp;
+          var workMatrix2 = Matrix.FromArray(Array.prototype.slice.call(workMatrix));
+          workMatrix2 = workMatrix2.multiply(standMatrix);
+          // workMatrix2.invertToRef(invertedWorkMatrix);
+          // var workMatrix2Arr = invertedWorkMatrix.toArray();
+
+          // this.position.x = workMatrix2Arr[12];
+          // this.position.y = workMatrix2Arr[13];
+          // this.position.z = workMatrix2Arr[14];
           // this.position.x = x;
-          this.position.y = workMatrix.toArray()[13];
+          // this.position.y = 1;
           // this.position.z = z;
-          // this.position.x = ((temp.x + 1) / (2 / sizeX));
-          // this.position.addInPlace(temp);
-          // this.position.y = position[1];
-          // this.position.z = position[2];
-          // this.position.x = ((position[0] + 1) / (2 / sizeX));
-          // this.position.y = position[1];
-          // this.position.z = ((position[2] + 1) / (2 / sizeZ)); // needs to be -
 
           if (this._consoleTimer % 20 === 0) {
-            console.log("HMD location", position);
-            // console.log('temp', temp, this.position, orientation);
-            console.log('workMatrix', workMatrix, this.position);
-            // console.dir(this.getWorldMatrix());
-            // console.log("this.position", this.position, sizeX, sizeZ);
+            console.log("HMD location", position, orientation, this.position);
+            // console.log(workMatrix2);
+            console.log(this.rotationQuaternion);
+            console.log(workMatrix2);
           }
 
           //
@@ -120,14 +138,16 @@ module BABYLON {
           // Matrix.multiplyToRef(sittingToStandingTransform, myMatrix);
           // myMatrix.multiplyToRef(standMatrix, myMatrix);
           // var orientationMatrix = Matrix.FromArray
-          // this._viewMatrix = workMatrix;
+          // this._viewMatrix = workMatrix.invert();
+          // this._viewMatrix = invertedWorkMatrix;
           // console.log(myMatrix);
 
+          // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(invertedWorkMatrix);
           this.rotationQuaternion.x = orientation[0];
           this.rotationQuaternion.y = orientation[1];
           this.rotationQuaternion.z = orientation[2];
           this.rotationQuaternion.w = orientation[3];
-          // this.position.addInPlace(this.cameraDirection);
+
           this.rotationQuaternion.z *= -1;
           this.rotationQuaternion.w *= -1;
           // console.time('tempPoseMatrix');
@@ -140,12 +160,6 @@ module BABYLON {
           // console.log('after', tempPoseMatrix.multiply(standMatrix));
           // tempPoseMatrix = tempPoseMatrix.multiply(standMatrix);
 
-          // this.viewMatrix = tempPoseMatrix;
-          // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(tempPoseMatrix);
-          // console.dir(this.rotationQuaternion.fromRotationMatrix(tempPoseMatrix));
-          // this.renderSceneView(this._vrDisplay.getEyeParameters('left'));
-          // this.renderSceneView(this._vrDisplay.getEyeParameters('right'));
-          // console.log(this.getViewMatrix());
           this._vrDisplay.submitFrame(pose);
         }
 
@@ -179,8 +193,8 @@ module BABYLON {
                 this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
                   if (this._vrDisplay.isPresenting) {
                     // reset position and pose.
-                    this._vrDisplay.resetPose();
-                    this.position = new Vector3(0, 3, 0);
+                    // this._vrDisplay.resetPose();
+                    // this.position = new Vector3(0, 3, 0);
                     const pose = this._vrDisplay.getPose();
                     console.log('pose', pose);
                     const leftEye = this._vrDisplay.getEyeParameters('left');
