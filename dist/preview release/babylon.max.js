@@ -31,7 +31,7 @@ var BABYLON;
             return str.toUpperCase();
         };
         // Returns -1 when value is a negative number and
-        // +1 when value is a positive number. 
+        // +1 when value is a positive number.
         MathTools.Sign = function (value) {
             value = +value; // convert to a number
             if (value === 0 || isNaN(value))
@@ -2033,6 +2033,7 @@ var BABYLON;
             return result;
         };
         Matrix.Compose = function (scale, rotation, translation) {
+            // console.log('rotation', rotation);
             var result = Matrix.FromValues(scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1);
             var rotationMatrix = Matrix.Identity();
             rotation.toRotationMatrix(rotationMatrix);
@@ -11443,16 +11444,16 @@ var BABYLON;
 
 
 
-
-
-
-
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var BABYLON;
 (function (BABYLON) {
     var Camera = (function (_super) {
         __extends(Camera, _super);
         function Camera(name, position, scene) {
             _super.call(this, name, scene);
+            this._counter = 0;
             this.upVector = BABYLON.Vector3.Up();
             this.orthoLeft = null;
             this.orthoRight = null;
@@ -11467,10 +11468,8 @@ var BABYLON;
             this.viewport = new BABYLON.Viewport(0, 0, 1.0, 1.0);
             this.layerMask = 0x0FFFFFFF;
             this.fovMode = Camera.FOVMODE_VERTICAL_FIXED;
-            // Camera rig members
             this.cameraRigMode = Camera.RIG_MODE_NONE;
             this._rigCameras = new Array();
-            // Cache
             this._computedViewMatrix = BABYLON.Matrix.Identity();
             this._projectionMatrix = new BABYLON.Matrix();
             this._postProcesses = new Array();
@@ -11559,9 +11558,6 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
         Camera.prototype.toString = function (fullDetails) {
             var ret = "Name: " + this.name;
             ret += ", type: " + this.getTypeName();
@@ -11587,7 +11583,6 @@ var BABYLON;
         Camera.prototype.isActiveMesh = function (mesh) {
             return (this._activeMeshes.indexOf(mesh) !== -1);
         };
-        //Cache
         Camera.prototype._initCache = function () {
             _super.prototype._initCache.call(this);
             this._cache.position = new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
@@ -11627,7 +11622,6 @@ var BABYLON;
             this.updateCache();
             this._update();
         };
-        // Synchronized
         Camera.prototype._isSynchronized = function () {
             return this._isSynchronizedViewMatrix() && this._isSynchronizedProjectionMatrix();
         };
@@ -11660,7 +11654,6 @@ var BABYLON;
             }
             return check;
         };
-        // Controls
         Camera.prototype.attachControl = function (element, noPreventDefault) {
         };
         Camera.prototype.detachControl = function (element) {
@@ -11674,19 +11667,15 @@ var BABYLON;
         Camera.prototype._checkInputs = function () {
         };
         Camera.prototype._cascadePostProcessesToRigCams = function () {
-            // invalidate framebuffer
             if (this._postProcesses.length > 0) {
                 this._postProcesses[0].markTextureDirty();
             }
-            // glue the rigPostProcess to the end of the user postprocesses & assign to each sub-camera
             for (var i = 0, len = this._rigCameras.length; i < len; i++) {
                 var cam = this._rigCameras[i];
                 var rigPostProcess = cam._rigPostProcess;
-                // for VR rig, there does not have to be a post process
                 if (rigPostProcess) {
                     var isPass = rigPostProcess instanceof BABYLON.PassPostProcess;
                     if (isPass) {
-                        // any rig which has a PassPostProcess for rig[0], cannot be isIntermediate when there are also user postProcesses
                         cam.isIntermediate = this._postProcesses.length === 0;
                     }
                     cam._postProcesses = this._postProcesses.slice(0).concat(rigPostProcess);
@@ -11709,7 +11698,7 @@ var BABYLON;
             else {
                 this._postProcesses.splice(insertAt, 0, postProcess);
             }
-            this._cascadePostProcessesToRigCams(); // also ensures framebuffer invalidated
+            this._cascadePostProcessesToRigCams();
             return this._postProcesses.indexOf(postProcess);
         };
         Camera.prototype.detachPostProcess = function (postProcess, atIndices) {
@@ -11725,7 +11714,6 @@ var BABYLON;
             }
             else {
                 atIndices = (atIndices instanceof Array) ? atIndices : [atIndices];
-                // iterate descending, so can just splice as we go
                 for (i = atIndices.length - 1; i >= 0; i--) {
                     if (this._postProcesses[atIndices[i]] !== postProcess) {
                         result.push(i);
@@ -11734,7 +11722,7 @@ var BABYLON;
                     this._postProcesses.splice(index, 1);
                 }
             }
-            this._cascadePostProcessesToRigCams(); // also ensures framebuffer invalidated
+            this._cascadePostProcessesToRigCams();
             return result;
         };
         Camera.prototype.getWorldMatrix = function () {
@@ -11748,10 +11736,7 @@ var BABYLON;
         Camera.prototype._getViewMatrix = function () {
             return BABYLON.Matrix.Identity();
         };
-        // I think the View matrix positions the camera, if you will.
-        // need to use position and orientation to change the view matrix.
         Camera.prototype.getViewMatrix = function (force) {
-            // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
             if (!force && this._isSynchronizedViewMatrix()) {
                 return this._computedViewMatrix;
@@ -11773,9 +11758,6 @@ var BABYLON;
             return this._computedViewMatrix;
         };
         Camera.prototype._computeViewMatrix = function (force) {
-            if (!force && this._isSynchronizedViewMatrix()) {
-                return this._computedViewMatrix;
-            }
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();
             return this._computedViewMatrix;
@@ -11798,31 +11780,25 @@ var BABYLON;
             return this._projectionMatrix;
         };
         Camera.prototype.dispose = function () {
-            // Animations
             this.getScene().stopAnimation(this);
-            // Remove from scene
             this.getScene().removeCamera(this);
             while (this._rigCameras.length > 0) {
                 this._rigCameras.pop().dispose();
             }
-            // Postprocesses
             for (var i = 0; i < this._postProcesses.length; ++i) {
                 this._postProcesses[i].dispose(this);
             }
             _super.prototype.dispose.call(this);
         };
-        // ---- Camera rigs section ----
         Camera.prototype.setCameraRigMode = function (mode, rigParams) {
+            var _this = this;
             while (this._rigCameras.length > 0) {
                 this._rigCameras.pop().dispose();
             }
             this.cameraRigMode = mode;
             this._cameraRigParams = {};
-            //we have to implement stereo camera calcultating left and right viewpoints from interaxialDistance and target,
-            //not from a given angle as it is now, but until that complete code rewriting provisional stereoHalfAngle value is introduced
             this._cameraRigParams.interaxialDistance = rigParams.interaxialDistance || 0.0637;
             this._cameraRigParams.stereoHalfAngle = BABYLON.Tools.ToRadians(this._cameraRigParams.interaxialDistance / 0.0637);
-            // create the rig cameras, unless none
             if (this.cameraRigMode !== Camera.RIG_MODE_NONE) {
                 this._rigCameras.push(this.createRigCamera(this.name + "_L", 0));
                 this._rigCameras.push(this.createRigCamera(this.name + "_R", 1));
@@ -11859,13 +11835,18 @@ var BABYLON;
                     }
                     break;
                 case Camera.RIG_MODE_VIVE:
+                    var metrics = rigParams.vrRoomScaleMetrics;
                     this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    // this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0].getEyeFOV = metrics.getRightEyeFOV.bind(metrics);
                     this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
                     this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    // this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].getEyeFOV = metrics.getLeftEyeFOV.bind(metrics);
                     this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
                     break;
             }
@@ -11877,39 +11858,33 @@ var BABYLON;
             this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
             return this._projectionMatrix;
         };
-        // The projection matrix "flattens" the 3d stuff to 2d, and can distort it if needed for things
-        // like separate eyes.
         Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
-            // var tempProMat = Matrix.FromArray([2.215695858001709, 0, 0, 0, 0, 1.3763818740844727, 0, 0, 0, 0, -1.0001953840255737, -1, 0, 0, -0.20001953840255737, 0]);
-            return this._projectionMatrix;
-            // return tempProMat;
+            this.getEyeFOV(this._cameraRigParams.vrWorkMatrix);
+            if (this._counter % 90 === 0) {
+                console.log("vrWorkMatrix");
+                console.log(this._cameraRigParams.vrWorkMatrix);
+            }
+            this._counter += 1;
+            return this._cameraRigParams.vrWorkMatrix;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {
             if (!this._cameraRigParams) {
                 this._cameraRigParams = {};
             }
             this._cameraRigParams[name] = value;
-            //provisionnally:
             if (name === "interaxialDistance") {
                 this._cameraRigParams.stereoHalfAngle = BABYLON.Tools.ToRadians(value / 0.0637);
             }
         };
-        /**
-         * needs to be overridden by children so sub has required properties to be copied
-         */
         Camera.prototype.createRigCamera = function (name, cameraIndex) {
             return null;
         };
-        /**
-         * May need to be overridden by children
-         */
         Camera.prototype._updateRigCameras = function () {
             for (var i = 0; i < this._rigCameras.length; i++) {
                 this._rigCameras[i].minZ = this.minZ;
                 this._rigCameras[i].maxZ = this.maxZ;
                 this._rigCameras[i].fov = this.fov;
             }
-            // only update viewport when ANAGLYPH
             if (this.cameraRigMode === Camera.RIG_MODE_STEREOSCOPIC_ANAGLYPH) {
                 this._rigCameras[0].viewport = this._rigCameras[1].viewport = this.viewport;
             }
@@ -11918,16 +11893,13 @@ var BABYLON;
         };
         Camera.prototype.serialize = function () {
             var serializationObject = BABYLON.SerializationHelper.Serialize(this);
-            // Type
             serializationObject.type = this.getTypeName();
-            // Parent
             if (this.parent) {
                 serializationObject.parentId = this.parent.id;
             }
             if (this.inputs) {
                 this.inputs.serialize(serializationObject);
             }
-            // Animations
             BABYLON.Animation.AppendSerializedAnimations(this, serializationObject);
             serializationObject.ranges = this.serializeAnimationRanges();
             return serializationObject;
@@ -11988,27 +11960,22 @@ var BABYLON;
             var type = parsedCamera.type;
             var construct = Camera.GetConstructorFromName(type, parsedCamera.name, scene, parsedCamera.interaxial_distance, parsedCamera.isStereoscopicSideBySide);
             var camera = BABYLON.SerializationHelper.Parse(construct, parsedCamera, scene);
-            // Parent
             if (parsedCamera.parentId) {
                 camera._waitingParentId = parsedCamera.parentId;
             }
-            //If camera has an input manager, let it parse inputs settings
             if (camera.inputs) {
                 camera.inputs.parse(parsedCamera);
                 camera._setupInputs();
             }
-            // Target
             if (parsedCamera.target) {
                 if (camera.setTarget) {
                     camera.setTarget(BABYLON.Vector3.FromArray(parsedCamera.target));
                 }
             }
-            // Apply 3d rig, when found
             if (parsedCamera.cameraRigMode) {
                 var rigParams = (parsedCamera.interaxial_distance) ? { interaxialDistance: parsedCamera.interaxial_distance } : {};
                 camera.setCameraRigMode(parsedCamera.cameraRigMode, rigParams);
             }
-            // Animations
             if (parsedCamera.animations) {
                 for (var animationIndex = 0; animationIndex < parsedCamera.animations.length; animationIndex++) {
                     var parsedAnimation = parsedCamera.animations[animationIndex];
@@ -12021,7 +11988,6 @@ var BABYLON;
             }
             return camera;
         };
-        // Statics
         Camera._PERSPECTIVE_CAMERA = 0;
         Camera._ORTHOGRAPHIC_CAMERA = 1;
         Camera._FOVMODE_VERTICAL_FIXED = 0;
@@ -12035,52 +12001,68 @@ var BABYLON;
         Camera._RIG_MODE_VIVE = 21;
         Camera.ForceAttachControlToAlwaysPreventDefault = false;
         __decorate([
-            BABYLON.serializeAsVector3()
+            BABYLON.serializeAsVector3(), 
+            __metadata('design:type', BABYLON.Vector3)
         ], Camera.prototype, "position", void 0);
         __decorate([
-            BABYLON.serializeAsVector3()
+            BABYLON.serializeAsVector3(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "upVector", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "orthoLeft", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "orthoRight", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "orthoBottom", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "orthoTop", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "fov", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "minZ", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "maxZ", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "inertia", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "mode", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Number)
         ], Camera.prototype, "layerMask", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Number)
         ], Camera.prototype, "fovMode", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], Camera.prototype, "cameraRigMode", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Number)
         ], Camera.prototype, "interaxialDistance", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Boolean)
         ], Camera.prototype, "isStereoscopicSideBySide", void 0);
         return Camera;
     }(BABYLON.Node));
@@ -45996,6 +45978,10 @@ var BABYLON;
     var VRRoomScaleMetrics = (function () {
         function VRRoomScaleMetrics(leftEye, rightEye) {
             this.compensateDistortion = true;
+            this.leftEyeFOVdownDegrees = 0;
+            this.leftEyeFOVleftDegrees = 0;
+            this.leftEyeFOVrightDegrees = 0;
+            this.leftEyeFOVupDegrees = 0;
             this.leftEyeFOVdownDegrees = leftEye.fieldOfView.downDegrees;
             this.leftEyeFOVleftDegrees = leftEye.fieldOfView.leftDegrees;
             this.leftEyeFOVrightDegrees = leftEye.fieldOfView.rightDegrees;
@@ -46025,6 +46011,36 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
+        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
+            var result = this.perspectiveFromFieldOfView(out, this.leftEyeFOVupDegrees, this.leftEyeFOVdownDegrees, this.leftEyeFOVleftDegrees, this.leftEyeFOVrightDegrees);
+            return result;
+        };
+        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
+            var result = this.perspectiveFromFieldOfView(out, this.rightEyeFOVupDegrees, this.rightEyeFOVdownDegrees, this.rightEyeFOVleftDegrees, this.rightEyeFOVrightDegrees);
+            return result;
+        };
+        VRRoomScaleMetrics.prototype.perspectiveFromFieldOfView = function (out, upDegrees, downDegrees, leftDegrees, rightDegrees) {
+            var near = 0.1;
+            var far = 1024.0;
+            var upTan = Math.tan(this.leftEyeFOVupDegrees * Math.PI / 180.0), downTan = Math.tan(this.leftEyeFOVdownDegrees * Math.PI / 180.0), leftTan = Math.tan(this.leftEyeFOVleftDegrees * Math.PI / 180.0), rightTan = Math.tan(this.leftEyeFOVrightDegrees * Math.PI / 180.0), xScale = 2.0 / (leftTan + rightTan), yScale = 2.0 / (upTan + downTan);
+            out.m[0] = xScale;
+            out.m[1] = 0.0;
+            out.m[2] = 0.0;
+            out.m[3] = 0.0;
+            out.m[4] = 0.0;
+            out.m[5] = yScale;
+            out.m[6] = 0.0;
+            out.m[7] = 0.0;
+            out.m[8] = -((leftTan - rightTan) * xScale * 0.5);
+            out.m[9] = ((upTan - downTan) * yScale * 0.5);
+            out.m[10] = far / (near - far);
+            out.m[11] = -1.0;
+            out.m[12] = 0.0;
+            out.m[13] = 0.0;
+            out.m[14] = (far * near) / (near - far);
+            out.m[15] = 0.0;
+            return out;
+        };
         Object.defineProperty(VRRoomScaleMetrics.prototype, "leftHMatrix", {
             get: function () {
                 var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
@@ -46120,6 +46136,11 @@ var BABYLON;
 })(BABYLON || (BABYLON = {}));
 
 
+
+
+
+
+
 var BABYLON;
 (function (BABYLON) {
     var VRRoomScaleCamera = (function (_super) {
@@ -46131,16 +46152,18 @@ var BABYLON;
             this.myPosY = 0;
             this.myPosZ = 0;
             this.inputs.addVRDisplay();
-            this.onAnimationFrame = this.onAnimationFrame.bind(this);
+            this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
             this._updatePosition = this._updatePosition.bind(this);
             this.rotationQuaternion = new BABYLON.Quaternion();
             this.minZ = -1;
             this.maxZ = 1;
-            this._viewMatrix = BABYLON.Matrix.Identity();
+            this._myViewMatrix = BABYLON.Matrix.Identity();
             this._consoleTimer = 0;
             this._hmdOrigin = new BABYLON.Vector3(0, 0, 0);
         }
+        // stolen from http://glmatrix.net/docs/mat4.js.html#line1449
         VRRoomScaleCamera.prototype.fromRotationTranslation = function (out, q, v) {
+            // Quaternion math
             var x = q[0], y = q[1], z = q[2], w = q[3], x2 = x + x, y2 = y + y, z2 = z + z, xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
             out[0] = 1 - (yy + zz);
             out[1] = xy + wz;
@@ -46182,6 +46205,7 @@ var BABYLON;
         };
         VRRoomScaleCamera.prototype.renderSceneView = function (eye) {
         };
+        // Very slopy, but also very much a work in progress.
         VRRoomScaleCamera.prototype._updatePosition2 = function () {
             var oldPosition = this.position;
             var pose = this._vrDisplay.getPose();
@@ -46194,30 +46218,56 @@ var BABYLON;
                 return;
             }
             var workMatrix = BABYLON.Matrix.Identity().toArray();
+            // corrent...
             var invertedWorkMatrix = BABYLON.Matrix.Identity();
             workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
             var workMatrix2 = BABYLON.Matrix.FromArray(Array.prototype.slice.call(workMatrix));
             workMatrix2 = workMatrix2.multiply(standMatrix);
             workMatrix2.invertToRef(invertedWorkMatrix);
             var workMatrix2Arr = workMatrix2.toArray();
-            this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
-            this.position.y = workMatrix2Arr[13];
-            this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
-            if (this._consoleTimer % 20 === 0) {
+            var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2] * -1), (orientation[3] * -1)), new BABYLON.Vector3(x, y, z));
+            // result.multiply(standMatrix);
+            result.invert();
+            this._myViewMatrix = result;
+            // var resultArr = result.toArray();
+            // this.position.x = resultArr[12];
+            // this.position.y = resultArr[13];
+            // this.position.z = resultArr[14] * -1;
+            // this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
+            // this.position.y = workMatrix2Arr[13];
+            // this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
+            // this.position.x = this.myPosX;
+            // this.position.x = this.myPosX;
+            // this.position.y = this.myPosY;
+            // this.position.z = this.myPosZ;
+            // this.position.y = 1;
+            // this.position.z = sizeZ * -1;
+            if (this._consoleTimer % 90 === 0) {
+                console.log('result', result);
+                console.log(pose);
             }
-            this.rotationQuaternion.x = orientation[0];
-            this.rotationQuaternion.y = orientation[1];
-            this.rotationQuaternion.z = orientation[2];
-            this.rotationQuaternion.w = orientation[3];
-            this.rotationQuaternion.z *= -1;
-            this.rotationQuaternion.w *= -1;
+            // Should I be doing ?
+            // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(workMatrix2);
+            // Or this?
+            // this.rotationQuaternion.x = orientation[0];
+            // this.rotationQuaternion.y = orientation[1];
+            // this.rotationQuaternion.z = orientation[2];
+            // this.rotationQuaternion.w = orientation[3];
+            //
+            // this.rotationQuaternion.z *= -1;
+            // this.rotationQuaternion.w *= -1;
             this._vrDisplay.submitFrame(pose);
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
+            // Should this be moved externally to something like engine.runRenderLoop()?
             this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
             this._updatePosition2();
             this._consoleTimer += 1;
         };
+        //
+        // public _checkInputs(): void {
+        //   super._checkInputs();
+        // }
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
             if (navigator.getVRDisplays) {
@@ -46234,16 +46284,23 @@ var BABYLON;
                         var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
+                                // reset position and pose.
+                                // this._vrDisplay.resetPose();
+                                // this.position = new Vector3(0, 3, 0);
                                 var pose = _this._vrDisplay.getPose();
                                 console.log('pose', pose);
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
                                 var rightEye = _this._vrDisplay.getEyeParameters('right');
                                 console.log(leftEye, rightEye);
+                                // setting up camera rig here so that we can get eye parameter
+                                // data into the metrics.
                                 var metrics = new BABYLON.VRRoomScaleMetrics(leftEye, rightEye);
                                 console.log('metrics 2', metrics);
                                 _this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, { vrRoomScaleMetrics: metrics });
+                                // Will need to update camera rigs with eye parameters
                                 renderingCanvas_1.width = metrics.renderingWidth;
                                 renderingCanvas_1.height = metrics.renderingHeight;
+                                // this._hmdOrigin = new Vector3(pose.position[0], pose.position[1], pose.position[2]);
                                 console.log("_hmdOrigin", _this._hmdOrigin);
                                 _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
@@ -46263,17 +46320,26 @@ var BABYLON;
             }
             rigCamera.rotationQuaternion = new BABYLON.Quaternion();
             rigCamera._cameraRigParams = {};
+            // rigCamera._cameraRigParams.vrActualUp = new Vector3(0, 0, 0);
+            // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
             return rigCamera;
         };
         VRRoomScaleCamera.prototype._updateRigCameras = function () {
             for (var i = 0; i < this._rigCameras.length; i++) {
                 this._rigCameras[i].position.copyFrom(this.position);
+                // Why is rotationQuaternion not present on the Camera?
                 this._rigCameras[i].rotationQuaternion.copyFrom(this.rotationQuaternion);
             }
         };
         VRRoomScaleCamera.prototype._getViewMatrix = function () {
-            return this._viewMatrix;
+            // console.log('getViewMatrix');
+            if (this._consoleTimer % 90 === 0) {
+                console.log('this._myViewMatrix', this._myViewMatrix);
+            }
+            // return Matrix.Identity();
+            return this._myViewMatrix;
         };
+        // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
         VRRoomScaleCamera.prototype.getTypeName = function () {
             return "VRRoomScaleCamera";
         };

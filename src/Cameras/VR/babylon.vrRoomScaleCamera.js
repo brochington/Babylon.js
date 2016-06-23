@@ -19,7 +19,7 @@ var BABYLON;
             this.rotationQuaternion = new BABYLON.Quaternion();
             this.minZ = -1;
             this.maxZ = 1;
-            this._viewMatrix = BABYLON.Matrix.Identity();
+            this._myViewMatrix = BABYLON.Matrix.Identity();
             this._consoleTimer = 0;
             this._hmdOrigin = new BABYLON.Vector3(0, 0, 0);
         }
@@ -67,6 +67,7 @@ var BABYLON;
         };
         VRRoomScaleCamera.prototype.renderSceneView = function (eye) {
         };
+        // Very slopy, but also very much a work in progress.
         VRRoomScaleCamera.prototype._updatePosition2 = function () {
             var oldPosition = this.position;
             var pose = this._vrDisplay.getPose();
@@ -74,7 +75,6 @@ var BABYLON;
             var standMatrix = BABYLON.Matrix.FromArray(sittingToStandingTransform);
             var position = pose.position, orientation = pose.orientation;
             var x = position[0], y = position[1], z = position[2];
-            // var sst = Matrix.FromArray(sittingToStandingTransform);
             if (position === null || orientation === null) {
                 console.warn('position or orientation are null...', pose);
                 return;
@@ -87,35 +87,37 @@ var BABYLON;
             workMatrix2 = workMatrix2.multiply(standMatrix);
             workMatrix2.invertToRef(invertedWorkMatrix);
             var workMatrix2Arr = workMatrix2.toArray();
-            //
-            // this.position.x = workMatrix2Arr[12] * sizeX;
-            // this.position.y = workMatrix2Arr[13];
-            // this.position.z = workMatrix2Arr[14] * sizeZ * -1;
+            var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2] * -1), (orientation[3] * -1)), new BABYLON.Vector3(x, y, z));
+            // result.multiply(standMatrix);
+            result.invert();
+            this._myViewMatrix = result;
+            // var resultArr = result.toArray();
+            // this.position.x = resultArr[12];
+            // this.position.y = resultArr[13];
+            // this.position.z = resultArr[14] * -1;
             // this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
-            this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
-            this.position.y = workMatrix2Arr[13];
-            this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
+            // this.position.y = workMatrix2Arr[13];
+            // this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
             // this.position.x = this.myPosX;
             // this.position.x = this.myPosX;
             // this.position.y = this.myPosY;
             // this.position.z = this.myPosZ;
             // this.position.y = 1;
             // this.position.z = sizeZ * -1;
-            if (this._consoleTimer % 20 === 0) {
+            if (this._consoleTimer % 90 === 0) {
+                console.log('result', result);
+                console.log(pose);
             }
-            //
-            // var myMatrix = Matrix.Compose(
-            //   new Vector3(0, 0, 0),
-            //   new Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])),
-            //   new Vector3(0, 3, 0)
-            // );
+            // Should I be doing ?
             // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(workMatrix2);
-            this.rotationQuaternion.x = orientation[0];
-            this.rotationQuaternion.y = orientation[1];
-            this.rotationQuaternion.z = orientation[2];
-            this.rotationQuaternion.w = orientation[3];
-            this.rotationQuaternion.z *= -1;
-            this.rotationQuaternion.w *= -1;
+            // Or this?
+            // this.rotationQuaternion.x = orientation[0];
+            // this.rotationQuaternion.y = orientation[1];
+            // this.rotationQuaternion.z = orientation[2];
+            // this.rotationQuaternion.w = orientation[3];
+            //
+            // this.rotationQuaternion.z *= -1;
+            // this.rotationQuaternion.w *= -1;
             this._vrDisplay.submitFrame(pose);
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
@@ -192,9 +194,12 @@ var BABYLON;
             }
         };
         VRRoomScaleCamera.prototype._getViewMatrix = function () {
-            // console.log('_getVRViewMatrix.....');
-            return this._viewMatrix;
+            // console.log('getViewMatrix');
+            if (this._consoleTimer % 90 === 0) {
+                console.log('this._myViewMatrix', this._myViewMatrix);
+            }
             // return Matrix.Identity();
+            return this._myViewMatrix;
         };
         // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
         VRRoomScaleCamera.prototype.getTypeName = function () {

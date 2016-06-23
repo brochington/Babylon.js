@@ -14,10 +14,10 @@ module BABYLON {
         public lensCenterOffset: number;
         public compensateDistortion = true;
 
-        public leftEyeFOVdownDegrees: number;
-        public leftEyeFOVleftDegrees: number;
-        public leftEyeFOVrightDegrees: number;
-        public leftEyeFOVupDegrees: number;
+        public leftEyeFOVdownDegrees: number = 0;
+        public leftEyeFOVleftDegrees: number = 0;
+        public leftEyeFOVrightDegrees: number = 0;
+        public leftEyeFOVupDegrees: number = 0;
 
         public rightEyeFOVdownDegrees: number;
         public rightEyeFOVleftDegrees: number;
@@ -60,6 +60,60 @@ module BABYLON {
 
         public get aspectRatioFov(): number {
             return (2 * Math.atan((this.postProcessScaleFactor * this.vScreenSize) / (2 * this.eyeToScreenDistance)));
+        }
+
+        public getLeftEyeFOV(out: Matrix): Matrix {
+          var result = this.perspectiveFromFieldOfView(
+            out,
+            this.leftEyeFOVupDegrees,
+            this.leftEyeFOVdownDegrees,
+            this.leftEyeFOVleftDegrees,
+            this.leftEyeFOVrightDegrees
+          );
+
+          return result;
+        }
+
+        public getRightEyeFOV(out: Matrix): Matrix {
+          var result = this.perspectiveFromFieldOfView(
+            out,
+            this.rightEyeFOVupDegrees,
+            this.rightEyeFOVdownDegrees,
+            this.rightEyeFOVleftDegrees,
+            this.rightEyeFOVrightDegrees
+          );
+          return result;
+        }
+
+        public perspectiveFromFieldOfView(out: Matrix, upDegrees: number, downDegrees: number, leftDegrees: number, rightDegrees: number): Matrix {
+            var near = 0.1;
+            var far = 1024.0;
+
+            var upTan = Math.tan(this.leftEyeFOVupDegrees * Math.PI / 180.0),
+                downTan = Math.tan(this.leftEyeFOVdownDegrees * Math.PI / 180.0),
+                leftTan = Math.tan(this.leftEyeFOVleftDegrees * Math.PI / 180.0),
+                rightTan = Math.tan(this.leftEyeFOVrightDegrees * Math.PI / 180.0),
+                xScale = 2.0 / (leftTan + rightTan),
+                yScale = 2.0 / (upTan + downTan);
+
+            out.m[0] = xScale;
+            out.m[1] = 0.0;
+            out.m[2] = 0.0;
+            out.m[3] = 0.0;
+            out.m[4] = 0.0;
+            out.m[5] = yScale;
+            out.m[6] = 0.0;
+            out.m[7] = 0.0;
+            out.m[8] = -((leftTan - rightTan) * xScale * 0.5);
+            out.m[9] = ((upTan - downTan) * yScale * 0.5);
+            out.m[10] = far / (near - far);
+            out.m[11] = -1.0;
+            out.m[12] = 0.0;
+            out.m[13] = 0.0;
+            out.m[14] = (far * near) / (near - far);
+            out.m[15] = 0.0;
+
+            return out;
         }
 
         public get leftHMatrix(): Matrix {

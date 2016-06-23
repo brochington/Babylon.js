@@ -63,6 +63,9 @@
 
         public static ForceAttachControlToAlwaysPreventDefault = false;
 
+        // test
+        public _counter = 0;
+
         // Members
         @serializeAsVector3()
         public position: Vector3;
@@ -376,6 +379,7 @@
             if (!this.parent || !this.parent.getWorldMatrix) {
                 this._globalPosition.copyFrom(this.position);
             } else {
+
                 if (!this._worldMatrix) {
                     this._worldMatrix = Matrix.Identity();
                 }
@@ -396,9 +400,9 @@
         }
 
         public _computeViewMatrix(force?: boolean): Matrix {
-            if (!force && this._isSynchronizedViewMatrix()) {
-                return this._computedViewMatrix;
-            }
+            // if (!force && this._isSynchronizedViewMatrix()) {
+            //     return this._computedViewMatrix;
+            // }
 
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();
@@ -501,15 +505,19 @@
                     }
                     break;
                 case Camera.RIG_MODE_VIVE:
+                    var metrics = rigParams.vrRoomScaleMetrics;
                     this._rigCameras[0].viewport = new Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new Matrix();
-                    // this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0].getViewMatrix = () => this._myViewMatrix;
+                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0].getEyeFOV = metrics.getRightEyeFOV.bind(metrics);
                     this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
-
 
                     this._rigCameras[1].viewport = new Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new Matrix();
-                    // this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].getViewMatrix = () => this._myViewMatrix;
+                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].getEyeFOV = metrics.getLeftEyeFOV.bind(metrics);
                     this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
                     break;
             }
@@ -527,8 +535,19 @@
         // like separate eyes.
         private _getVRRoomScaleProjectionMatrix(): Matrix {
             // var tempProMat = Matrix.FromArray([2.215695858001709, 0, 0, 0, 0, 1.3763818740844727, 0, 0, 0, 0, -1.0001953840255737, -1, 0, 0, -0.20001953840255737, 0]);
-            return this._projectionMatrix;
-            // return tempProMat;
+            // return this._projectionMatrix;
+            this.getEyeFOV(
+              this._cameraRigParams.vrWorkMatrix
+            );
+            if (this._counter % 90 === 0) {
+              console.log("vrWorkMatrix");
+              console.log(this._cameraRigParams.vrWorkMatrix);
+            }
+            this._counter += 1;
+            // console.log(this._cameraRigParams.vrWorkMatrix);
+            // console.log(this._cameraRigParams);
+
+            return this._cameraRigParams.vrWorkMatrix;
         }
 
         public setCameraRigParameter(name: string, value: any) {

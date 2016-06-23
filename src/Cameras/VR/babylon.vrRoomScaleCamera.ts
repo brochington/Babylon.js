@@ -12,7 +12,7 @@ module BABYLON {
           this.minZ = -1;
           this.maxZ = 1;
 
-          this._viewMatrix = Matrix.Identity();
+          this._myViewMatrix = Matrix.Identity();
 
           this._consoleTimer = 0;
 
@@ -21,7 +21,7 @@ module BABYLON {
 
         private _vrDisplay; // VRDisplay
         private _vrEnabled; // bool
-        public _viewMatrix;
+        public _myViewMatrix : Matrix;
         private _consoleTimer;
         private _hmdOrigin;
 
@@ -90,7 +90,7 @@ module BABYLON {
 
         renderSceneView(eye) {
         }
-
+        // Very slopy, but also very much a work in progress.
         _updatePosition2() {
           const oldPosition = this.position;
           const pose = this._vrDisplay.getPose();
@@ -98,7 +98,6 @@ module BABYLON {
           var standMatrix = Matrix.FromArray(sittingToStandingTransform);
           const {position, orientation} = pose;
           const [x, y, z] = position;
-          // var sst = Matrix.FromArray(sittingToStandingTransform);
 
           if (position === null || orientation === null) {
             console.warn('position or orientation are null...', pose);
@@ -114,15 +113,24 @@ module BABYLON {
           workMatrix2 = workMatrix2.multiply(standMatrix);
           workMatrix2.invertToRef(invertedWorkMatrix);
           var workMatrix2Arr = workMatrix2.toArray();
-          //
-          // this.position.x = workMatrix2Arr[12] * sizeX;
-          // this.position.y = workMatrix2Arr[13];
-          // this.position.z = workMatrix2Arr[14] * sizeZ * -1;
 
+          var result = Matrix.Compose(
+            new Vector3(1, 1, 1),
+            new Quaternion(orientation[0], orientation[1], (orientation[2] * -1), (orientation[3] * -1)),
+            new Vector3(x, y, z)
+          );
+          // result.multiply(standMatrix);
+          result.invert();
+
+          this._myViewMatrix = result;
+          // var resultArr = result.toArray();
+
+          // this.position.x = resultArr[12];
+          // this.position.y = resultArr[13];
+          // this.position.z = resultArr[14] * -1;
           // this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
-          this.position.x = workMatrix2Arr[12] * (sizeX * 0.5);
-          this.position.y = workMatrix2Arr[13];
-          this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
+          // this.position.y = workMatrix2Arr[13];
+          // this.position.z = workMatrix2Arr[14] * (sizeZ * 0.5) * -1;
           // this.position.x = this.myPosX;
           // this.position.x = this.myPosX;
           // this.position.y = this.myPosY;
@@ -130,28 +138,30 @@ module BABYLON {
           // this.position.y = 1;
           // this.position.z = sizeZ * -1;
 
-          if (this._consoleTimer % 20 === 0) {
+
+          if (this._consoleTimer % 90 === 0) {
+            console.log('result', result);
+            console.log(pose);
+            // console.log(workMatrix2);
+            // console.log(invertedWorkMatrix);
+
             // console.log("HMD location", sizeX, sizeZ, position, this.position);
             // console.log('workMatrix2Arr', workMatrix2Arr[12], workMatrix2Arr[13], workMatrix2Arr[14]);
             // console.log(workMatrix2);
             // console.log(workMatrix2, invertedWorkMatrix);
           }
 
-          //
-          // var myMatrix = Matrix.Compose(
-          //   new Vector3(0, 0, 0),
-          //   new Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])),
-          //   new Vector3(0, 3, 0)
-          // );
-
+          // Should I be doing ?
           // this.rotationQuaternion = this.rotationQuaternion.fromRotationMatrix(workMatrix2);
-          this.rotationQuaternion.x = orientation[0];
-          this.rotationQuaternion.y = orientation[1];
-          this.rotationQuaternion.z = orientation[2];
-          this.rotationQuaternion.w = orientation[3];
 
-          this.rotationQuaternion.z *= -1;
-          this.rotationQuaternion.w *= -1;
+          // Or this?
+          // this.rotationQuaternion.x = orientation[0];
+          // this.rotationQuaternion.y = orientation[1];
+          // this.rotationQuaternion.z = orientation[2];
+          // this.rotationQuaternion.w = orientation[3];
+          //
+          // this.rotationQuaternion.z *= -1;
+          // this.rotationQuaternion.w *= -1;
 
           this._vrDisplay.submitFrame(pose);
         }
@@ -251,10 +261,15 @@ module BABYLON {
         }
 
         public _getViewMatrix(): Matrix {
-            // console.log('_getVRViewMatrix.....');
-            return this._viewMatrix;
-            // return Matrix.Identity();
+          // console.log('getViewMatrix');
+          if (this._consoleTimer % 90 === 0) {
+
+            console.log('this._myViewMatrix', this._myViewMatrix);
+          }
+          // return Matrix.Identity();
+          return this._myViewMatrix;
         }
+
         // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
 
         public getTypeName(): string {

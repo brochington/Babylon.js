@@ -19,7 +19,7 @@ var BABYLON;
             return str.toUpperCase();
         };
         // Returns -1 when value is a negative number and
-        // +1 when value is a positive number. 
+        // +1 when value is a positive number.
         MathTools.Sign = function (value) {
             value = +value; // convert to a number
             if (value === 0 || isNaN(value))
@@ -2021,6 +2021,7 @@ var BABYLON;
             return result;
         };
         Matrix.Compose = function (scale, rotation, translation) {
+            // console.log('rotation', rotation);
             var result = Matrix.FromValues(scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1);
             var rotationMatrix = Matrix.Identity();
             rotation.toRotationMatrix(rotationMatrix);

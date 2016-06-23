@@ -24,7 +24,7 @@
         }
 
         // Returns -1 when value is a negative number and
-        // +1 when value is a positive number. 
+        // +1 when value is a positive number.
         public static Sign(value: number): number {
             value = +value; // convert to a number
 
@@ -304,7 +304,7 @@
 
             return this;
         }
-        
+
        /**
          * Multipy an RGBA Color4 value by another and return a new Color4 object
          * @param color The Color4 (RGBA) value to multiply by
@@ -313,11 +313,11 @@
         public multiply(color: Color4): Color4 {
             return new Color4(this.r * color.r, this.g * color.g, this.b * color.b, this.a * color.a);
         }
-        
+
         /**
          * Multipy an RGBA Color4 value by another and push the result in a reference value
          * @param color The Color4 (RGBA) value to multiply by
-         * @param result The Color4 (RGBA) to fill the result in 
+         * @param result The Color4 (RGBA) to fill the result in
          * @returns the result Color4.
          */
         public multiplyToRef(color: Color4, result: Color4): Color4 {
@@ -325,10 +325,10 @@
             result.g = this.g * color.g;
             result.b = this.b * color.b;
             result.a = this.a * color.a;
-            
+
             return result;
         }
-        
+
         public toString(): string {
             return "{R: " + this.r + " G:" + this.g + " B:" + this.b + " A:" + this.a + "}";
         }
@@ -695,7 +695,7 @@
             let s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y) * sign;
             let t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y) * sign;
 
-            return s > 0 && t > 0 && (s + t) < 2 * a * sign;            
+            return s > 0 && t > 0 && (s + t) < 2 * a * sign;
         }
 
         public static Distance(value1: Vector2, value2: Vector2): number {
@@ -2499,6 +2499,7 @@
         }
 
         public static Compose(scale: Vector3, rotation: Quaternion, translation: Vector3): Matrix {
+          // console.log('rotation', rotation);
             var result = Matrix.FromValues(scale.x, 0, 0, 0,
                 0, scale.y, 0, 0,
                 0, 0, scale.z, 0,
@@ -3395,8 +3396,8 @@
 
         /**
         * new Path3D(path, normal, raw)
-        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.  
-        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D  
+        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
+        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
         * path : an array of Vector3, the curve axis of the Path3D
         * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
         * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
@@ -3410,7 +3411,7 @@
         }
 
         /**
-         * Returns the Path3D array of successive Vector3 designing its curve.  
+         * Returns the Path3D array of successive Vector3 designing its curve.
          */
         public getCurve(): Vector3[] {
             return this._curve;
@@ -3450,7 +3451,7 @@
 
         /**
          * Forces the Path3D tangent, normal, binormal and distance recomputation.
-         * Returns the same object updated.  
+         * Returns the same object updated.
          */
         public update(path: Vector3[], firstNormal?: Vector3): Path3D {
             for (var p = 0; p < path.length; p++) {
@@ -3579,7 +3580,7 @@
         private _length: number = 0;
 
         /**
-         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve  
+         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
          * @param v0 (Vector3) the origin point of the Quadratic Bezier
          * @param v1 (Vector3) the control point
          * @param v2 (Vector3) the end point of the Quadratic Bezier
@@ -3599,7 +3600,7 @@
         }
 
         /**
-         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve  
+         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
          * @param v0 (Vector3) the origin point of the Cubic Bezier
          * @param v1 (Vector3) the first control point
          * @param v2 (Vector3) the second control point
@@ -3620,7 +3621,7 @@
         }
 
         /**
-         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline  
+         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
          * @param p1 (Vector3) the origin point of the Hermite Spline
          * @param t1 (Vector3) the tangent vector at the origin point
          * @param p2 (Vector3) the end point of the Hermite Spline
@@ -3637,8 +3638,8 @@
         }
 
         /**
-         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.  
-         * A Curve3 is designed from a series of successive Vector3.  
+         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
+         * A Curve3 is designed from a series of successive Vector3.
          * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
          */
         constructor(points: Vector3[]) {
@@ -3661,9 +3662,9 @@
         }
 
         /**
-         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);  
-         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.  
-         * curveA and curveB keep unchanged.  
+         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
+         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
+         * curveA and curveB keep unchanged.
          */
         public continue(curve: Curve3): Curve3 {
             var lastPoint = this._points[this._points.length - 1];
