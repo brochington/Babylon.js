@@ -22,25 +22,13 @@ var BABYLON;
             this.rightEyeRenderHeight = rightEye.renderHeight;
             this.rightEyeRenderWidth = rightEye.renderWidth;
         }
-        Object.defineProperty(VRRoomScaleMetrics.prototype, "aspectRatio", {
-            get: function () {
-                return this.leftEyeRenderHeight / (2 * this.leftEyeRenderWidth);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(VRRoomScaleMetrics.prototype, "aspectRatioFov", {
-            get: function () {
-                return (2 * Math.atan((this.postProcessScaleFactor * this.vScreenSize) / (2 * this.eyeToScreenDistance)));
-            },
-            enumerable: true,
-            configurable: true
-        });
-        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
+        // public getLeftEyeFOV(out: Matrix): Matrix {
+        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.leftEyeFOVupDegrees, this.leftEyeFOVdownDegrees, this.leftEyeFOVleftDegrees, this.leftEyeFOVrightDegrees);
             return result;
         };
-        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
+        // public getRightEyeFOV(out: Matrix): Matrix {
+        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.rightEyeFOVupDegrees, this.rightEyeFOVdownDegrees, this.rightEyeFOVleftDegrees, this.rightEyeFOVrightDegrees);
             return result;
         };
@@ -68,18 +56,14 @@ var BABYLON;
         };
         Object.defineProperty(VRRoomScaleMetrics.prototype, "leftHMatrix", {
             get: function () {
-                var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
-                var h = (4 * meters) / this.hScreenSize;
-                return BABYLON.Matrix.Translation(h, 0, 0);
+                return BABYLON.Matrix.Translation(this.leftEyeOffset[0], 0, 0);
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(VRRoomScaleMetrics.prototype, "rightHMatrix", {
             get: function () {
-                var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
-                var h = (4 * meters) / this.hScreenSize;
-                return BABYLON.Matrix.Translation(-h, 0, 0);
+                return BABYLON.Matrix.Translation(this.rightEyeOffset[0], 0, 0);
             },
             enumerable: true,
             configurable: true

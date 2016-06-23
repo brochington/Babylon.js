@@ -54,15 +54,8 @@ module BABYLON {
             this.rightEyeRenderWidth = rightEye.renderWidth;
         }
 
-        public get aspectRatio(): number {
-            return this.leftEyeRenderHeight / (2 * this.leftEyeRenderWidth);
-        }
-
-        public get aspectRatioFov(): number {
-            return (2 * Math.atan((this.postProcessScaleFactor * this.vScreenSize) / (2 * this.eyeToScreenDistance)));
-        }
-
-        public getLeftEyeFOV(out: Matrix): Matrix {
+        // public getLeftEyeFOV(out: Matrix): Matrix {
+        public getRightEyeFOV(out: Matrix): Matrix {
           var result = this.perspectiveFromFieldOfView(
             out,
             this.leftEyeFOVupDegrees,
@@ -74,7 +67,8 @@ module BABYLON {
           return result;
         }
 
-        public getRightEyeFOV(out: Matrix): Matrix {
+        // public getRightEyeFOV(out: Matrix): Matrix {
+        public getLeftEyeFOV(out: Matrix): Matrix {
           var result = this.perspectiveFromFieldOfView(
             out,
             this.rightEyeFOVupDegrees,
@@ -117,17 +111,11 @@ module BABYLON {
         }
 
         public get leftHMatrix(): Matrix {
-            var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
-            var h = (4 * meters) / this.hScreenSize;
-
-            return Matrix.Translation(h, 0, 0);
+            return Matrix.Translation(this.leftEyeOffset[0], 0, 0);
         }
 
         public get rightHMatrix(): Matrix {
-            var meters = (this.hScreenSize / 4) - (this.lensSeparationDistance / 2);
-            var h = (4 * meters) / this.hScreenSize;
-
-            return Matrix.Translation(-h, 0, 0);
+            return Matrix.Translation(this.rightEyeOffset[0], 0, 0);
         }
 
         public get leftPreViewMatrix(): Matrix {

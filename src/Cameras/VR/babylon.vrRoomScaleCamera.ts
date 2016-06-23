@@ -116,10 +116,10 @@ module BABYLON {
 
           var result = Matrix.Compose(
             new Vector3(1, 1, 1),
-            new Quaternion(orientation[0], orientation[1], (orientation[2] * -1), (orientation[3] * -1)),
+            new Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])),
             new Vector3(x, y, z)
           );
-          // result.multiply(standMatrix);
+          result.multiply(standMatrix);
           result.invert();
 
           this._myViewMatrix = result;
