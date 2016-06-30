@@ -46161,9 +46161,6 @@ var BABYLON;
         function VRRoomScaleCamera(name, position, scene, compensateDistortion) {
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
-            this.myPosX = 0;
-            this.myPosY = 0;
-            this.myPosZ = 0;
             this.inputs.addVRDisplay();
             this.onAnimationFrame = this.onAnimationFrame.bind(this);
             this._updatePosition = this._updatePosition.bind(this);
@@ -46174,48 +46171,6 @@ var BABYLON;
             this._consoleTimer = 0;
             this._hmdOrigin = new BABYLON.Vector3(0, 0, 0);
         }
-        VRRoomScaleCamera.prototype.fromRotationTranslation = function (out, q, v) {
-            var x = q[0], y = q[1], z = q[2], w = q[3], x2 = x + x, y2 = y + y, z2 = z + z, xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
-            out[0] = 1 - (yy + zz);
-            out[1] = xy + wz;
-            out[2] = xz - wy;
-            out[3] = 0;
-            out[4] = xy - wz;
-            out[5] = 1 - (xx + zz);
-            out[6] = yz + wx;
-            out[7] = 0;
-            out[8] = xz + wy;
-            out[9] = yz - wx;
-            out[10] = 1 - (xx + yy);
-            out[11] = 0;
-            out[12] = v[0];
-            out[13] = v[1];
-            out[14] = v[2];
-            out[15] = 1;
-            return out;
-        };
-        VRRoomScaleCamera.prototype.perspective = function (out, fovy, aspect, near, far) {
-            var f = 1.0 / Math.tan(fovy / 2), nf = 1 / (near - far);
-            out[0] = f / aspect;
-            out[1] = 0;
-            out[2] = 0;
-            out[3] = 0;
-            out[4] = 0;
-            out[5] = f;
-            out[6] = 0;
-            out[7] = 0;
-            out[8] = 0;
-            out[9] = 0;
-            out[10] = (far + near) * nf;
-            out[11] = -1;
-            out[12] = 0;
-            out[13] = 0;
-            out[14] = (2 * far * near) * nf;
-            out[15] = 0;
-            return out;
-        };
-        VRRoomScaleCamera.prototype.renderSceneView = function (eye) {
-        };
         VRRoomScaleCamera.prototype._updatePosition2 = function () {
             var oldPosition = this.position;
             var pose = this._vrDisplay.getPose();
@@ -46227,20 +46182,11 @@ var BABYLON;
                 console.warn('position or orientation are null...', pose);
                 return;
             }
-            var workMatrix = BABYLON.Matrix.Identity().toArray();
-            var invertedWorkMatrix = BABYLON.Matrix.Identity();
-            workMatrix = this.fromRotationTranslation(workMatrix, orientation, position);
-            var workMatrix2 = BABYLON.Matrix.FromArray(Array.prototype.slice.call(workMatrix));
-            workMatrix2 = workMatrix2.multiply(standMatrix);
-            workMatrix2.invertToRef(invertedWorkMatrix);
-            var workMatrix2Arr = workMatrix2.toArray();
             var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])), new BABYLON.Vector3(x, y, z));
-            result.multiply(standMatrix);
-            result.invert();
+            result = result.multiply(standMatrix);
+            result = result.invert();
             this._myViewMatrix = result;
             if (this._consoleTimer % 90 === 0) {
-                console.log('result', result);
-                console.log(pose);
             }
             this._vrDisplay.submitFrame(pose);
         };
