@@ -9,9 +9,7 @@ attribute vec2 position;
 att vec2 zBias;
 att vec4 transformX;
 att vec4 transformY;
-att vec2 origin;
-att vec2 boundingMin;
-att vec2 boundingMax;
+att float opacity;
 
 #ifdef FillSolid
 att vec4 fillSolidColor;
@@ -22,6 +20,8 @@ att vec4 borderSolidColor;
 #endif
 
 #ifdef FillGradient
+att vec2 boundingMin;
+att vec2 boundingMax;
 att vec4 fillGradientColor1;
 att vec4 fillGradientColor2;
 att vec4 fillGradientTY;
@@ -59,10 +59,11 @@ void main(void) {
 	vColor = mix(borderGradientColor2, borderGradientColor1, v);	// As Y is inverted, Color2 first, then Color1
 #endif
 
+	vColor.a *= opacity;
 	vec4 pos;
-	pos.xy = position.xy - ((origin.xy-vec2(0.5,0.5)) * (boundingMax - boundingMin));
+	pos.xy = position.xy;
 	pos.z = 1.0;
 	pos.w = 1.0;
-	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, zBias.y);
+	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, 1);
 
 }

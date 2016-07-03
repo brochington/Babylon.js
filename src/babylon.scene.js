@@ -1,3 +1,8 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var BABYLON;
 (function (BABYLON) {
     var PointerEventTypes = (function () {
@@ -44,34 +49,42 @@ var BABYLON;
         PointerEventTypes._POINTERWHEEL = 0x08;
         PointerEventTypes._POINTERPICK = 0x10;
         return PointerEventTypes;
-    }());
+    })();
     BABYLON.PointerEventTypes = PointerEventTypes;
+    var PointerInfoBase = (function () {
+        function PointerInfoBase(type, event) {
+            this.type = type;
+            this.event = event;
+        }
+        return PointerInfoBase;
+    })();
+    BABYLON.PointerInfoBase = PointerInfoBase;
     /**
      * This class is used to store pointer related info for the onPrePointerObservable event.
      * Set the skipOnPointerObservable property to true if you want the engine to stop any process after this event is triggered, even not calling onPointerObservable
      */
-    var PointerInfoPre = (function () {
+    var PointerInfoPre = (function (_super) {
+        __extends(PointerInfoPre, _super);
         function PointerInfoPre(type, event, localX, localY) {
-            this.type = type;
-            this.event = event;
+            _super.call(this, type, event);
             this.skipOnPointerObservable = false;
             this.localPosition = new BABYLON.Vector2(localX, localY);
         }
         return PointerInfoPre;
-    }());
+    })(PointerInfoBase);
     BABYLON.PointerInfoPre = PointerInfoPre;
     /**
      * This type contains all the data related to a pointer event in Babylon.js.
      * The event member is an instance of PointerEvent for all types except PointerWheel and is of type MouseWheelEvent when type equals PointerWheel. The different event types can be found in the PointerEventTypes class.
      */
-    var PointerInfo = (function () {
+    var PointerInfo = (function (_super) {
+        __extends(PointerInfo, _super);
         function PointerInfo(type, event, pickInfo) {
-            this.type = type;
-            this.event = event;
+            _super.call(this, type, event);
             this.pickInfo = pickInfo;
         }
         return PointerInfo;
-    }());
+    })(PointerInfoBase);
     BABYLON.PointerInfo = PointerInfo;
     /**
      * Represents a scene to be rendered by the engine.
@@ -92,6 +105,7 @@ var BABYLON;
             this.forceShowBoundingBoxes = false;
             this.animationsEnabled = true;
             this.constantlyUpdateMeshUnderPointer = false;
+            this.hoverCursor = "pointer";
             // Events
             /**
             * An event triggered when the scene is disposed.
@@ -264,16 +278,21 @@ var BABYLON;
             this.soundTracks = new Array();
             this._audioEnabled = true;
             this._headphone = false;
-            this._totalVertices = 0;
-            this._activeIndices = 0;
-            this._activeParticles = 0;
-            this._lastFrameDuration = 0;
-            this._evaluateActiveMeshesDuration = 0;
-            this._renderTargetsDuration = 0;
-            this._particlesDuration = 0;
-            this._renderDuration = 0;
-            this._spritesDuration = 0;
-            this._animationRatio = 0;
+            // Performance counters
+            this._totalMeshesCounter = new BABYLON.PerfCounter();
+            this._totalLightsCounter = new BABYLON.PerfCounter();
+            this._totalMaterialsCounter = new BABYLON.PerfCounter();
+            this._totalTexturesCounter = new BABYLON.PerfCounter();
+            this._totalVertices = new BABYLON.PerfCounter();
+            this._activeIndices = new BABYLON.PerfCounter();
+            this._activeParticles = new BABYLON.PerfCounter();
+            this._lastFrameDuration = new BABYLON.PerfCounter();
+            this._evaluateActiveMeshesDuration = new BABYLON.PerfCounter();
+            this._renderTargetsDuration = new BABYLON.PerfCounter();
+            this._particlesDuration = new BABYLON.PerfCounter();
+            this._renderDuration = new BABYLON.PerfCounter();
+            this._spritesDuration = new BABYLON.PerfCounter();
+            this._activeBones = new BABYLON.PerfCounter();
             this._renderId = 0;
             this._executeWhenReadyTimeoutId = -1;
             this._intermediateRendering = false;
@@ -285,7 +304,6 @@ var BABYLON;
             this._activeParticleSystems = new BABYLON.SmartArray(256);
             this._activeSkeletons = new BABYLON.SmartArray(32);
             this._softwareSkinnedMeshes = new BABYLON.SmartArray(32);
-            this._activeBones = 0;
             this._activeAnimatables = new Array();
             this._transformMatrix = BABYLON.Matrix.Zero();
             this._edgesRenderers = new BABYLON.SmartArray(16);
@@ -475,39 +493,102 @@ var BABYLON;
             return this._engine;
         };
         Scene.prototype.getTotalVertices = function () {
-            return this._totalVertices;
+            return this._totalVertices.current;
         };
+        Object.defineProperty(Scene.prototype, "totalVerticesPerfCounter", {
+            get: function () {
+                return this._totalVertices;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getActiveIndices = function () {
-            return this._activeIndices;
+            return this._activeIndices.current;
         };
+        Object.defineProperty(Scene.prototype, "totalActiveIndicesPerfCounter", {
+            get: function () {
+                return this._activeIndices;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getActiveParticles = function () {
-            return this._activeParticles;
+            return this._activeParticles.current;
         };
+        Object.defineProperty(Scene.prototype, "activeParticlesPerfCounter", {
+            get: function () {
+                return this._activeParticles;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getActiveBones = function () {
-            return this._activeBones;
+            return this._activeBones.current;
         };
+        Object.defineProperty(Scene.prototype, "activeBonesPerfCounter", {
+            get: function () {
+                return this._activeBones;
+            },
+            enumerable: true,
+            configurable: true
+        });
         // Stats
         Scene.prototype.getLastFrameDuration = function () {
-            return this._lastFrameDuration;
+            return this._lastFrameDuration.current;
         };
+        Object.defineProperty(Scene.prototype, "lastFramePerfCounter", {
+            get: function () {
+                return this._lastFrameDuration;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getEvaluateActiveMeshesDuration = function () {
-            return this._evaluateActiveMeshesDuration;
+            return this._evaluateActiveMeshesDuration.current;
         };
+        Object.defineProperty(Scene.prototype, "evaluateActiveMeshesDurationPerfCounter", {
+            get: function () {
+                return this._evaluateActiveMeshesDuration;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getActiveMeshes = function () {
             return this._activeMeshes;
         };
         Scene.prototype.getRenderTargetsDuration = function () {
-            return this._renderTargetsDuration;
+            return this._renderTargetsDuration.current;
         };
         Scene.prototype.getRenderDuration = function () {
-            return this._renderDuration;
+            return this._renderDuration.current;
         };
+        Object.defineProperty(Scene.prototype, "renderDurationPerfCounter", {
+            get: function () {
+                return this._renderDuration;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getParticlesDuration = function () {
-            return this._particlesDuration;
+            return this._particlesDuration.current;
         };
+        Object.defineProperty(Scene.prototype, "particlesDurationPerfCounter", {
+            get: function () {
+                return this._particlesDuration;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getSpritesDuration = function () {
-            return this._spritesDuration;
+            return this._spritesDuration.current;
         };
+        Object.defineProperty(Scene.prototype, "spriteDuractionPerfCounter", {
+            get: function () {
+                return this._spritesDuration;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Scene.prototype.getAnimationRatio = function () {
             return this._animationRatio;
         };
@@ -567,7 +648,7 @@ var BABYLON;
                     _this.setPointerOverSprite(null);
                     _this.setPointerOverMesh(pickResult.pickedMesh);
                     if (_this._pointerOverMesh.actionManager && _this._pointerOverMesh.actionManager.hasPointerTriggers) {
-                        canvas.style.cursor = "pointer";
+                        canvas.style.cursor = _this.hoverCursor;
                     }
                     else {
                         canvas.style.cursor = "";
@@ -578,7 +659,7 @@ var BABYLON;
                     // Sprites
                     pickResult = _this.pickSprite(_this._unTranslatedPointerX, _this._unTranslatedPointerY, spritePredicate, false, _this.cameraToUseForPointers);
                     if (pickResult.hit && pickResult.pickedSprite) {
-                        canvas.style.cursor = "pointer";
+                        canvas.style.cursor = _this.hoverCursor;
                         _this.setPointerOverSprite(pickResult.pickedSprite);
                     }
                     else {
@@ -763,35 +844,34 @@ var BABYLON;
                 }
             };
             var eventPrefix = BABYLON.Tools.GetPointerPrefix();
+            var canvas = this._engine.getRenderingCanvas();
             if (attachMove) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "move", this._onPointerMove, false);
+                canvas.addEventListener(eventPrefix + "move", this._onPointerMove, false);
                 // Wheel
-                this._engine.getRenderingCanvas().addEventListener('mousewheel', this._onPointerMove, false);
-                this._engine.getRenderingCanvas().addEventListener('DOMMouseScroll', this._onPointerMove, false);
+                canvas.addEventListener('mousewheel', this._onPointerMove, false);
+                canvas.addEventListener('DOMMouseScroll', this._onPointerMove, false);
             }
             if (attachDown) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "down", this._onPointerDown, false);
+                canvas.addEventListener(eventPrefix + "down", this._onPointerDown, false);
             }
             if (attachUp) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "up", this._onPointerUp, false);
+                canvas.addEventListener(eventPrefix + "up", this._onPointerUp, false);
             }
-            BABYLON.Tools.RegisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp }
-            ]);
+            canvas.tabIndex = 1;
+            canvas.addEventListener("keydown", this._onKeyDown, false);
+            canvas.addEventListener("keyup", this._onKeyUp, false);
         };
         Scene.prototype.detachControl = function () {
             var eventPrefix = BABYLON.Tools.GetPointerPrefix();
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "move", this._onPointerMove);
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "down", this._onPointerDown);
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "up", this._onPointerUp);
+            var canvas = this._engine.getRenderingCanvas();
+            canvas.removeEventListener(eventPrefix + "move", this._onPointerMove);
+            canvas.removeEventListener(eventPrefix + "down", this._onPointerDown);
+            canvas.removeEventListener(eventPrefix + "up", this._onPointerUp);
             // Wheel
-            this._engine.getRenderingCanvas().removeEventListener('mousewheel', this._onPointerMove);
-            this._engine.getRenderingCanvas().removeEventListener('DOMMouseScroll', this._onPointerMove);
-            BABYLON.Tools.UnregisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp }
-            ]);
+            canvas.removeEventListener('mousewheel', this._onPointerMove);
+            canvas.removeEventListener('DOMMouseScroll', this._onPointerMove);
+            canvas.removeEventListener("keydown", this._onKeyDown);
+            canvas.removeEventListener("keyup", this._onKeyUp);
         };
         // Ready
         Scene.prototype.isReady = function () {
@@ -970,6 +1050,13 @@ var BABYLON;
             this._viewMatrix = view;
             this._projectionMatrix = projection;
             this._viewMatrix.multiplyToRef(this._projectionMatrix, this._transformMatrix);
+            // Update frustum
+            if (!this._frustumPlanes) {
+                this._frustumPlanes = BABYLON.Frustum.GetPlanes(this._transformMatrix);
+            }
+            else {
+                BABYLON.Frustum.GetPlanesToRef(this._transformMatrix, this._frustumPlanes);
+            }
         };
         // Methods
         Scene.prototype.addMesh = function (newMesh) {
@@ -1454,7 +1541,7 @@ var BABYLON;
                         }
                     }
                     // Dispatch
-                    this._activeIndices += subMesh.indexCount;
+                    this._activeIndices.addCount(subMesh.indexCount, false);
                     this._renderingManager.dispatch(subMesh);
                 }
             }
@@ -1472,12 +1559,6 @@ var BABYLON;
             this._softwareSkinnedMeshes.reset();
             this._boundingBoxRenderer.reset();
             this._edgesRenderers.reset();
-            if (!this._frustumPlanes) {
-                this._frustumPlanes = BABYLON.Frustum.GetPlanes(this._transformMatrix);
-            }
-            else {
-                BABYLON.Frustum.GetPlanesToRef(this._transformMatrix, this._frustumPlanes);
-            }
             // Meshes
             var meshes;
             var len;
@@ -1495,7 +1576,7 @@ var BABYLON;
                 if (mesh.isBlocked) {
                     continue;
                 }
-                this._totalVertices += mesh.getTotalVertices();
+                this._totalVertices.addCount(mesh.getTotalVertices(), false);
                 if (!mesh.isReady() || !mesh.isEnabled()) {
                     continue;
                 }
@@ -1518,6 +1599,7 @@ var BABYLON;
                 }
             }
             // Particle systems
+            this._particlesDuration.beginMonitoring();
             var beforeParticlesDate = BABYLON.Tools.Now;
             if (this.particlesEnabled) {
                 BABYLON.Tools.StartPerformanceCounter("Particles", this.particleSystems.length > 0);
@@ -1533,11 +1615,13 @@ var BABYLON;
                 }
                 BABYLON.Tools.EndPerformanceCounter("Particles", this.particleSystems.length > 0);
             }
-            this._particlesDuration += BABYLON.Tools.Now - beforeParticlesDate;
+            this._particlesDuration.endMonitoring(false);
         };
         Scene.prototype._activeMesh = function (mesh) {
             if (mesh.skeleton && this.skeletonsEnabled) {
-                this._activeSkeletons.pushNoDuplicate(mesh.skeleton);
+                if (this._activeSkeletons.pushNoDuplicate(mesh.skeleton)) {
+                    mesh.skeleton.prepare();
+                }
                 if (!mesh.computeBonesUsingShaders) {
                     this._softwareSkinnedMeshes.pushNoDuplicate(mesh);
                 }
@@ -1572,6 +1656,7 @@ var BABYLON;
         };
         Scene.prototype._renderForCamera = function (camera) {
             var engine = this._engine;
+            var startTime = BABYLON.Tools.Now;
             this.activeCamera = camera;
             if (!this.activeCamera)
                 throw new Error("Active camera not set");
@@ -1584,22 +1669,18 @@ var BABYLON;
             this.updateTransformMatrix();
             this.onBeforeCameraRenderObservable.notifyObservers(this.activeCamera);
             // Meshes
-            var beforeEvaluateActiveMeshesDate = BABYLON.Tools.Now;
+            this._evaluateActiveMeshesDuration.beginMonitoring();
             BABYLON.Tools.StartPerformanceCounter("Active meshes evaluation");
             this._evaluateActiveMeshes();
-            this._evaluateActiveMeshesDuration += BABYLON.Tools.Now - beforeEvaluateActiveMeshesDate;
+            this._evaluateActiveMeshesDuration.endMonitoring(false);
             BABYLON.Tools.EndPerformanceCounter("Active meshes evaluation");
-            // Skeletons
-            for (var skeletonIndex = 0; skeletonIndex < this._activeSkeletons.length; skeletonIndex++) {
-                var skeleton = this._activeSkeletons.data[skeletonIndex];
-                skeleton.prepare();
-            }
             // Software skinning
             for (var softwareSkinnedMeshIndex = 0; softwareSkinnedMeshIndex < this._softwareSkinnedMeshes.length; softwareSkinnedMeshIndex++) {
                 var mesh = this._softwareSkinnedMeshes.data[softwareSkinnedMeshIndex];
                 mesh.applySkeleton(mesh.skeleton);
             }
             // Render targets
+            this._renderTargetsDuration.beginMonitoring();
             var beforeRenderTargetDate = BABYLON.Tools.Now;
             if (this.renderTargetsEnabled && this._renderTargets.length > 0) {
                 this._intermediateRendering = true;
@@ -1617,10 +1698,10 @@ var BABYLON;
                 this._renderId++;
                 engine.restoreDefaultFramebuffer(); // Restore back buffer
             }
-            this._renderTargetsDuration += BABYLON.Tools.Now - beforeRenderTargetDate;
+            this._renderTargetsDuration.endMonitoring(false);
             // Prepare Frame
             this.postProcessManager._prepareFrame();
-            var beforeRenderDate = BABYLON.Tools.Now;
+            this._renderDuration.beginMonitoring();
             // Backgrounds
             var layerIndex;
             var layer;
@@ -1666,7 +1747,7 @@ var BABYLON;
                 }
                 engine.setDepthBuffer(true);
             }
-            this._renderDuration += BABYLON.Tools.Now - beforeRenderDate;
+            this._renderDuration.endMonitoring(false);
             // Finalize frame
             this.postProcessManager._finalizeFrame(camera.isIntermediate);
             // Update camera
@@ -1725,17 +1806,17 @@ var BABYLON;
             }
         };
         Scene.prototype.render = function () {
-            var startDate = BABYLON.Tools.Now;
-            this._particlesDuration = 0;
-            this._spritesDuration = 0;
-            this._activeParticles = 0;
-            this._renderDuration = 0;
-            this._renderTargetsDuration = 0;
-            this._evaluateActiveMeshesDuration = 0;
-            this._totalVertices = 0;
-            this._activeIndices = 0;
-            this._activeBones = 0;
-            this.getEngine().resetDrawCalls();
+            this._lastFrameDuration.beginMonitoring();
+            this._particlesDuration.fetchNewFrame();
+            this._spritesDuration.fetchNewFrame();
+            this._activeParticles.fetchNewFrame();
+            this._renderDuration.fetchNewFrame();
+            this._renderTargetsDuration.fetchNewFrame();
+            this._evaluateActiveMeshesDuration.fetchNewFrame();
+            this._totalVertices.fetchNewFrame();
+            this._activeIndices.fetchNewFrame();
+            this._activeBones.fetchNewFrame();
+            this.getEngine().drawCallsPerfCounter.fetchNewFrame();
             this._meshesForIntersections.reset();
             this.resetCachedMaterial();
             BABYLON.Tools.StartPerformanceCounter("Scene rendering");
@@ -1760,6 +1841,7 @@ var BABYLON;
             // Before render
             this.onBeforeRenderObservable.notifyObservers(this);
             // Customs render targets
+            this._renderTargetsDuration.beginMonitoring();
             var beforeRenderTargetDate = BABYLON.Tools.Now;
             var engine = this.getEngine();
             var currentActiveCamera = this.activeCamera;
@@ -1785,7 +1867,7 @@ var BABYLON;
             if (this.customRenderTargets.length > 0) {
                 engine.restoreDefaultFramebuffer();
             }
-            this._renderTargetsDuration += BABYLON.Tools.Now - beforeRenderTargetDate;
+            this._renderTargetsDuration.endMonitoring();
             this.activeCamera = currentActiveCamera;
             // Procedural textures
             if (this.proceduralTexturesEnabled) {
@@ -1854,7 +1936,14 @@ var BABYLON;
                 this.dumpNextRenderTargets = false;
             }
             BABYLON.Tools.EndPerformanceCounter("Scene rendering");
-            this._lastFrameDuration = BABYLON.Tools.Now - startDate;
+            this._lastFrameDuration.endMonitoring();
+            this._totalMeshesCounter.addCount(this.meshes.length, true);
+            this._totalLightsCounter.addCount(this.lights.length, true);
+            this._totalMaterialsCounter.addCount(this.materials.length, true);
+            this._totalTexturesCounter.addCount(this.textures.length, true);
+            this._activeBones.addCount(0, true);
+            this._activeIndices.addCount(0, true);
+            this._activeParticles.addCount(0, true);
         };
         Scene.prototype._updateAudioParameters = function () {
             if (!this.audioEnabled || (this.mainSoundTrack.soundCollection.length === 0 && this.soundTracks.length === 1)) {
@@ -2363,6 +2452,6 @@ var BABYLON;
         Scene.MinDeltaTime = 1.0;
         Scene.MaxDeltaTime = 1000.0;
         return Scene;
-    }());
+    })();
     BABYLON.Scene = Scene;
 })(BABYLON || (BABYLON = {}));

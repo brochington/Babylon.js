@@ -1,38 +1,52 @@
 ﻿module BABYLON {
     export class Sprite2DRenderCache extends ModelRenderCache {
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-
-        texture: Texture;
-        effect: Effect;
+        effectsReady: boolean = false;
+        vb: WebGLBuffer = null;
+        ib: WebGLBuffer = null;
+        instancingAttributes: InstancingAttributeInfo[] = null;
+        texture: Texture = null;
+        effect: Effect = null;
+        effectInstanced: Effect = null;
 
         render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean {
-            // Do nothing if the shader is still loading/preparing
-            if (!this.effect.isReady() || !this.texture.isReady()) {
-                return false;
+            // Do nothing if the shader is still loading/preparing 
+            if (!this.effectsReady) {
+                if ((this.effect && (!this.effect.isReady() || (this.effectInstanced && !this.effectInstanced.isReady())))) {
+                    return false;
+                }
+                this.effectsReady = true;
             }
 
             // Compute the offset locations of the attributes in the vertex shader that will be mapped to the instance buffer data
-            var engine = instanceInfo._owner.owner.engine;
-
-            engine.enableEffect(this.effect);
-            this.effect.setTexture("diffuseSampler", this.texture);
-            engine.bindBuffersDirectly(this.vb, this.ib, [1], 4, this.effect);
+            let canvas = instanceInfo.owner.owner;
+            var engine = canvas.engine;
 
             var cur = engine.getAlphaMode();
-            engine.setAlphaMode(Engine.ALPHA_COMBINE);
-            let count = instanceInfo._instancesPartsData[0].usedElementCount;
-            if (instanceInfo._owner.owner.supportInstancedArray) {
+            let effect = context.useInstancing ? this.effectInstanced : this.effect;
+
+            engine.enableEffect(effect);
+            effect.setTexture("diffuseSampler", this.texture);
+            engine.bindBuffersDirectly(this.vb, this.ib, [1], 4, effect);
+
+            if (context.renderMode !== Render2DContext.RenderModeOpaque) {
+                engine.setAlphaMode(Engine.ALPHA_COMBINE);
+            }
+
+            let pid = context.groupInfoPartData[0];
+            if (context.useInstancing) {
                 if (!this.instancingAttributes) {
-                    this.instancingAttributes = this.loadInstancingAttributes(Sprite2D.SPRITE2D_MAINPARTID, this.effect);
+                    this.instancingAttributes = this.loadInstancingAttributes(Sprite2D.SPRITE2D_MAINPARTID, effect);
                 }
-                engine.updateAndBindInstancesBuffer(instanceInfo._instancesPartsBuffer[0], null, this.instancingAttributes);
+                let glBuffer = context.instancedBuffers ? context.instancedBuffers[0] : pid._partBuffer;
+                let count = context.instancedBuffers ? context.instancesCount : pid._partData.usedElementCount;
+                canvas._addDrawCallCount(1, context.renderMode);
+                engine.updateAndBindInstancesBuffer(glBuffer, null, this.instancingAttributes);
                 engine.draw(true, 0, 6, count);
                 engine.unbindInstanceAttributes();
             } else {
-                for (let i = 0; i < count; i++) {
-                    this.setupUniforms(this.effect, 0, instanceInfo._instancesPartsData[0], i);
+                canvas._addDrawCallCount(context.partDataEndIndex - context.partDataStartIndex, context.renderMode);
+                for (let i = context.partDataStartIndex; i < context.partDataEndIndex; i++) {
+                    this.setupUniforms(effect, 0, pid._partData, i);
                     engine.draw(true, 0, 6);
                 }
             }
@@ -67,6 +81,11 @@
                 this.effect = null;
             }
 
+            if (this.effectInstanced) {
+                this._engine._releaseEffect(this.effectInstanced);
+                this.effectInstanced = null;
+            }
+
             return true;
         }
     }
@@ -91,28 +110,34 @@
             return null;
         }
 
+        // 3 floats being:
+        // - x: frame number to display
+        // - y: invertY setting
+        // - z: alignToPixel setting
         @instanceData()
-        get frame(): number {
-            return null;
-        }
-
-        @instanceData()
-        get invertY(): number {
+        get properties(): Vector3 {
             return null;
         }
     }
 
     @className("Sprite2D")
+    /**
+     * Primitive that displays a Sprite/Picture
+     */
     export class Sprite2D extends RenderablePrim2D {
         static SPRITE2D_MAINPARTID = 1;
 
         public static textureProperty: Prim2DPropInfo;
-        public static spriteSizeProperty: Prim2DPropInfo;
+        public static actualSizeProperty: Prim2DPropInfo;
         public static spriteLocationProperty: Prim2DPropInfo;
         public static spriteFrameProperty: Prim2DPropInfo;
         public static invertYProperty: Prim2DPropInfo;
+        public static alignToPixelProperty: Prim2DPropInfo;
 
         @modelLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 1, pi => Sprite2D.textureProperty = pi)
+        /**
+         * Get/set the texture that contains the sprite to display
+         */
         public get texture(): Texture {
             return this._texture;
         }
@@ -121,20 +146,25 @@
             this._texture = value;
         }
 
+        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 2, pi => Sprite2D.actualSizeProperty = pi, false, true)
+        /**
+         * Get/set the actual size of the sprite to display
+         */
         public get actualSize(): Size {
-            return this.spriteSize;
+            if (this._actualSize) {
+                return this._actualSize;
+            }
+            return this.size;
         }
 
-        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 2, pi => Sprite2D.spriteSizeProperty = pi, false, true)
-        public get spriteSize(): Size {
-            return this._size;
-        }
-
-        public set spriteSize(value: Size) {
-            this._size = value;
+        public set actualSize(value: Size) {
+            this._actualSize = value;
         }
 
         @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 3, pi => Sprite2D.spriteLocationProperty = pi)
+        /**
+         * Get/set the sprite location (in pixels) in the texture
+         */
         public get spriteLocation(): Vector2 {
             return this._location;
         }
@@ -144,6 +174,10 @@
         }
 
         @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 4, pi => Sprite2D.spriteFrameProperty = pi)
+        /**
+         * Get/set the sprite frame to display.
+         * The frame number is just an offset applied horizontally, based on the sprite's width. it does not wrap, all the frames must be on the same line.
+         */
         public get spriteFrame(): number {
             return this._spriteFrame;
         }
@@ -153,6 +187,9 @@
         }
 
         @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 5, pi => Sprite2D.invertYProperty = pi)
+        /**
+         * Get/set if the sprite texture coordinates should be inverted on the Y axis
+         */
         public get invertY(): boolean {
             return this._invertY;
         }
@@ -161,10 +198,24 @@
             this._invertY = value;
         }
 
-        protected updateLevelBoundingInfo() {
-            BoundingInfo2D.CreateFromSizeToRef(this.spriteSize, this._levelBoundingInfo, this.origin);
+        /**
+         * Get/set if the sprite rendering should be aligned to the target rendering device pixel or not
+         */
+        public get alignToPixel(): boolean {
+            return this._alignToPixel;
         }
 
+        public set alignToPixel(value: boolean) {
+            this._alignToPixel = value;
+        }
+
+        protected updateLevelBoundingInfo() {
+            BoundingInfo2D.CreateFromSizeToRef(this.size, this._levelBoundingInfo);
+        }
+
+        /**
+         * Get the animatable array (see http://doc.babylonjs.com/tutorials/Animations)
+         */
         public getAnimatables(): IAnimatable[] {
             let res = new Array<IAnimatable>();
 
@@ -179,54 +230,107 @@
             return true;
         }
 
-        protected setupSprite2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, texture: Texture, spriteSize: Size, spriteLocation: Vector2, invertY: boolean) {
-            this.setupRenderablePrim2D(owner, parent, id, position, origin, true);
+        /**
+         * Create an 2D Sprite primitive
+         * @param texture the texture that stores the sprite to render
+         * @param settings a combination of settings, possible ones are
+         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
+         * - children: an array of direct children
+         * - id a text identifier, for information purpose
+         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
+         * - rotation: the initial rotation (in radian) of the primitive. default is 0
+         * - scale: the initial scale of the primitive. default is 1
+         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
+         * - origin: define the normalized origin point location, default [0.5;0.5]
+         * - spriteSize: the size of the sprite (in pixels), if null the size of the given texture will be used, default is null.
+         * - spriteLocation: the location (in pixels) in the texture of the top/left corner of the Sprite to display, default is null (0,0)
+         * - invertY: if true the texture Y will be inverted, default is false.
+         * - alignToPixel: if true the sprite's texels will be aligned to the rendering viewport pixels, ensuring the best rendering quality but slow animations won't be done as smooth as if you set false. If false a texel could lies between two pixels, being blended by the texture sampling mode you choose, the rendering result won't be as good, but very slow animation will be overall better looking. Default is true: content will be aligned.
+         * - isVisible: true if the sprite must be visible, false for hidden. Default is true.
+         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
+         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
+         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
+         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
+         */
+        constructor(texture: Texture, settings?: {
+
+            parent?: Prim2DBase,
+            children?: Array<Prim2DBase>,
+            id?: string,
+            position?: Vector2,
+            x?: number,
+            y?: number,
+            rotation?: number,
+            scale?: number,
+            opacity?: number,
+            origin?: Vector2,
+            spriteSize?: Size,
+            spriteLocation?: Vector2,
+            invertY?: boolean,
+            alignToPixel?: boolean,
+            isVisible?: boolean,
+            childrenFlatZOrder?: boolean,
+            marginTop?: number | string,
+            marginLeft?: number | string,
+            marginRight?: number | string,
+            marginBottom?: number | string,
+            margin?: number | string,
+            marginHAlignment?: number,
+            marginVAlignment?: number,
+            marginAlignment?: string,
+            paddingTop?: number | string,
+            paddingLeft?: number | string,
+            paddingRight?: number | string,
+            paddingBottom?: number | string,
+            padding?: string,
+        }) {
+
+            if (!settings) {
+                settings = {};
+            }
+
+            super(settings);
+
             this.texture = texture;
             this.texture.wrapU = Texture.CLAMP_ADDRESSMODE;
             this.texture.wrapV = Texture.CLAMP_ADDRESSMODE;
-            this.spriteSize = spriteSize || null;
-            this.spriteLocation = spriteLocation || new Vector2(0,0);
+            this.size = settings.spriteSize;
+            this.spriteLocation = settings.spriteLocation || new Vector2(0, 0);
             this.spriteFrame = 0;
-            this.invertY = invertY;
-            this._isTransparent = true;
+            this.invertY = (settings.invertY == null) ? false : settings.invertY;
+            this.alignToPixel = (settings.alignToPixel == null) ? true : settings.alignToPixel;
+            this.isAlphaTest = true;
 
-            if (!this.spriteSize) {
-                var s = texture.getSize();
-                this.spriteSize = new Size(s.width, s.height);
+            if (settings.spriteSize == null) {
+                if (texture.isReady()) {
+                    this.size = <Size>texture.getSize();
+                } else {
+                    texture.onLoadObservable.add(() => {
+                        this.size = <Size>texture.getSize();
+                        this._positioningDirty();
+                    });
+                }
             }
-        }
-
-        /**
-         * Create an 2D Sprite primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * @param texture the texture that stores the sprite to render
-         * options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - spriteSize: the size of the sprite, if null the size of the given texture will be used, default is null.
-         *  - spriteLocation: the location in the texture of the top/left corner of the Sprite to display, default is null (0,0)
-         *  - invertY: if true the texture Y will be inverted, default is false.
-         */
-        public static Create(parent: Prim2DBase, texture: Texture, options: { id?: string, x?: number, y?: number, origin?: Vector2, spriteSize?: Size, spriteLocation?: Vector2, invertY?: boolean}): Sprite2D {
-            Prim2DBase.CheckParent(parent);
-
-            let sprite = new Sprite2D();
-            sprite.setupSprite2D(parent.owner, parent, options && options.id || null, new Vector2(options && options.x || 0, options && options.y || 0), options && options.origin || null, texture, options && options.spriteSize || null, options && options.spriteLocation || null, options && options.invertY || false);
-            return sprite;
         }
 
         static _createCachedCanvasSprite(owner: Canvas2D, texture: MapTexture, size: Size, pos: Vector2): Sprite2D {
 
-            let sprite = new Sprite2D();
-            sprite.setupSprite2D(owner, null, "__cachedCanvasSprite__", new Vector2(0, 0), null, texture, size, pos, false);
-
+            let sprite = new Sprite2D(texture, { parent: owner, id: "__cachedCanvasSprite__", position: Vector2.Zero(), origin: Vector2.Zero(), spriteSize: size, spriteLocation: pos, alignToPixel: true });
             return sprite;
         }
 
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache {
-            let renderCache = new Sprite2DRenderCache(this.owner.engine, modelKey, isTransparent);
+        protected createModelRenderCache(modelKey: string): ModelRenderCache {
+            let renderCache = new Sprite2DRenderCache(this.owner.engine, modelKey);
             return renderCache;
         }
 
@@ -252,10 +356,14 @@
 
             renderCache.texture = this.texture;
 
-            var ei = this.getDataPartEffectInfo(Sprite2D.SPRITE2D_MAINPARTID, ["index"]);
-            renderCache.effect = engine.createEffect({ vertex: "sprite2d", fragment: "sprite2d" }, ei.attributes, ei.uniforms, ["diffuseSampler"], ei.defines, null, e => {
-//                renderCache.setupUniformsLocation(e, ei.uniforms, Sprite2D.SPRITE2D_MAINPARTID);
-            });
+            // Get the instanced version of the effect, if the engine does not support it, null is return and we'll only draw on by one
+            let ei = this.getDataPartEffectInfo(Sprite2D.SPRITE2D_MAINPARTID, ["index"], true);
+            if (ei) {
+                renderCache.effectInstanced = engine.createEffect("sprite2d", ei.attributes, ei.uniforms, ["diffuseSampler"], ei.defines, null);
+            }
+
+            ei = this.getDataPartEffectInfo(Sprite2D.SPRITE2D_MAINPARTID, ["index"], false);
+            renderCache.effect = engine.createEffect("sprite2d", ei.attributes, ei.uniforms, ["diffuseSampler"], ei.defines, null);
 
             return renderCache;
         }
@@ -264,8 +372,14 @@
             return [new Sprite2DInstanceData(Sprite2D.SPRITE2D_MAINPARTID)];
         }
 
+        private static _prop: Vector3 = Vector3.Zero();
+
         protected refreshInstanceDataPart(part: InstanceDataBase): boolean {
             if (!super.refreshInstanceDataPart(part)) {
+                return false;
+            }
+
+            if (!this.texture.isReady()) {
                 return false;
             }
 
@@ -273,23 +387,25 @@
                 let d = <Sprite2DInstanceData>this._instanceDataParts[0];
                 let ts = this.texture.getBaseSize();
                 let sl = this.spriteLocation;
-                let ss = this.spriteSize;
+                let ss = this.actualSize;
                 d.topLeftUV = new Vector2(sl.x / ts.width, sl.y / ts.height);
                 let suv = new Vector2(ss.width / ts.width, ss.height / ts.height);
                 d.sizeUV = suv;
-                d.frame = this.spriteFrame;
+
+                Sprite2D._prop.x = this.spriteFrame;
+                Sprite2D._prop.y = this.invertY ? 1 : 0;
+                Sprite2D._prop.z = this.alignToPixel ? 1 : 0;
+                d.properties = Sprite2D._prop;
+
                 d.textureSize = new Vector2(ts.width, ts.height);
-                d.invertY = this.invertY ? 1 : 0;
             }
             return true;
         }
 
         private _texture: Texture;
-        private _size: Size;
         private _location: Vector2;
         private _spriteFrame: number;
         private _invertY: boolean;
+        private _alignToPixel: boolean;
     }
-
-
 }

@@ -12,7 +12,7 @@ var BABYLON;
             this.renderSelf = new Array();
         }
         return _InstancesBatch;
-    }());
+    })();
     BABYLON._InstancesBatch = _InstancesBatch;
     var Mesh = (function (_super) {
         __extends(Mesh, _super);
@@ -718,7 +718,7 @@ var BABYLON;
         /**
          * Sets the mesh indices.
          * Expects an array populated with integers or a Int32Array.
-         * If the mesh has no geometry, a new `Geometry` object is created and set to the mesh.
+         * If the mesh has no geometry, a new Geometry object is created and set to the mesh.
          * This method creates a new index buffer each call.
          */
         Mesh.prototype.setIndices = function (indices, totalVertices) {
@@ -781,7 +781,7 @@ var BABYLON;
                         engine.drawUnIndexed(false, subMesh.verticesStart, subMesh.verticesCount, instancesCount);
                     }
                     else {
-                        engine.draw(false, 0, subMesh.linesIndexCount, instancesCount);
+                        engine.draw(false, 0, instancesCount > 0 ? subMesh.linesIndexCount / 2 : subMesh.linesIndexCount, instancesCount);
                     }
                     break;
                 default:
@@ -887,15 +887,15 @@ var BABYLON;
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world1", 4, 4));
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world2", 8, 4));
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world3", 12, 4));
-                engine.bindBuffers(this.geometry.getVertexBuffers(), this.geometry.getIndexBuffer(), effect);
             }
             else {
                 instancesBuffer.updateDirectly(this._instancesData, 0, instancesCount);
             }
+            engine.bindBuffers(this.geometry.getVertexBuffers(), this.geometry.getIndexBuffer(), effect);
             this._draw(subMesh, fillMode, instancesCount);
             engine.unbindInstanceAttributes();
         };
-        Mesh.prototype._processRendering = function (subMesh, effect, fillMode, batch, hardwareInstancedRendering, onBeforeDraw) {
+        Mesh.prototype._processRendering = function (subMesh, effect, fillMode, batch, hardwareInstancedRendering, onBeforeDraw, effectiveMaterial) {
             var scene = this.getScene();
             var engine = scene.getEngine();
             if (hardwareInstancedRendering) {
@@ -905,7 +905,7 @@ var BABYLON;
                 if (batch.renderSelf[subMesh._id]) {
                     // Draw
                     if (onBeforeDraw) {
-                        onBeforeDraw(false, this.getWorldMatrix());
+                        onBeforeDraw(false, this.getWorldMatrix(), effectiveMaterial);
                     }
                     this._draw(subMesh, fillMode, this._overridenInstanceCount);
                 }
@@ -915,7 +915,7 @@ var BABYLON;
                         // World
                         var world = instance.getWorldMatrix();
                         if (onBeforeDraw) {
-                            onBeforeDraw(true, world);
+                            onBeforeDraw(true, world, effectiveMaterial);
                         }
                         // Draw
                         this._draw(subMesh, fillMode);
@@ -966,11 +966,7 @@ var BABYLON;
                 engine.setAlphaMode(effectiveMaterial.alphaMode);
             }
             // Draw
-            this._processRendering(subMesh, effect, fillMode, batch, hardwareInstancedRendering, function (isInstance, world) {
-                if (isInstance) {
-                    effectiveMaterial.bindOnlyWorldMatrix(world);
-                }
-            });
+            this._processRendering(subMesh, effect, fillMode, batch, hardwareInstancedRendering, this._onBeforeDraw);
             // Unbind
             effectiveMaterial.unbind();
             // Outline - step 2
@@ -988,6 +984,11 @@ var BABYLON;
                 engine.setAlphaMode(currentMode);
             }
             this.onAfterRenderObservable.notifyObservers(this);
+        };
+        Mesh.prototype._onBeforeDraw = function (isInstance, world, effectiveMaterial) {
+            if (isInstance) {
+                effectiveMaterial.bindOnlyWorldMatrix(world);
+            }
         };
         /**
          * Returns an array populated with ParticleSystem objects whose the mesh is the emitter.
@@ -1018,27 +1019,29 @@ var BABYLON;
             return results;
         };
         Mesh.prototype._checkDelayState = function () {
-            var _this = this;
-            var that = this;
             var scene = this.getScene();
             if (this._geometry) {
                 this._geometry.load(scene);
             }
-            else if (that.delayLoadState === BABYLON.Engine.DELAYLOADSTATE_NOTLOADED) {
-                that.delayLoadState = BABYLON.Engine.DELAYLOADSTATE_LOADING;
-                scene._addPendingData(that);
-                var getBinaryData = (this.delayLoadingFile.indexOf(".babylonbinarymeshdata") !== -1);
-                BABYLON.Tools.LoadFile(this.delayLoadingFile, function (data) {
-                    if (data instanceof ArrayBuffer) {
-                        _this._delayLoadingFunction(data, _this);
-                    }
-                    else {
-                        _this._delayLoadingFunction(JSON.parse(data), _this);
-                    }
-                    _this.delayLoadState = BABYLON.Engine.DELAYLOADSTATE_LOADED;
-                    scene._removePendingData(_this);
-                }, function () { }, scene.database, getBinaryData);
+            else if (this.delayLoadState === BABYLON.Engine.DELAYLOADSTATE_NOTLOADED) {
+                this.delayLoadState = BABYLON.Engine.DELAYLOADSTATE_LOADING;
+                this._queueLoad(this, scene);
             }
+        };
+        Mesh.prototype._queueLoad = function (mesh, scene) {
+            var _this = this;
+            scene._addPendingData(mesh);
+            var getBinaryData = (this.delayLoadingFile.indexOf(".babylonbinarymeshdata") !== -1);
+            BABYLON.Tools.LoadFile(this.delayLoadingFile, function (data) {
+                if (data instanceof ArrayBuffer) {
+                    _this._delayLoadingFunction(data, _this);
+                }
+                else {
+                    _this._delayLoadingFunction(JSON.parse(data), _this);
+                }
+                _this.delayLoadState = BABYLON.Engine.DELAYLOADSTATE_LOADED;
+                scene._removePendingData(_this);
+            }, function () { }, scene.database, getBinaryData);
         };
         /**
          * Boolean, true is the mesh in the frustum defined by the Plane objects from the `frustumPlanes` array parameter.
@@ -1167,7 +1170,7 @@ var BABYLON;
          * Returns a new Mesh object generated from the current mesh properties.
          * This method must not get confused with createInstance().
          * The parameter `name` is a string, the name given to the new mesh.
-         * The optional parameter `newParent` can be any `Node` object (default `null`).
+         * The optional parameter `newParent` can be any Node object (default `null`).
          * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
          * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any.
          */
@@ -1879,7 +1882,8 @@ var BABYLON;
                 dashSize: dashSize,
                 gapSize: gapSize,
                 dashNb: dashNb,
-                updatable: updatable
+                updatable: updatable,
+                instance: instance
             };
             return BABYLON.MeshBuilder.CreateDashedLines(name, options, scene);
         };
@@ -1967,7 +1971,6 @@ var BABYLON;
          * Creates lathe mesh.
          * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
          * Please consider using the same method from the MeshBuilder class instead.
-         *
          * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
          * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
          * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
@@ -2075,7 +2078,6 @@ var BABYLON;
         /**
          * Creates a tube mesh.
          * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
          * The parameter `radius` (positive float, default 1) sets the tube radius size.
@@ -2110,7 +2112,6 @@ var BABYLON;
         };
         /**
          * Creates a polyhedron mesh.
-         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
          *  to choose the wanted type.
@@ -2147,7 +2148,7 @@ var BABYLON;
          * Please consider using the same method from the MeshBuilder class instead.
          * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
          * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
-         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.
+         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.
          * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
          * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
          */
@@ -2274,7 +2275,7 @@ var BABYLON;
         };
         // Tools
         /**
-         * Returns an object `{min: Vector3, max: Vector3}`
+         * Returns an object `{min:` Vector3`, max:` Vector3`}`
          * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
          */
         Mesh.MinMax = function (meshes) {
@@ -2297,7 +2298,7 @@ var BABYLON;
             };
         };
         /**
-         * Returns a `Vector3`, the center of the `{min: Vector3, max: Vector3}` or the center of MinMax vector3 computed from a mesh array.
+         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
          */
         Mesh.Center = function (meshesOrMinMaxVector) {
             var minMaxVector = meshesOrMinMaxVector.min !== undefined ? meshesOrMinMaxVector : Mesh.MinMax(meshesOrMinMaxVector);
@@ -2371,6 +2372,6 @@ var BABYLON;
         Mesh._CAP_END = 2;
         Mesh._CAP_ALL = 3;
         return Mesh;
-    }(BABYLON.AbstractMesh));
+    })(BABYLON.AbstractMesh);
     BABYLON.Mesh = Mesh;
 })(BABYLON || (BABYLON = {}));

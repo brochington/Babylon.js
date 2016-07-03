@@ -73,7 +73,7 @@ var BABYLON;
             return curOffset;
         };
         return InstanceClassInfo;
-    }());
+    })();
     BABYLON.InstanceClassInfo = InstanceClassInfo;
     var InstancePropInfo = (function () {
         function InstancePropInfo() {
@@ -187,7 +187,7 @@ var BABYLON;
             }
         };
         return InstancePropInfo;
-    }());
+    })();
     BABYLON.InstancePropInfo = InstancePropInfo;
     function instanceData(category, shaderAttributeName) {
         return function (target, propName, descriptor) {
@@ -236,6 +236,8 @@ var BABYLON;
             this.id = partId;
             this.curElement = 0;
             this.dataElementCount = dataElementCount;
+            this.renderMode = 0;
+            this.arrayLengthChanged = false;
         }
         Object.defineProperty(InstanceDataBase.prototype, "zBias", {
             get: function () {
@@ -258,7 +260,7 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(InstanceDataBase.prototype, "origin", {
+        Object.defineProperty(InstanceDataBase.prototype, "opacity", {
             get: function () {
                 return null;
             },
@@ -299,6 +301,7 @@ var BABYLON;
                 if (value === this._dataElementCount) {
                     return;
                 }
+                this.arrayLengthChanged = true;
                 this.freeElements();
                 this._dataElementCount = value;
                 this.allocElements();
@@ -317,32 +320,63 @@ var BABYLON;
         ], InstanceDataBase.prototype, "transformY", null);
         __decorate([
             instanceData()
-        ], InstanceDataBase.prototype, "origin", null);
+        ], InstanceDataBase.prototype, "opacity", null);
         return InstanceDataBase;
-    }());
+    })();
     BABYLON.InstanceDataBase = InstanceDataBase;
     var RenderablePrim2D = (function (_super) {
         __extends(RenderablePrim2D, _super);
-        function RenderablePrim2D() {
-            _super.apply(this, arguments);
+        function RenderablePrim2D(settings) {
+            _super.call(this, settings);
+            this._isTransparent = false;
+            this._isAlphaTest = false;
+            this._transparentPrimitiveInfo = null;
         }
-        Object.defineProperty(RenderablePrim2D.prototype, "isTransparent", {
+        Object.defineProperty(RenderablePrim2D.prototype, "isAlphaTest", {
             get: function () {
-                return this._isTransparent;
+                return this._isAlphaTest;
             },
             set: function (value) {
-                this._isTransparent = value;
+                if (this._isAlphaTest === value) {
+                    return;
+                }
+                this._isAlphaTest = value;
+                this._updateRenderMode();
             },
             enumerable: true,
             configurable: true
         });
-        RenderablePrim2D.prototype.setupRenderablePrim2D = function (owner, parent, id, position, origin, isVisible) {
-            this.setupPrim2DBase(owner, parent, id, position, origin);
-            this._isTransparent = false;
-        };
+        Object.defineProperty(RenderablePrim2D.prototype, "isTransparent", {
+            get: function () {
+                return this._isTransparent || (this._opacity < 1);
+            },
+            set: function (value) {
+                if (this._isTransparent === value) {
+                    return;
+                }
+                this._isTransparent = value;
+                this._updateRenderMode();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderablePrim2D.prototype, "renderMode", {
+            get: function () {
+                return this._renderMode;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        /**
+         * Dispose the primitive and its resources, remove it from its parent
+         */
         RenderablePrim2D.prototype.dispose = function () {
             if (!_super.prototype.dispose.call(this)) {
                 return false;
+            }
+            if (this._transparentPrimitiveInfo) {
+                this.renderGroup._renderableData.removeTransparentPrimitiveInfo(this._transparentPrimitiveInfo);
+                this._transparentPrimitiveInfo = null;
             }
             if (this._modelRenderInstanceID) {
                 this._modelRenderCache.removeInstanceData(this._modelRenderInstanceID);
@@ -361,108 +395,24 @@ var BABYLON;
             return true;
         };
         RenderablePrim2D.prototype._prepareRenderPre = function (context) {
-            var _this = this;
             _super.prototype._prepareRenderPre.call(this, context);
             // If the model changed and we have already an instance, we must remove this instance from the obsolete model
-            if (this._modelDirty && this._modelRenderInstanceID) {
+            if (this._isFlagSet(BABYLON.SmartPropertyPrim.flagModelDirty) && this._modelRenderInstanceID) {
                 this._modelRenderCache.removeInstanceData(this._modelRenderInstanceID);
                 this._modelRenderInstanceID = null;
             }
             // Need to create the model?
             var setupModelRenderCache = false;
-            if (!this._modelRenderCache || this._modelDirty) {
-                if (this._modelRenderCache) {
-                    this._modelRenderCache.dispose();
-                }
-                this._modelRenderCache = this.owner._engineData.GetOrAddModelCache(this.modelKey, function (key) {
-                    var mrc = _this.createModelRenderCache(key, _this.isTransparent);
-                    setupModelRenderCache = true;
-                    return mrc;
-                });
-                this._modelDirty = false;
-                // if this is still false it means the MRC already exists, so we add a reference to it
-                if (!setupModelRenderCache) {
-                    this._modelRenderCache.addRef();
-                }
+            if (!this._modelRenderCache || this._isFlagSet(BABYLON.SmartPropertyPrim.flagModelDirty)) {
+                setupModelRenderCache = this._createModelRenderCache();
             }
-            var gii;
+            var gii = null;
             var newInstance = false;
             // Need to create the instance data parts?
             if (!this._modelRenderInstanceID) {
                 // Yes, flag it for later, more processing will have to be done
                 newInstance = true;
-                // Create the instance data parts of the primitive and store them
-                var parts = this.createInstanceDataParts();
-                this._instanceDataParts = parts;
-                // Check if the ModelRenderCache for this particular instance is also brand new, initialize it if it's the case
-                if (!this._modelRenderCache._partsDataStride) {
-                    var ctiArray = new Array();
-                    var dataStrides = new Array();
-                    var usedCatList = new Array();
-                    var partIdList = new Array();
-                    var joinedUsedCatList = new Array();
-                    for (var _i = 0, parts_1 = parts; _i < parts_1.length; _i++) {
-                        var dataPart = parts_1[_i];
-                        var cat = this.getUsedShaderCategories(dataPart);
-                        var cti = dataPart.getClassTreeInfo();
-                        // Make sure the instance is visible other the properties won't be set and their size/offset wont be computed
-                        var curVisible = this.isVisible;
-                        this.isVisible = true;
-                        // We manually trigger refreshInstanceData for the only sake of evaluating each instance property size and offset in the instance data, this can only be made at runtime. Once it's done we have all the information to create the instance data buffer.
-                        //console.log("Build Prop Layout for " + Tools.getClassName(this._instanceDataParts[0]));
-                        var joinCat = ";" + cat.join(";") + ";";
-                        joinedUsedCatList.push(joinCat);
-                        InstanceClassInfo._CurCategories = joinCat;
-                        var obj = this.beforeRefreshForLayoutConstruction(dataPart);
-                        this.refreshInstanceDataPart(dataPart);
-                        this.afterRefreshForLayoutConstruction(dataPart, obj);
-                        this.isVisible = curVisible;
-                        var size = 0;
-                        cti.fullContent.forEach(function (k, v) {
-                            if (!v.category || cat.indexOf(v.category) !== -1) {
-                                if (!v.size) {
-                                    console.log("ERROR: Couldn't detect the size of the Property " + v.attributeName + " from type " + BABYLON.Tools.getClassName(cti.type) + ". Property is ignored.");
-                                }
-                                else {
-                                    size += v.size;
-                                }
-                            }
-                        });
-                        dataStrides.push(size);
-                        usedCatList.push(cat);
-                        ctiArray.push(cti);
-                        partIdList.push(dataPart.id);
-                    }
-                    this._modelRenderCache._partsDataStride = dataStrides;
-                    this._modelRenderCache._partsUsedCategories = usedCatList;
-                    this._modelRenderCache._partsJoinedUsedCategories = joinedUsedCatList;
-                    this._modelRenderCache._partsClassInfo = ctiArray;
-                    this._modelRenderCache._partIdList = partIdList;
-                }
-                // The Rendering resources (Effect, VB, IB, Textures) are stored in the ModelRenderCache
-                // But it's the RenderGroup that will store all the Instanced related data to render all the primitive it owns.
-                // So for a given ModelKey we getOrAdd a GroupInstanceInfo that will store all these data
-                gii = this.renderGroup._renderGroupInstancesInfo.getOrAddWithFactory(this.modelKey, function (k) { return new BABYLON.GroupInstanceInfo(_this.renderGroup, _this._modelRenderCache); });
-                // First time init of the GroupInstanceInfo
-                if (gii._instancesPartsData.length === 0) {
-                    for (var j = 0; j < this._modelRenderCache._partsDataStride.length; j++) {
-                        var stride = this._modelRenderCache._partsDataStride[j];
-                        gii._instancesPartsData.push(new BABYLON.DynamicFloatArray(stride / 4, 50));
-                        gii._partIndexFromId.add(this._modelRenderCache._partIdList[j].toString(), j);
-                        for (var _a = 0, _b = this._instanceDataParts; _a < _b.length; _a++) {
-                            var part = _b[_a];
-                            gii._instancesPartsUsedShaderCategories[gii._partIndexFromId.get(part.id.toString())] = ";" + this.getUsedShaderCategories(part).join(";") + ";";
-                        }
-                    }
-                }
-                // For each instance data part of the primitive, allocate the instanced element it needs for render
-                for (var i = 0; i < parts.length; i++) {
-                    var part = parts[i];
-                    part.dataBuffer = gii._instancesPartsData[i];
-                    part.allocElements();
-                }
-                // Add the instance data parts in the ModelRenderCache they belong, track them by storing their ID in the primitive in case we need to change the model later on, so we'll have to release the allocated instance data parts because they won't fit anymore
-                this._modelRenderInstanceID = this._modelRenderCache.addInstanceDataParts(this._instanceDataParts);
+                gii = this._createModelDataParts();
             }
             // If the ModelRenderCache is brand new, now is the time to call the implementation's specific setup method to create the rendering resources
             if (setupModelRenderCache) {
@@ -470,31 +420,282 @@ var BABYLON;
             }
             // At this stage we have everything correctly initialized, ModelRenderCache is setup, Model Instance data are good too, they have allocated elements in the Instanced DynamicFloatArray.
             // The last thing to do is check if the instanced related data must be updated because a InstanceLevel property had changed or the primitive visibility changed.
-            if (this._visibilityChanged || context.forceRefreshPrimitive || newInstance || (this._instanceDirtyFlags !== 0) || (this._globalTransformProcessStep !== this._globalTransformStep)) {
-                // Fetch the GroupInstanceInfo if we don't already have it
-                if (!gii) {
-                    gii = this.renderGroup._renderGroupInstancesInfo.get(this.modelKey);
+            if (this._isFlagSet(BABYLON.SmartPropertyPrim.flagVisibilityChanged) || context.forceRefreshPrimitive || newInstance || (this._instanceDirtyFlags !== 0) || (this._globalTransformProcessStep !== this._globalTransformStep)) {
+                this._updateInstanceDataParts(gii);
+            }
+        };
+        RenderablePrim2D.prototype._createModelRenderCache = function () {
+            var _this = this;
+            var setupModelRenderCache = false;
+            if (this._modelRenderCache) {
+                this._modelRenderCache.dispose();
+            }
+            this._modelRenderCache = this.owner._engineData.GetOrAddModelCache(this.modelKey, function (key) {
+                var mrc = _this.createModelRenderCache(key);
+                setupModelRenderCache = true;
+                return mrc;
+            });
+            this._clearFlags(BABYLON.SmartPropertyPrim.flagModelDirty);
+            // if this is still false it means the MRC already exists, so we add a reference to it
+            if (!setupModelRenderCache) {
+                this._modelRenderCache.addRef();
+            }
+            return setupModelRenderCache;
+        };
+        RenderablePrim2D.prototype._createModelDataParts = function () {
+            var _this = this;
+            // Create the instance data parts of the primitive and store them
+            var parts = this.createInstanceDataParts();
+            this._instanceDataParts = parts;
+            // Check if the ModelRenderCache for this particular instance is also brand new, initialize it if it's the case
+            if (!this._modelRenderCache._partData) {
+                this._setupModelRenderCache(parts);
+            }
+            // The Rendering resources (Effect, VB, IB, Textures) are stored in the ModelRenderCache
+            // But it's the RenderGroup that will store all the Instanced related data to render all the primitive it owns.
+            // So for a given ModelKey we getOrAdd a GroupInstanceInfo that will store all these data
+            var gii = this.renderGroup._renderableData._renderGroupInstancesInfo.getOrAddWithFactory(this.modelKey, function (k) {
+                var res = new BABYLON.GroupInstanceInfo(_this.renderGroup, _this._modelRenderCache, _this._modelRenderCache._partData.length);
+                for (var j = 0; j < _this._modelRenderCache._partData.length; j++) {
+                    var part = _this._instanceDataParts[j];
+                    res.partIndexFromId.add(part.id.toString(), j);
+                    res.usedShaderCategories[j] = ";" + _this.getUsedShaderCategories(part).join(";") + ";";
+                    res.strides[j] = _this._modelRenderCache._partData[j]._partDataStride;
                 }
-                // For each Instance Data part, refresh it to update the data in the DynamicFloatArray
-                for (var _c = 0, _d = this._instanceDataParts; _c < _d.length; _c++) {
-                    var part = _d[_c];
-                    // Check if we need to allocate data elements (hidden prim which becomes visible again)
-                    if (this._visibilityChanged && !part.dataElements) {
-                        part.allocElements();
-                    }
-                    InstanceClassInfo._CurCategories = gii._instancesPartsUsedShaderCategories[gii._partIndexFromId.get(part.id.toString())];
-                    // Will return false if the instance should not be rendered (not visible or other any reasons)
-                    if (!this.refreshInstanceDataPart(part)) {
-                        // Free the data element
-                        if (part.dataElements) {
-                            part.freeElements();
+                return res;
+            });
+            // Get the GroupInfoDataPart corresponding to the render category of the part
+            var rm = 0;
+            var gipd = null;
+            if (this.isTransparent) {
+                gipd = gii.transparentData;
+                rm = BABYLON.Render2DContext.RenderModeTransparent;
+            }
+            else if (this.isAlphaTest) {
+                gipd = gii.alphaTestData;
+                rm = BABYLON.Render2DContext.RenderModeAlphaTest;
+            }
+            else {
+                gipd = gii.opaqueData;
+                rm = BABYLON.Render2DContext.RenderModeOpaque;
+            }
+            // For each instance data part of the primitive, allocate the instanced element it needs for render
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i];
+                part.dataBuffer = gipd[i]._partData;
+                part.allocElements();
+                part.renderMode = rm;
+            }
+            // Add the instance data parts in the ModelRenderCache they belong, track them by storing their ID in the primitive in case we need to change the model later on, so we'll have to release the allocated instance data parts because they won't fit anymore
+            this._modelRenderInstanceID = this._modelRenderCache.addInstanceDataParts(this._instanceDataParts);
+            return gii;
+        };
+        RenderablePrim2D.prototype._setupModelRenderCache = function (parts) {
+            var ctiArray = new Array();
+            this._modelRenderCache._partData = new Array();
+            for (var _i = 0; _i < parts.length; _i++) {
+                var dataPart = parts[_i];
+                var pd = new BABYLON.ModelRenderCachePartData();
+                this._modelRenderCache._partData.push(pd);
+                var cat = this.getUsedShaderCategories(dataPart);
+                var cti = dataPart.getClassTreeInfo();
+                // Make sure the instance is visible other the properties won't be set and their size/offset wont be computed
+                var curVisible = this.isVisible;
+                this.isVisible = true;
+                // We manually trigger refreshInstanceData for the only sake of evaluating each instance property size and offset in the instance data, this can only be made at runtime. Once it's done we have all the information to create the instance data buffer.
+                //console.log("Build Prop Layout for " + Tools.getClassName(this._instanceDataParts[0]));
+                var joinCat = ";" + cat.join(";") + ";";
+                pd._partJoinedUsedCategories = joinCat;
+                InstanceClassInfo._CurCategories = joinCat;
+                var obj = this.beforeRefreshForLayoutConstruction(dataPart);
+                this.refreshInstanceDataPart(dataPart);
+                this.afterRefreshForLayoutConstruction(dataPart, obj);
+                this.isVisible = curVisible;
+                var size = 0;
+                cti.fullContent.forEach(function (k, v) {
+                    if (!v.category || cat.indexOf(v.category) !== -1) {
+                        if (v.attributeName === "zBias") {
+                            pd._zBiasOffset = v.instanceOffset.get(joinCat);
+                        }
+                        if (!v.size) {
+                            console.log("ERROR: Couldn't detect the size of the Property " + v.attributeName + " from type " + BABYLON.Tools.getClassName(cti.type) + ". Property is ignored.");
+                        }
+                        else {
+                            size += v.size;
                         }
                     }
-                }
-                this._instanceDirtyFlags = 0;
-                gii._dirtyInstancesData = true;
-                this._visibilityChanged = false; // Reset the flag as we've handled the case
+                });
+                pd._partDataStride = size;
+                pd._partUsedCategories = cat;
+                pd._partId = dataPart.id;
+                ctiArray.push(cti);
             }
+            this._modelRenderCache._partsClassInfo = ctiArray;
+        };
+        RenderablePrim2D.prototype.onZOrderChanged = function () {
+            if (this.isTransparent && this._transparentPrimitiveInfo) {
+                this.renderGroup._renderableData.transparentPrimitiveZChanged(this._transparentPrimitiveInfo);
+                var gii = this.renderGroup._renderableData._renderGroupInstancesInfo.get(this.modelKey);
+                // Flag the transparentData dirty has will have to sort it again
+                gii.transparentOrderDirty = true;
+            }
+        };
+        RenderablePrim2D.prototype._updateInstanceDataParts = function (gii) {
+            // Fetch the GroupInstanceInfo if we don't already have it
+            var rd = this.renderGroup._renderableData;
+            if (!gii) {
+                gii = rd._renderGroupInstancesInfo.get(this.modelKey);
+            }
+            var isTransparent = this.isTransparent;
+            var isAlphaTest = this.isAlphaTest;
+            var wereTransparent = false;
+            // Check a render mode change
+            var rmChanged = false;
+            if (this._instanceDataParts.length > 0) {
+                var firstPart = this._instanceDataParts[0];
+                var partRM = firstPart.renderMode;
+                var curRM = this.renderMode;
+                if (partRM !== curRM) {
+                    wereTransparent = partRM === BABYLON.Render2DContext.RenderModeTransparent;
+                    rmChanged = true;
+                    var gipd;
+                    switch (curRM) {
+                        case BABYLON.Render2DContext.RenderModeTransparent:
+                            gipd = gii.transparentData;
+                            break;
+                        case BABYLON.Render2DContext.RenderModeAlphaTest:
+                            gipd = gii.alphaTestData;
+                            break;
+                        default:
+                            gipd = gii.opaqueData;
+                    }
+                    for (var i = 0; i < this._instanceDataParts.length; i++) {
+                        var part = this._instanceDataParts[i];
+                        part.freeElements();
+                        part.dataBuffer = gipd[i]._partData;
+                        part.renderMode = curRM;
+                    }
+                }
+            }
+            // Handle changes related to ZOffset
+            var visChanged = this._isFlagSet(BABYLON.SmartPropertyPrim.flagVisibilityChanged);
+            if (isTransparent || wereTransparent) {
+                // Handle visibility change, which is also triggered when the primitive just got created
+                if (visChanged || rmChanged) {
+                    if (this.isVisible && !wereTransparent) {
+                        if (!this._transparentPrimitiveInfo) {
+                            // Add the primitive to the list of transparent ones in the group that render is
+                            this._transparentPrimitiveInfo = rd.addNewTransparentPrimitiveInfo(this, gii);
+                        }
+                    }
+                    else {
+                        if (this._transparentPrimitiveInfo) {
+                            rd.removeTransparentPrimitiveInfo(this._transparentPrimitiveInfo);
+                            this._transparentPrimitiveInfo = null;
+                        }
+                    }
+                    gii.transparentOrderDirty = true;
+                }
+            }
+            var rebuildTrans = false;
+            // For each Instance Data part, refresh it to update the data in the DynamicFloatArray
+            for (var _i = 0, _a = this._instanceDataParts; _i < _a.length; _i++) {
+                var part = _a[_i];
+                // Check if we need to allocate data elements (hidden prim which becomes visible again)
+                if ((visChanged && !part.dataElements) || rmChanged) {
+                    part.allocElements();
+                }
+                InstanceClassInfo._CurCategories = gii.usedShaderCategories[gii.partIndexFromId.get(part.id.toString())];
+                // Will return false if the instance should not be rendered (not visible or other any reasons)
+                part.arrayLengthChanged = false;
+                if (!this.refreshInstanceDataPart(part)) {
+                    // Free the data element
+                    if (part.dataElements) {
+                        part.freeElements();
+                    }
+                }
+                rebuildTrans = rebuildTrans || part.arrayLengthChanged;
+            }
+            this._instanceDirtyFlags = 0;
+            // Make the appropriate data dirty
+            if (isTransparent) {
+                gii.transparentDirty = true;
+                if (rebuildTrans) {
+                    rd._transparentListChanged = true;
+                }
+            }
+            else if (isAlphaTest) {
+                gii.alphaTestDirty = true;
+            }
+            else {
+                gii.opaqueDirty = true;
+            }
+            this._clearFlags(BABYLON.SmartPropertyPrim.flagVisibilityChanged); // Reset the flag as we've handled the case            
+        };
+        RenderablePrim2D.prototype._updateTransparentSegmentIndices = function (ts) {
+            var minOff = BABYLON.Prim2DBase._bigInt;
+            var maxOff = 0;
+            for (var _i = 0, _a = this._instanceDataParts; _i < _a.length; _i++) {
+                var part = _a[_i];
+                if (part) {
+                    for (var _b = 0, _c = part.dataElements; _b < _c.length; _b++) {
+                        var el = _c[_b];
+                        minOff = Math.min(minOff, el.offset);
+                        maxOff = Math.max(maxOff, el.offset);
+                    }
+                    ts.startDataIndex = minOff / part.dataBuffer.stride;
+                    ts.endDataIndex = (maxOff / part.dataBuffer.stride) + 1; // +1 for exclusive
+                }
+            }
+        };
+        RenderablePrim2D.prototype._getPrimitiveLastIndex = function () {
+            var maxOff = 0;
+            for (var _i = 0, _a = this._instanceDataParts; _i < _a.length; _i++) {
+                var part = _a[_i];
+                if (part) {
+                    for (var _b = 0, _c = part.dataElements; _b < _c.length; _b++) {
+                        var el = _c[_b];
+                        maxOff = Math.max(maxOff, el.offset);
+                    }
+                    return (maxOff / part.dataBuffer.stride) + 1; // +1 for exclusive
+                }
+            }
+        };
+        // This internal method is mainly used for transparency processing
+        RenderablePrim2D.prototype._getNextPrimZOrder = function () {
+            var length = this._instanceDataParts.length;
+            for (var i = 0; i < length; i++) {
+                var part = this._instanceDataParts[i];
+                if (part) {
+                    var stride = part.dataBuffer.stride;
+                    var lastElementOffset = part.dataElements[part.dataElements.length - 1].offset;
+                    // check if it's the last in the DFA
+                    if (part.dataBuffer.totalElementCount * stride <= lastElementOffset) {
+                        return null;
+                    }
+                    // Return the Z of the next primitive that lies in the DFA
+                    return part.dataBuffer[lastElementOffset + stride + this.modelRenderCache._partData[i]._zBiasOffset];
+                }
+            }
+            return null;
+        };
+        // This internal method is mainly used for transparency processing
+        RenderablePrim2D.prototype._getPrevPrimZOrder = function () {
+            var length = this._instanceDataParts.length;
+            for (var i = 0; i < length; i++) {
+                var part = this._instanceDataParts[i];
+                if (part) {
+                    var stride = part.dataBuffer.stride;
+                    var firstElementOffset = part.dataElements[0].offset;
+                    // check if it's the first in the DFA
+                    if (firstElementOffset === 0) {
+                        return null;
+                    }
+                    // Return the Z of the previous primitive that lies in the DFA
+                    return part.dataBuffer[firstElementOffset - stride + this.modelRenderCache._partData[i]._zBiasOffset];
+                }
+            }
+            return null;
         };
         /**
          * Transform a given point using the Primitive's origin setting.
@@ -508,17 +709,31 @@ var BABYLON;
             res.x = p.x - ((this.origin.x + (originOffset ? originOffset.x : 0)) * actualSize.width);
             res.y = p.y - ((this.origin.y + (originOffset ? originOffset.y : 0)) * actualSize.height);
         };
-        RenderablePrim2D.prototype.transformPointWithOrigin = function (p, originOffset) {
-            var res = new BABYLON.Vector2(0, 0);
+        RenderablePrim2D.prototype.transformPointWithOriginToRef = function (p, originOffset, res) {
             this.transformPointWithOriginByRef(p, originOffset, res);
             return res;
         };
-        RenderablePrim2D.prototype.getDataPartEffectInfo = function (dataPartId, vertexBufferAttributes) {
+        /**
+         * Get the info for a given effect based on the dataPart metadata
+         * @param dataPartId partId in part list to get the info
+         * @param vertexBufferAttributes vertex buffer attributes to manually add
+         * @param useInstanced specified if Instanced Array should be used, if null the engine caps will be used (so true if WebGL supports it, false otherwise), but you have the possibility to override the engine capability. However, if you manually set true but the engine does not support Instanced Array, this method will return null
+         */
+        RenderablePrim2D.prototype.getDataPartEffectInfo = function (dataPartId, vertexBufferAttributes, useInstanced) {
+            if (useInstanced === void 0) { useInstanced = null; }
             var dataPart = BABYLON.Tools.first(this._instanceDataParts, function (i) { return i.id === dataPartId; });
             if (!dataPart) {
                 return null;
             }
             var instancedArray = this.owner.supportInstancedArray;
+            if (useInstanced != null) {
+                // Check if the caller ask for Instanced Array and the engine does not support it, return null if it's the case
+                if (useInstanced && instancedArray === false) {
+                    return null;
+                }
+                // Use the caller's setting
+                instancedArray = useInstanced;
+            }
             var cti = dataPart.getClassTreeInfo();
             var categories = this.getUsedShaderCategories(dataPart);
             var att = cti.classContent.getShaderAttributes(categories);
@@ -536,7 +751,7 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
-        RenderablePrim2D.prototype.createModelRenderCache = function (modelKey, isTransparent) {
+        RenderablePrim2D.prototype.createModelRenderCache = function (modelKey) {
             return null;
         };
         RenderablePrim2D.prototype.setupModelRenderCache = function (modelRenderCache) {
@@ -566,47 +781,58 @@ var BABYLON;
         /**
          * Update the instanceDataBase level properties of a part
          * @param part the part to update
-         * @param positionOffset to use in multi part per primitive (e.g. the Text2D has N parts for N letter to display), this give the offset to apply (e.g. the position of the letter from the bottom/left corner of the text). You MUST also set customSize.
-         * @param customSize to use in multi part per primitive, this is the size of the overall primitive to display (the bounding rect's size of the Text, for instance). This is mandatory to compute correct transformation based on the Primitive's origin property.
+         * @param positionOffset to use in multi part per primitive (e.g. the Text2D has N parts for N letter to display), this give the offset to apply (e.g. the position of the letter from the bottom/left corner of the text).
          */
-        RenderablePrim2D.prototype.updateInstanceDataPart = function (part, positionOffset, customSize) {
+        RenderablePrim2D.prototype.updateInstanceDataPart = function (part, positionOffset) {
             if (positionOffset === void 0) { positionOffset = null; }
-            if (customSize === void 0) { customSize = null; }
             var t = this._globalTransform.multiply(this.renderGroup.invGlobalTransform);
             var size = this.renderGroup.viewportSize;
-            var zBias = this.getActualZOffset();
+            var zBias = this.actualZOffset;
             var offX = 0;
             var offY = 0;
             // If there's an offset, apply the global transformation matrix on it to get a global offset
-            if (positionOffset && customSize) {
-                offX = (positionOffset.x - (customSize.width * this.origin.x)) * t.m[0] + (positionOffset.y - (customSize.height * this.origin.y)) * t.m[4];
-                offY = (positionOffset.x - (customSize.width * this.origin.x)) * t.m[1] + (positionOffset.y - (customSize.height * this.origin.y)) * t.m[5];
+            if (positionOffset) {
+                offX = positionOffset.x * t.m[0] + positionOffset.y * t.m[4];
+                offY = positionOffset.x * t.m[1] + positionOffset.y * t.m[5];
             }
             // Have to convert the coordinates to clip space which is ranged between [-1;1] on X and Y axis, with 0,0 being the left/bottom corner
             // Current coordinates are expressed in renderGroup coordinates ([0, renderGroup.actualSize.width|height]) with 0,0 being at the left/top corner
-            // RenderGroup Width and Height are multiplied by zBias because the VertexShader will multiply X and Y by W, which is 1/zBias. As we divide our coordinate by these Width/Height, we will also divide by the zBias to compensate the operation made by the VertexShader.
             // So for X: 
             //  - tx.x = value * 2 / width: is to switch from [0, renderGroup.width] to [0, 2]
-            //  - tx.w = (value * 2 / width) - 1: w stores the translation in renderGroup coordinates so (value * 2 / width) to switch to a clip space translation value. - 1 is to offset the overall [0;2] to [-1;1]. Don't forget it's -(1/zBias) and not -1 because everything need to be scaled by 1/zBias.
-            var w = size.width * zBias;
-            var h = size.height * zBias;
+            //  - tx.w = (value * 2 / width) - 1: w stores the translation in renderGroup coordinates so (value * 2 / width) to switch to a clip space translation value. - 1 is to offset the overall [0;2] to [-1;1].
+            var w = size.width;
+            var h = size.height;
             var invZBias = 1 / zBias;
-            var tx = new BABYLON.Vector4(t.m[0] * 2 / w, t.m[4] * 2 / w, 0 /*t.m[8]*/, ((t.m[12] + offX) * 2 / w) - (invZBias));
-            var ty = new BABYLON.Vector4(t.m[1] * 2 / h, t.m[5] * 2 / h, 0 /*t.m[9]*/, ((t.m[13] + offY) * 2 / h) - (invZBias));
+            var tx = new BABYLON.Vector4(t.m[0] * 2 / w, t.m[4] * 2 / w, 0 /*t.m[8]*/, ((t.m[12] + offX) * 2 / w) - 1);
+            var ty = new BABYLON.Vector4(t.m[1] * 2 / h, t.m[5] * 2 / h, 0 /*t.m[9]*/, ((t.m[13] + offY) * 2 / h) - 1);
             part.transformX = tx;
             part.transformY = ty;
-            part.origin = this.origin;
+            part.opacity = this.actualOpacity;
             // Stores zBias and it's inverse value because that's needed to compute the clip space W coordinate (which is 1/Z, so 1/zBias)
             part.zBias = new BABYLON.Vector2(zBias, invZBias);
         };
+        RenderablePrim2D.prototype._updateRenderMode = function () {
+            if (this.isTransparent) {
+                this._renderMode = BABYLON.Render2DContext.RenderModeTransparent;
+            }
+            else if (this.isAlphaTest) {
+                this._renderMode = BABYLON.Render2DContext.RenderModeAlphaTest;
+            }
+            else {
+                this._renderMode = BABYLON.Render2DContext.RenderModeOpaque;
+            }
+        };
         RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT = BABYLON.Prim2DBase.PRIM2DBASE_PROPCOUNT + 5;
         __decorate([
-            BABYLON.modelLevelProperty(BABYLON.Prim2DBase.PRIM2DBASE_PROPCOUNT + 1, function (pi) { return RenderablePrim2D.isTransparentProperty = pi; })
+            BABYLON.dynamicLevelProperty(BABYLON.Prim2DBase.PRIM2DBASE_PROPCOUNT + 0, function (pi) { return RenderablePrim2D.isAlphaTestProperty = pi; })
+        ], RenderablePrim2D.prototype, "isAlphaTest", null);
+        __decorate([
+            BABYLON.dynamicLevelProperty(BABYLON.Prim2DBase.PRIM2DBASE_PROPCOUNT + 1, function (pi) { return RenderablePrim2D.isTransparentProperty = pi; })
         ], RenderablePrim2D.prototype, "isTransparent", null);
         RenderablePrim2D = __decorate([
             BABYLON.className("RenderablePrim2D")
         ], RenderablePrim2D);
         return RenderablePrim2D;
-    }(BABYLON.Prim2DBase));
+    })(BABYLON.Prim2DBase);
     BABYLON.RenderablePrim2D = RenderablePrim2D;
 })(BABYLON || (BABYLON = {}));

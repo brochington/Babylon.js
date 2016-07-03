@@ -34,6 +34,7 @@ var BABYLON;
                         };
                         if (!noPreventDefault) {
                             evt.preventDefault();
+                            element.focus();
                         }
                     }
                     else if (p.type === BABYLON.PointerEventTypes.POINTERUP) {
@@ -92,7 +93,7 @@ var BABYLON;
             BABYLON.serialize()
         ], FreeCameraMouseInput.prototype, "angularSensibility", void 0);
         return FreeCameraMouseInput;
-    }());
+    })();
     BABYLON.FreeCameraMouseInput = FreeCameraMouseInput;
     BABYLON.CameraInputTypes["FreeCameraMouseInput"] = FreeCameraMouseInput;
 })(BABYLON || (BABYLON = {}));

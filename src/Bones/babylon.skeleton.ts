@@ -135,12 +135,14 @@
                 Tools.Warn(`copyAnimationRange: this rig has ${this.bones.length} bones, while source as ${sourceBones.length}`);
                 ret = false;
             }
+            
+            var skelDimensionsRatio = (rescaleAsRequired && this.dimensionsAtRest && source.dimensionsAtRest) ? this.dimensionsAtRest.divide(source.dimensionsAtRest) : null;
 
             for (i = 0, nBones = this.bones.length; i < nBones; i++) {
                 var boneName = this.bones[i].name;
                 var sourceBone = boneDict[boneName];
                 if (sourceBone) {
-                    ret = ret && this.bones[i].copyAnimationRange(sourceBone, name, frameOffset, rescaleAsRequired);
+                    ret = ret && this.bones[i].copyAnimationRange(sourceBone, name, frameOffset, rescaleAsRequired, skelDimensionsRatio);
                 } else {
                     Tools.Warn("copyAnimationRange: not same rig, missing source bone " + boneName);
                     ret = false;
@@ -256,7 +258,7 @@
 
             this._isDirty = false;
 
-            this._scene._activeBones += this.bones.length;
+            this._scene._activeBones.addCount(this.bones.length, false);
         }
 
         public getAnimatables(): IAnimatable[] {

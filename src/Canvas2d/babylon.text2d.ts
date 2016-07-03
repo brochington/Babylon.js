@@ -1,44 +1,57 @@
 ﻿module BABYLON {
     export class Text2DRenderCache extends ModelRenderCache {
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-        fontTexture: FontTexture;
-        effect: Effect;
+        effectsReady: boolean                           = false;
+        vb: WebGLBuffer                                 = null;
+        ib: WebGLBuffer                                 = null;
+        instancingAttributes: InstancingAttributeInfo[] = null;
+        fontTexture: FontTexture                        = null;
+        effect: Effect                                  = null;
+        effectInstanced: Effect                         = null;
 
         render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean {
-            // Do nothing if the shader is still loading/preparing
-            if (!this.effect.isReady() || !this.fontTexture.isReady()) {
-                return false;
+            // Do nothing if the shader is still loading/preparing 
+            if (!this.effectsReady) {
+                if ((this.effect && (!this.effect.isReady() || (this.effectInstanced && !this.effectInstanced.isReady())))) {
+                    return false;
+                }
+                this.effectsReady = true;
             }
-
-            // Compute the offset locations of the attributes in the vertexshader that will be mapped to the instance buffer data
-            if (!this.instancingAttributes) {
-                this.instancingAttributes = this.loadInstancingAttributes(Text2D.TEXT2D_MAINPARTID, this.effect);
-            }
-            var engine = instanceInfo._owner.owner.engine;
+            let canvas = instanceInfo.owner.owner;
+            var engine = canvas.engine;
 
             this.fontTexture.update();
 
-            engine.enableEffect(this.effect);
-            this.effect.setTexture("diffuseSampler", this.fontTexture);
-            engine.bindBuffersDirectly(this.vb, this.ib, [1], 4, this.effect);
+            let effect = context.useInstancing ? this.effectInstanced : this.effect;
 
-            var cur = engine.getAlphaMode();
-            engine.setAlphaMode(Engine.ALPHA_ADD);
-            let count = instanceInfo._instancesPartsData[0].usedElementCount;
-            if (instanceInfo._owner.owner.supportInstancedArray) {
-                engine.updateAndBindInstancesBuffer(instanceInfo._instancesPartsBuffer[0], null, this.instancingAttributes);
+            engine.enableEffect(effect);
+            effect.setTexture("diffuseSampler", this.fontTexture);
+            engine.bindBuffersDirectly(this.vb, this.ib, [1], 4, effect);
+
+            var curAlphaMode = engine.getAlphaMode();
+
+            engine.setAlphaMode(Engine.ALPHA_COMBINE, true);
+
+            let pid = context.groupInfoPartData[0];
+            if (context.useInstancing) {
+                if (!this.instancingAttributes) {
+                    this.instancingAttributes = this.loadInstancingAttributes(Text2D.TEXT2D_MAINPARTID, effect);
+                }
+
+                let glBuffer = context.instancedBuffers ? context.instancedBuffers[0] : pid._partBuffer;
+                let count = context.instancedBuffers ? context.instancesCount : pid._partData.usedElementCount;
+                canvas._addDrawCallCount(1, context.renderMode);
+                engine.updateAndBindInstancesBuffer(glBuffer, null, this.instancingAttributes);
                 engine.draw(true, 0, 6, count);
                 engine.unbindInstanceAttributes();
             } else {
-                for (let i = 0; i < count; i++) {
-                    this.setupUniforms(this.effect, 0, instanceInfo._instancesPartsData[0], i);
+                canvas._addDrawCallCount(context.partDataEndIndex - context.partDataStartIndex, context.renderMode);
+                for (let i = context.partDataStartIndex; i < context.partDataEndIndex; i++) {
+                    this.setupUniforms(effect, 0, pid._partData, i);
                     engine.draw(true, 0, 6);
                 }
             }
 
-            engine.setAlphaMode(cur);
+            engine.setAlphaMode(curAlphaMode);
 
             return true;
         }
@@ -66,6 +79,11 @@
             if (this.effect) {
                 this._engine._releaseEffect(this.effect);
                 this.effect = null;
+            }
+
+            if (this.effectInstanced) {
+                this._engine._releaseEffect(this.effectInstanced);
+                this.effectInstanced = null;
             }
 
             return true;
@@ -97,27 +115,30 @@
         get color(): Color4 {
             return null;
         }
+
+        @instanceData()
+        get superSampleFactor(): number {
+            return null;
+        }
     }
 
     @className("Text2D")
+    /**
+     * Primitive that render text using a specific font
+     */
     export class Text2D extends RenderablePrim2D {
         static TEXT2D_MAINPARTID = 1;
 
         public static fontProperty: Prim2DPropInfo;
         public static defaultFontColorProperty: Prim2DPropInfo;
         public static textProperty: Prim2DPropInfo;
-        public static areaSizeProperty: Prim2DPropInfo;
-        public static vAlignProperty: Prim2DPropInfo;
-        public static hAlignProperty: Prim2DPropInfo;
-
-        public static TEXT2D_VALIGN_TOP = 1;
-        public static TEXT2D_VALIGN_CENTER = 2;
-        public static TEXT2D_VALIGN_BOTTOM = 3;
-        public static TEXT2D_HALIGN_LEFT = 1;
-        public static TEXT2D_HALIGN_CENTER = 2;
-        public static TEXT2D_HALIGN_RIGHT = 3;
+        public static sizeProperty: Prim2DPropInfo;
 
         @modelLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 1, pi => Text2D.fontProperty = pi, false, true)
+        /**
+         * Get/set the font name to use, using HTML CSS notation.
+         * Set is not supported right now.
+         */
         public get fontName(): string {
             return this._fontName;
         }
@@ -130,6 +151,9 @@
         }
 
         @dynamicLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 2, pi => Text2D.defaultFontColorProperty = pi)
+        /**
+         * Get/set the font default color
+         */
         public get defaultFontColor(): Color4 {
             return this._defaultFontColor;
         }
@@ -139,55 +163,68 @@
         }
 
         @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 3, pi => Text2D.textProperty = pi, false, true)
+        /**
+         * Get/set the text to render.
+         * \n \t character are supported. 
+         */
         public get text(): string {
             return this._text;
         }
 
         public set text(value: string) {
             this._text = value;
-            this._actualSize = null;    // A change of text will reset the Actual Area Size which will be recomputed next time it's used
+            this._textSize = null;    // A change of text will reset the TextSize which will be recomputed next time it's used
+            this._size = null;
             this._updateCharCount();
+
+            // Trigger a textSize to for a sizeChange if necessary, which is needed for layout to recompute
+            let s = this.textSize;
         }
 
-        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 4, pi => Text2D.areaSizeProperty = pi)
-        public get areaSize(): Size {
-            return this._areaSize;
-        }
-
-        public set areaSize(value: Size) {
-            this._areaSize = value;
-        }
-
-        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 5, pi => Text2D.vAlignProperty = pi)
-        public get vAlign(): number {
-            return this._vAlign;
-        }
-
-        public set vAlign(value: number) {
-            this._vAlign = value;
-        }
-
-        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 6, pi => Text2D.hAlignProperty = pi)
-        public get hAlign(): number {
-            return this._hAlign;
-        }
-
-        public set hAlign(value: number) {
-            this._hAlign = value;
-        }
-
-        public get actualSize(): Size {
-            if (this.areaSize) {
-                return this.areaSize;
+        @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 4, pi => Text2D.sizeProperty = pi)
+        /**
+         * Get/set the size of the area where the text is drawn.
+         * You should not set this size, the default behavior compute the size based on the actual text.
+         */
+        public get size(): Size {
+            if (this._size != null) {
+                return this._size;
             }
+            return this.textSize;
+        }
 
+        public set size(value: Size) {
+            this._size = value;
+        }
+
+        /**
+         * Get the actual size of the Text2D primitive
+         */
+        public get actualSize(): Size {
             if (this._actualSize) {
                 return this._actualSize;
             }
+            return this.size;
+        }
 
-            this._actualSize = this.fontTexture.measureText(this._text, this._tabulationSize);
-
-            return this._actualSize;
+        /**
+         * Get the area that bounds the text associated to the primitive
+         */
+        public get textSize(): Size {
+            if (!this._textSize) {
+                if (this.owner) {
+                    let newSize = this.fontTexture.measureText(this._text, this._tabulationSize);
+                    if (!newSize.equals(this._textSize)) {
+                        this.onPrimitivePropertyDirty(Prim2DBase.sizeProperty.flagId);
+                        this._positioningDirty();
+                    }
+                    this._textSize = newSize;
+                } else {
+                    return Text2D.nullSize;
+                }
+            }
+            
+            return this._textSize;
         }
 
         protected get fontTexture(): FontTexture {
@@ -195,17 +232,20 @@
                 return this._fontTexture;
             }
 
-            this._fontTexture = FontTexture.GetCachedFontTexture(this.owner.scene, this.fontName);
+            this._fontTexture = FontTexture.GetCachedFontTexture(this.owner.scene, this.fontName, this._fontSuperSample);
             return this._fontTexture;
         }
 
+        /**
+         * Dispose the primitive, remove it from its parent
+         */
         public dispose(): boolean {
             if (!super.dispose()) {
                 return false;
             }
 
             if (this._fontTexture) {
-                FontTexture.ReleaseCachedFontTexture(this.owner.scene, this.fontName);
+                FontTexture.ReleaseCachedFontTexture(this.owner.scene, this.fontName, this._fontSuperSample);
                 this._fontTexture = null;
             }
 
@@ -213,44 +253,90 @@
         }
 
         protected updateLevelBoundingInfo() {
-            BoundingInfo2D.CreateFromSizeToRef(this.actualSize, this._levelBoundingInfo, this.origin);
-        }
-
-        protected setupText2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, fontName: string, text: string, areaSize: Size, defaultFontColor: Color4, vAlign, hAlign, tabulationSize: number) {
-            this.setupRenderablePrim2D(owner, parent, id, position, origin, true);
-
-            this.fontName = fontName;
-            this.defaultFontColor = defaultFontColor;
-            this.text = text;
-            this.areaSize = areaSize;
-            this.vAlign = vAlign;
-            this.hAlign = hAlign;
-            this._tabulationSize = tabulationSize;
-            this._isTransparent = true;
+            BoundingInfo2D.CreateFromSizeToRef(this.actualSize, this._levelBoundingInfo);
         }
 
         /**
          * Create a Text primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
          * @param text the text to display
-         * Options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - fontName: the name/size/style of the font to use, following the CSS notation. Default is "12pt Arial".
-         *  - defaultColor: the color by default to apply on each letter of the text to display, default is plain white.
-         *  - areaSize: the size of the area in which to display the text, default is auto-fit from text content.
-         *  - vAlign: vertical alignment (areaSize must be specified), default is Text2D.TEXT2D_VALIGN_CENTER
-         *  - hAlign: horizontal alignment (areaSize must be specified), default is Text2D.TEXT2D_HALIGN_CENTER
-         *  - tabulationSize: number of space character to insert when a tabulation is encountered, default is 4
+         * @param settings a combination of settings, possible ones are
+         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
+         * - children: an array of direct children
+         * - id a text identifier, for information purpose
+         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
+         * - rotation: the initial rotation (in radian) of the primitive. default is 0
+         * - scale: the initial scale of the primitive. default is 1
+         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
+         * - origin: define the normalized origin point location, default [0.5;0.5]
+         * - fontName: the name/size/style of the font to use, following the CSS notation. Default is "12pt Arial".
+         * - fontSuperSample: if true the text will be rendered with a superSampled font (the font is twice the given size). Use this settings if the text lies in world space or if it's scaled in.
+         * - defaultColor: the color by default to apply on each letter of the text to display, default is plain white.
+         * - areaSize: the size of the area in which to display the text, default is auto-fit from text content.
+         * - tabulationSize: number of space character to insert when a tabulation is encountered, default is 4
+         * - isVisible: true if the text must be visible, false for hidden. Default is true.
+         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
+         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
+         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
+         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
          */
-        public static Create(parent: Prim2DBase, text: string, options?: { id?: string, x?: number, y?: number, origin?:Vector2, fontName?: string, defaultFontColor?: Color4, areaSize?: Size, vAlign?: number, hAlign?: number, tabulationSize?: number}): Text2D {
-            Prim2DBase.CheckParent(parent);
+        constructor(text: string, settings?: {
 
-            let text2d = new Text2D();
-            text2d.setupText2D(parent.owner, parent, options && options.id || null, new Vector2(options && options.x || 0, options && options.y || 0), options && options.origin || null, options && options.fontName || "12pt Arial", text, options && options.areaSize, options && options.defaultFontColor || new Color4(1, 1, 1, 1), options && options.vAlign || Text2D.TEXT2D_VALIGN_CENTER, options && options.hAlign || Text2D.TEXT2D_HALIGN_CENTER, options && options.tabulationSize || 4);
-            return text2d;
+            parent            ?: Prim2DBase, 
+            children          ?: Array<Prim2DBase>,
+            id                ?: string,
+            position          ?: Vector2,
+            x                 ?: number,
+            y                 ?: number,
+            rotation          ?: number,
+            scale             ?: number,
+            opacity           ?: number,
+            origin            ?: Vector2,
+            fontName          ?: string,
+            fontSuperSample   ?: boolean,
+            defaultFontColor  ?: Color4,
+            size              ?: Size,
+            tabulationSize    ?: number,
+            isVisible         ?: boolean,
+            childrenFlatZOrder?: boolean,
+            marginTop         ?: number | string,
+            marginLeft        ?: number | string,
+            marginRight       ?: number | string,
+            marginBottom      ?: number | string,
+            margin            ?: number | string,
+            marginHAlignment  ?: number,
+            marginVAlignment  ?: number,
+            marginAlignment   ?: string,
+            paddingTop        ?: number | string,
+            paddingLeft       ?: number | string,
+            paddingRight      ?: number | string,
+            paddingBottom     ?: number | string,
+            padding           ?: string,
+        }) {
+
+            if (!settings) {
+                settings = {};
+            }
+
+            super(settings);
+
+            this.fontName         = (settings.fontName==null) ? "12pt Arial" : settings.fontName;
+            this._fontSuperSample = (settings.fontSuperSample!=null && settings.fontSuperSample);
+            this.defaultFontColor = (settings.defaultFontColor==null) ? new Color4(1,1,1,1) : settings.defaultFontColor;
+            this._tabulationSize  = (settings.tabulationSize == null) ? 4 : settings.tabulationSize;
+            this._textSize        = null;
+            this.text             = text;
+            this.size             = (settings.size==null) ? null : settings.size;
+            this.isTransparent    = true;
         }
 
         protected levelIntersect(intersectInfo: IntersectInfo2D): boolean {
@@ -258,8 +344,8 @@
             return true;
         }
 
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache {
-            let renderCache = new Text2DRenderCache(this.owner.engine, modelKey, isTransparent);
+        protected createModelRenderCache(modelKey: string): ModelRenderCache {
+            let renderCache = new Text2DRenderCache(this.owner.engine, modelKey);
             return renderCache;
         }
 
@@ -285,8 +371,13 @@
 
             renderCache.ib = engine.createIndexBuffer(ib);
 
-            // Effects
-            let ei = this.getDataPartEffectInfo(Text2D.TEXT2D_MAINPARTID, ["index"]);
+            // Get the instanced version of the effect, if the engine does not support it, null is return and we'll only draw on by one
+            let ei = this.getDataPartEffectInfo(Text2D.TEXT2D_MAINPARTID, ["index"], true);
+            if (ei) {
+                renderCache.effectInstanced = engine.createEffect("text2d", ei.attributes, ei.uniforms, ["diffuseSampler"], ei.defines, null);
+            }
+
+            ei = this.getDataPartEffectInfo(Text2D.TEXT2D_MAINPARTID, ["index"], false);
             renderCache.effect = engine.createEffect("text2d", ei.attributes, ei.uniforms, ["diffuseSampler"], ei.defines, null);
 
             return renderCache;
@@ -322,9 +413,11 @@
             if (part.id === Text2D.TEXT2D_MAINPARTID) {
                 let d = <Text2DInstanceData>part;
                 let texture = this.fontTexture;
+                let superSampleFactor = texture.isSuperSampled ? 0.5 : 1;
                 let ts = texture.getSize();
-                let textSize = texture.measureText(this.text, this._tabulationSize);
                 let offset = Vector2.Zero();
+                let lh = this.fontTexture.lineHeight;
+                offset.y = ((this.textSize.height/lh)-1) * lh;  // Origin is bottom, not top, so the offset is starting with a y that is the top location of the text
                 let charxpos = 0;
                 d.dataElementCount = this._charCount;
                 d.curElement = 0;
@@ -350,7 +443,7 @@
                         continue;
                     }
 
-                    this.updateInstanceDataPart(d, offset, textSize);
+                    this.updateInstanceDataPart(d, offset);
 
                     let ci = texture.getChar(char);
                     offset.x += ci.charWidth;
@@ -360,6 +453,7 @@
                     d.sizeUV = suv;
                     d.textureSize = new Vector2(ts.width, ts.height);
                     d.color = this.defaultFontColor;
+                    d.superSampleFactor = superSampleFactor;
 
                     ++d.curElement;
                 }
@@ -382,12 +476,10 @@
         private _tabulationSize: number;
         private _charCount: number;
         private _fontName: string;
+        private _fontSuperSample: boolean;
         private _defaultFontColor: Color4;
         private _text: string;
-        private _areaSize: Size;
-        private _actualSize: Size;
-        private _vAlign: number;
-        private _hAlign: number;
+        private _textSize: Size;
     }
 
 

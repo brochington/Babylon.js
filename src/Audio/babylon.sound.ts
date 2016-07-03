@@ -339,14 +339,15 @@
         /**
         * Play the sound
         * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
+        * @param offset (optional) Start the sound setting it at a specific time
         */
-        public play(time?: number) {
+        public play(time?: number, offset?: number) {
             if (this._isReadyToPlay && this._scene.audioEnabled) {
                 try {
                     if (this._startOffset < 0) {
                         time = -this._startOffset;
                         this._startOffset = 0;
-                    }  
+                    }
                     var startTime = time ? Engine.audioEngine.audioContext.currentTime + time : Engine.audioEngine.audioContext.currentTime;
                     if (!this._soundSource || !this._streamingSource) {
                         if (this.spatialSound) {
@@ -381,7 +382,7 @@
                         this._soundSource.loop = this.loop;
                         this._soundSource.playbackRate.value = this._playbackRate;
                         this._soundSource.onended = () => { this._onended(); };
-                        this._soundSource.start(startTime, this.isPaused ? this._startOffset % this._soundSource.buffer.duration : 0);
+                        this._soundSource.start(startTime, this.isPaused ? this._startOffset % this._soundSource.buffer.duration : offset ? offset : 0);
                     }
                     this._startTime = startTime;
                     this.isPlaying = true;
@@ -416,6 +417,7 @@
                 else {
                     var stopTime = time ? Engine.audioEngine.audioContext.currentTime + time : Engine.audioEngine.audioContext.currentTime;
                     this._soundSource.stop(stopTime);
+                    this._soundSource.onended = null;
                     if (!this.isPaused) {
                         this._startOffset = 0;
                     }
@@ -486,6 +488,14 @@
             meshToConnectTo.registerAfterWorldMatrixUpdate(this._registerFunc);
         }
 
+        public detachFromMesh() {
+            if (this._connectedMesh) {
+                this._connectedMesh.unregisterAfterWorldMatrixUpdate(this._registerFunc);
+                this._registerFunc = null;
+                this._connectedMesh = null;
+            }
+        }
+
         private _onRegisterAfterWorldMatrixUpdate(connectedMesh: AbstractMesh) {
             this.setPosition(connectedMesh.getBoundingInfo().boundingSphere.centerWorld);
             if (Engine.audioEngine.canUseWebAudio && this._isDirectional && this.isPlaying) {
@@ -526,17 +536,52 @@
             // Can't clone a streaming sound
             else {
                 return null;
-            } 
+            }
         }
 
         public getAudioBuffer() {
             return this._audioBuffer;
         }
 
+        public serialize(): any {
+            var serializationObject: any = {
+                name: this.name,
+                url: this.name,
+                autoplay: this.autoplay,
+                loop: this.loop,
+                volume: this._volume,
+                spatialSound: this.spatialSound,
+                maxDistance: this.maxDistance,
+                rolloffFactor: this.rolloffFactor,
+                refDistance: this.refDistance,
+                distanceModel: this.distanceModel,
+                playbackRate: this._playbackRate,
+                panningModel: this._panningModel,
+                soundTrackId: this.soundTrackId
+            };
+
+            if (this.spatialSound) {
+                if (this._connectedMesh)
+                    serializationObject.connectedMeshId = this._connectedMesh.id;
+
+                serializationObject.position = this._position.asArray();
+                serializationObject.refDistance = this.refDistance;
+                serializationObject.distanceModel = this.distanceModel;
+
+                serializationObject.isDirectional = this._isDirectional;
+                serializationObject.localDirectionToMesh = this._localDirection.asArray();
+                serializationObject.coneInnerAngle = this._coneInnerAngle;
+                serializationObject.coneOuterAngle = this._coneOuterAngle;
+                serializationObject.coneOuterGain = this._coneOuterGain;
+            }
+
+            return serializationObject;
+        }
+
         public static Parse(parsedSound: any, scene: Scene, rootUrl: string, sourceSound?: Sound): Sound {
             var soundName = parsedSound.name;
             var soundUrl;
-            
+
             if (parsedSound.url) {
                 soundUrl = rootUrl + parsedSound.url;
             }
@@ -592,7 +637,7 @@
                     newSound.attachToMesh(connectedMesh);
                 }
             }
-            
+
             return newSound;
         }
     }

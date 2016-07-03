@@ -13,8 +13,32 @@ var BABYLON;
 (function (BABYLON) {
     var Shape2D = (function (_super) {
         __extends(Shape2D, _super);
-        function Shape2D() {
-            _super.apply(this, arguments);
+        function Shape2D(settings) {
+            _super.call(this, settings);
+            if (!settings) {
+                settings = {};
+            }
+            var borderBrush = null;
+            if (settings.border) {
+                if (typeof (settings.border) === "string") {
+                    borderBrush = BABYLON.Canvas2D.GetBrushFromString(settings.border);
+                }
+                else {
+                    borderBrush = settings.border;
+                }
+            }
+            var fillBrush = null;
+            if (settings.fill) {
+                if (typeof (settings.fill) === "string") {
+                    fillBrush = BABYLON.Canvas2D.GetBrushFromString(settings.fill);
+                }
+                else {
+                    fillBrush = settings.fill;
+                }
+            }
+            this.border = borderBrush;
+            this.fill = fillBrush;
+            this.borderThickness = settings.borderThickness;
         }
         Object.defineProperty(Shape2D.prototype, "border", {
             get: function () {
@@ -28,6 +52,9 @@ var BABYLON;
             configurable: true
         });
         Object.defineProperty(Shape2D.prototype, "fill", {
+            /**
+             * Get/set the brush to render the Fill part of the Primitive
+             */
             get: function () {
                 return this._fill;
             },
@@ -48,13 +75,6 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
-        Shape2D.prototype.setupShape2D = function (owner, parent, id, position, origin, isVisible, fill, border, borderThickness) {
-            if (borderThickness === void 0) { borderThickness = 1.0; }
-            this.setupRenderablePrim2D(owner, parent, id, position, origin, isVisible);
-            this.border = border;
-            this.fill = fill;
-            this.borderThickness = borderThickness;
-        };
         Shape2D.prototype.getUsedShaderCategories = function (dataPart) {
             var cat = _super.prototype.getUsedShaderCategories.call(this, dataPart);
             // Fill Part
@@ -121,7 +141,7 @@ var BABYLON;
             return true;
         };
         Shape2D.prototype._updateTransparencyStatus = function () {
-            this.isTransparent = (this._border && this._border.isTransparent()) || (this._fill && this._fill.isTransparent());
+            this.isTransparent = (this._border && this._border.isTransparent()) || (this._fill && this._fill.isTransparent()) || (this.actualOpacity < 1);
         };
         Shape2D.SHAPE2D_BORDERPARTID = 1;
         Shape2D.SHAPE2D_FILLPARTID = 2;
@@ -144,7 +164,7 @@ var BABYLON;
             BABYLON.className("Shape2D")
         ], Shape2D);
         return Shape2D;
-    }(BABYLON.RenderablePrim2D));
+    })(BABYLON.RenderablePrim2D);
     BABYLON.Shape2D = Shape2D;
     var Shape2DInstanceData = (function (_super) {
         __extends(Shape2DInstanceData, _super);
@@ -244,6 +264,6 @@ var BABYLON;
             BABYLON.instanceData(Shape2D.SHAPE2D_CATEGORY_BORDERGRADIENT)
         ], Shape2DInstanceData.prototype, "borderGradientTY", null);
         return Shape2DInstanceData;
-    }(BABYLON.InstanceDataBase));
+    })(BABYLON.InstanceDataBase);
     BABYLON.Shape2DInstanceData = Shape2DInstanceData;
 })(BABYLON || (BABYLON = {}));

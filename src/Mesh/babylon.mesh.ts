@@ -762,7 +762,7 @@
         /**
          * Sets the mesh indices.  
          * Expects an array populated with integers or a Int32Array.
-         * If the mesh has no geometry, a new `Geometry` object is created and set to the mesh. 
+         * If the mesh has no geometry, a new Geometry object is created and set to the mesh. 
          * This method creates a new index buffer each call.
          */
         public setIndices(indices: number[] | Int32Array, totalVertices?: number): void {
@@ -835,7 +835,7 @@
                     if (this._unIndexed) {
                         engine.drawUnIndexed(false, subMesh.verticesStart, subMesh.verticesCount, instancesCount);
                     } else {
-                        engine.draw(false, 0, subMesh.linesIndexCount, instancesCount);
+                        engine.draw(false, 0, instancesCount > 0 ? subMesh.linesIndexCount / 2 : subMesh.linesIndexCount, instancesCount);
                     }
                     break;
 
@@ -955,18 +955,17 @@
                     instancesBuffer.dispose();
                 }
 
-                instancesBuffer = new BABYLON.Buffer(engine, this._instancesData, true, 16, false, true);
+                instancesBuffer = new Buffer(engine, this._instancesData, true, 16, false, true);
                 this._instancesBuffer = instancesBuffer;
 
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world0", 0, 4));
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world1", 4, 4));
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world2", 8, 4));
                 this.setVerticesBuffer(instancesBuffer.createVertexBuffer("world3", 12, 4));
-
-                engine.bindBuffers(this.geometry.getVertexBuffers(), this.geometry.getIndexBuffer(), effect);
             } else {
                 instancesBuffer.updateDirectly(this._instancesData, 0, instancesCount);
             }
+            engine.bindBuffers(this.geometry.getVertexBuffers(), this.geometry.getIndexBuffer(), effect);
 
             this._draw(subMesh, fillMode, instancesCount);
 
@@ -974,7 +973,7 @@
         }
 
         public _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean,
-            onBeforeDraw: (isInstance: boolean, world: Matrix) => void) {
+            onBeforeDraw: (isInstance: boolean, world: Matrix, effectiveMaterial?: Material) => void, effectiveMaterial?: Material) {
             var scene = this.getScene();
             var engine = scene.getEngine();
 
@@ -984,7 +983,7 @@
                 if (batch.renderSelf[subMesh._id]) {
                     // Draw
                     if (onBeforeDraw) {
-                        onBeforeDraw(false, this.getWorldMatrix());
+                        onBeforeDraw(false, this.getWorldMatrix(), effectiveMaterial);
                     }
 
                     this._draw(subMesh, fillMode, this._overridenInstanceCount);
@@ -997,7 +996,7 @@
                         // World
                         var world = instance.getWorldMatrix();
                         if (onBeforeDraw) {
-                            onBeforeDraw(true, world);
+                            onBeforeDraw(true, world, effectiveMaterial);
                         }
 
                         // Draw
@@ -1064,12 +1063,7 @@
             }
 
             // Draw
-            this._processRendering(subMesh, effect, fillMode, batch, hardwareInstancedRendering,
-                (isInstance, world) => {
-                    if (isInstance) {
-                        effectiveMaterial.bindOnlyWorldMatrix(world);
-                    }
-                });
+            this._processRendering(subMesh, effect, fillMode, batch, hardwareInstancedRendering, this._onBeforeDraw);
 
             // Unbind
             effectiveMaterial.unbind();
@@ -1091,6 +1085,12 @@
             }
 
             this.onAfterRenderObservable.notifyObservers(this);
+        }
+
+        private _onBeforeDraw(isInstance: boolean, world: Matrix, effectiveMaterial: Material): void {
+            if (isInstance) {
+                effectiveMaterial.bindOnlyWorldMatrix(world);
+            }
         }
 
         /**
@@ -1127,32 +1127,35 @@
         }
 
         public _checkDelayState(): void {
-            var that = this;
             var scene = this.getScene();
 
             if (this._geometry) {
                 this._geometry.load(scene);
             }
-            else if (that.delayLoadState === Engine.DELAYLOADSTATE_NOTLOADED) {
-                that.delayLoadState = Engine.DELAYLOADSTATE_LOADING;
+            else if (this.delayLoadState === Engine.DELAYLOADSTATE_NOTLOADED) {
+                this.delayLoadState = Engine.DELAYLOADSTATE_LOADING;
 
-                scene._addPendingData(that);
-
-                var getBinaryData = (this.delayLoadingFile.indexOf(".babylonbinarymeshdata") !== -1);
-
-                Tools.LoadFile(this.delayLoadingFile, data => {
-
-                    if (data instanceof ArrayBuffer) {
-                        this._delayLoadingFunction(data, this);
-                    }
-                    else {
-                        this._delayLoadingFunction(JSON.parse(data), this);
-                    }
-
-                    this.delayLoadState = Engine.DELAYLOADSTATE_LOADED;
-                    scene._removePendingData(this);
-                }, () => { }, scene.database, getBinaryData);
+                this._queueLoad(this, scene);
             }
+        }
+
+        private _queueLoad(mesh: Mesh, scene: Scene): void {
+            scene._addPendingData(mesh);
+
+            var getBinaryData = (this.delayLoadingFile.indexOf(".babylonbinarymeshdata") !== -1);
+
+            Tools.LoadFile(this.delayLoadingFile, data => {
+
+                if (data instanceof ArrayBuffer) {
+                    this._delayLoadingFunction(data, this);
+                }
+                else {
+                    this._delayLoadingFunction(JSON.parse(data), this);
+                }
+
+                this.delayLoadState = Engine.DELAYLOADSTATE_LOADED;
+                scene._removePendingData(this);
+            }, () => { }, scene.database, getBinaryData);
         }
 
         /**
@@ -1306,7 +1309,7 @@
          * Returns a new Mesh object generated from the current mesh properties.
          * This method must not get confused with createInstance().  
          * The parameter `name` is a string, the name given to the new mesh. 
-         * The optional parameter `newParent` can be any `Node` object (default `null`).  
+         * The optional parameter `newParent` can be any Node object (default `null`).  
          * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
          * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any. 
          */
@@ -2128,7 +2131,8 @@
                 dashSize: dashSize,
                 gapSize: gapSize,
                 dashNb: dashNb,
-                updatable: updatable
+                updatable: updatable,
+                instance: instance
             }
             return MeshBuilder.CreateDashedLines(name, options, scene);
         }
@@ -2220,7 +2224,6 @@
          * Creates lathe mesh.  
          * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.      
          * Please consider using the same method from the MeshBuilder class instead.    
-         *
          * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
          * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.    
          * The parameter `radius` (positive float, default 1) is the radius value of the lathe.        
@@ -2334,7 +2337,6 @@
         /**
          * Creates a tube mesh.    
          * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.    
-         *
          * Please consider using the same method from the MeshBuilder class instead.    
          * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.        
          * The parameter `radius` (positive float, default 1) sets the tube radius size.    
@@ -2369,7 +2371,6 @@
         }
         /**
          * Creates a polyhedron mesh.  
-         * 
          * Please consider using the same method from the MeshBuilder class instead.    
          * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
          *  to choose the wanted type.  
@@ -2407,7 +2408,7 @@
          * Please consider using the same method from the MeshBuilder class instead.    
          * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.  
          * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.  
-         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.  
+         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.  
          * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.  
          * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.  
          */
@@ -2558,7 +2559,7 @@
 
         // Tools
         /**
-         * Returns an object `{min: Vector3, max: Vector3}`
+         * Returns an object `{min:` Vector3`, max:` Vector3`}`
          * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
          */
         public static MinMax(meshes: AbstractMesh[]): { min: Vector3; max: Vector3 } {
@@ -2582,7 +2583,7 @@
             };
         }
         /**
-         * Returns a `Vector3`, the center of the `{min: Vector3, max: Vector3}` or the center of MinMax vector3 computed from a mesh array.
+         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
          */
         public static Center(meshesOrMinMaxVector): Vector3 {
             var minMaxVector = meshesOrMinMaxVector.min !== undefined ? meshesOrMinMaxVector : Mesh.MinMax(meshesOrMinMaxVector);

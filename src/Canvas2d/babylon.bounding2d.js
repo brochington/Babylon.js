@@ -10,58 +10,89 @@ var BABYLON;
             this.center = BABYLON.Vector2.Zero();
             this.extent = BABYLON.Vector2.Zero();
         }
-        BoundingInfo2D.CreateFromSize = function (size, origin) {
+        /**
+         * Create a BoundingInfo2D object from a given size
+         * @param size the size that will be used to set the extend, radius will be computed from it.
+         */
+        BoundingInfo2D.CreateFromSize = function (size) {
             var r = new BoundingInfo2D();
-            BoundingInfo2D.CreateFromSizeToRef(size, r, origin);
+            BoundingInfo2D.CreateFromSizeToRef(size, r);
             return r;
         };
-        BoundingInfo2D.CreateFromRadius = function (radius, origin) {
+        /**
+         * Create a BoundingInfo2D object from a given radius
+         * @param radius the radius to use, the extent will be computed from it.
+         */
+        BoundingInfo2D.CreateFromRadius = function (radius) {
             var r = new BoundingInfo2D();
-            BoundingInfo2D.CreateFromRadiusToRef(radius, r, origin);
+            BoundingInfo2D.CreateFromRadiusToRef(radius, r);
             return r;
         };
-        BoundingInfo2D.CreateFromPoints = function (points, origin) {
+        /**
+         * Create a BoundingInfo2D object from a list of points.
+         * The resulted object will be the smallest bounding area that includes all the given points.
+         * @param points an array of points to compute the bounding object from.
+         */
+        BoundingInfo2D.CreateFromPoints = function (points) {
             var r = new BoundingInfo2D();
-            BoundingInfo2D.CreateFromPointsToRef(points, r, origin);
+            BoundingInfo2D.CreateFromPointsToRef(points, r);
             return r;
         };
-        BoundingInfo2D.CreateFromSizeToRef = function (size, b, origin) {
-            b.center = new BABYLON.Vector2(size.width / 2, size.height / 2);
-            b.extent = b.center.clone();
-            if (origin) {
-                b.center.x -= size.width * origin.x;
-                b.center.y -= size.height * origin.y;
+        /**
+         * Update a BoundingInfo2D object using the given Size as input
+         * @param size the bounding data will be computed from this size.
+         * @param b must be a valid/allocated object, it will contain the result of the operation
+         */
+        BoundingInfo2D.CreateFromSizeToRef = function (size, b) {
+            if (!size) {
+                size = BABYLON.Size.Zero();
             }
+            b.center.x = +size.width / 2;
+            b.center.y = +size.height / 2;
+            b.extent.x = b.center.x;
+            b.extent.y = b.center.y;
             b.radius = b.extent.length();
         };
-        BoundingInfo2D.CreateFromRadiusToRef = function (radius, b, origin) {
-            b.center = BABYLON.Vector2.Zero();
-            if (origin) {
-                b.center.x -= radius * origin.x;
-                b.center.y -= radius * origin.y;
-            }
-            b.extent = new BABYLON.Vector2(radius, radius);
-            b.radius = radius;
+        /**
+         * Update a BoundingInfo2D object using the given radius as input
+         * @param radius the bounding data will be computed from this radius
+         * @param b must be a valid/allocated object, it will contain the result of the operation
+         */
+        BoundingInfo2D.CreateFromRadiusToRef = function (radius, b) {
+            b.center.x = b.center.y = 0;
+            var r = +radius;
+            b.extent.x = r;
+            b.extent.y = r;
+            b.radius = r;
         };
-        BoundingInfo2D.CreateFromPointsToRef = function (points, b, origin) {
+        /**
+         * Update a BoundingInfo2D object using the given points array as input
+         * @param points the point array to use to update the bounding data
+         * @param b must be a valid/allocated object, it will contain the result of the operation
+         */
+        BoundingInfo2D.CreateFromPointsToRef = function (points, b) {
             var xmin = Number.MAX_VALUE, ymin = Number.MAX_VALUE, xmax = Number.MIN_VALUE, ymax = Number.MIN_VALUE;
-            for (var _i = 0, points_1 = points; _i < points_1.length; _i++) {
-                var p = points_1[_i];
+            for (var _i = 0; _i < points.length; _i++) {
+                var p = points[_i];
                 xmin = Math.min(p.x, xmin);
                 xmax = Math.max(p.x, xmax);
                 ymin = Math.min(p.y, ymin);
                 ymax = Math.max(p.y, ymax);
             }
-            BoundingInfo2D.CreateFromMinMaxToRef(xmin, xmax, ymin, ymax, b, origin);
+            BoundingInfo2D.CreateFromMinMaxToRef(xmin, xmax, ymin, ymax, b);
         };
-        BoundingInfo2D.CreateFromMinMaxToRef = function (xmin, xmax, ymin, ymax, b, origin) {
+        /**
+         * Update a BoundingInfo2D object using the given min/max values as input
+         * @param xmin the smallest x coordinate
+         * @param xmax the biggest x coordinate
+         * @param ymin the smallest y coordinate
+         * @param ymax the buggest y coordinate
+         * @param b must be a valid/allocated object, it will contain the result of the operation
+         */
+        BoundingInfo2D.CreateFromMinMaxToRef = function (xmin, xmax, ymin, ymax, b) {
             var w = xmax - xmin;
             var h = ymax - ymin;
             b.center = new BABYLON.Vector2(xmin + w / 2, ymin + h / 2);
-            if (origin) {
-                b.center.x -= w * origin.x;
-                b.center.y -= h * origin.y;
-            }
             b.extent = new BABYLON.Vector2(xmax - b.center.x, ymax - b.center.y);
             b.radius = b.extent.length();
         };
@@ -76,11 +107,28 @@ var BABYLON;
             r.extent = this.extent.clone();
             return r;
         };
+        BoundingInfo2D.prototype.clear = function () {
+            this.center.copyFromFloats(0, 0);
+            this.radius = 0;
+            this.extent.copyFromFloats(0, 0);
+        };
+        BoundingInfo2D.prototype.copyFrom = function (src) {
+            this.center.copyFrom(src.center);
+            this.radius = src.radius;
+            this.extent.copyFrom(src.extent);
+        };
+        /**
+         * return the max extend of the bounding info
+         */
         BoundingInfo2D.prototype.max = function () {
             var r = BABYLON.Vector2.Zero();
             this.maxToRef(r);
             return r;
         };
+        /**
+         * Update a vector2 with the max extend of the bounding info
+         * @param result must be a valid/allocated vector2 that will contain the result of the operation
+         */
         BoundingInfo2D.prototype.maxToRef = function (result) {
             result.x = this.center.x + this.extent.x;
             result.y = this.center.y + this.extent.y;
@@ -96,7 +144,7 @@ var BABYLON;
             return r;
         };
         /**
-         * Compute the union of this BoundingInfo2D with a given one, return a new BoundingInfo2D as a result
+         * Compute the union of this BoundingInfo2D with a given one, returns a new BoundingInfo2D as a result
          * @param other the second BoundingInfo2D to compute the union with this one
          * @return a new instance containing the result of the union
          */
@@ -113,11 +161,15 @@ var BABYLON;
          */
         BoundingInfo2D.prototype.transformToRef = function (matrix, result) {
             // Construct a bounding box based on the extent values
-            var p = new Array(4);
-            p[0] = new BABYLON.Vector2(this.center.x + this.extent.x, this.center.y + this.extent.y);
-            p[1] = new BABYLON.Vector2(this.center.x + this.extent.x, this.center.y - this.extent.y);
-            p[2] = new BABYLON.Vector2(this.center.x - this.extent.x, this.center.y - this.extent.y);
-            p[3] = new BABYLON.Vector2(this.center.x - this.extent.x, this.center.y + this.extent.y);
+            var p = BoundingInfo2D._transform;
+            p[0].x = this.center.x + this.extent.x;
+            p[0].y = this.center.y + this.extent.y;
+            p[1].x = this.center.x + this.extent.x;
+            p[1].y = this.center.y - this.extent.y;
+            p[2].x = this.center.x - this.extent.x;
+            p[2].y = this.center.y - this.extent.y;
+            p[3].x = this.center.x - this.extent.x;
+            p[3].y = this.center.y + this.extent.y;
             // Transform the four points of the bounding box with the matrix
             for (var i = 0; i < 4; i++) {
                 BABYLON.Vector2.TransformToRef(p[i], matrix, p[i]);
@@ -137,6 +189,12 @@ var BABYLON;
             var ymin = Math.min(this.center.y - this.extent.y, other.center.y - other.extent.y);
             BoundingInfo2D.CreateFromMinMaxToRef(xmin, xmax, ymin, ymax, result);
         };
+        /**
+         * Check if the given point is inside the BoundingInfo.
+         * The test is first made on the radius, then inside the rectangle described by the extent
+         * @param pickPosition the position to test
+         * @return true if the point is inside, false otherwise
+         */
         BoundingInfo2D.prototype.doesIntersect = function (pickPosition) {
             // is it inside the radius?
             var pickLocal = pickPosition.subtract(this.center);
@@ -146,7 +204,8 @@ var BABYLON;
             }
             return false;
         };
+        BoundingInfo2D._transform = new Array(BABYLON.Vector2.Zero(), BABYLON.Vector2.Zero(), BABYLON.Vector2.Zero(), BABYLON.Vector2.Zero());
         return BoundingInfo2D;
-    }());
+    })();
     BABYLON.BoundingInfo2D = BoundingInfo2D;
 })(BABYLON || (BABYLON = {}));

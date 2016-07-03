@@ -31,12 +31,19 @@
         }
     }
 
+    export class PointerInfoBase {
+        constructor(public type: number, public event: PointerEvent | MouseWheelEvent) {
+        }
+        
+    }
+
     /**
      * This class is used to store pointer related info for the onPrePointerObservable event.
      * Set the skipOnPointerObservable property to true if you want the engine to stop any process after this event is triggered, even not calling onPointerObservable
      */
-    export class PointerInfoPre {
-        constructor(public type: number, public event: PointerEvent | MouseWheelEvent, localX, localY) {
+    export class PointerInfoPre extends PointerInfoBase {
+        constructor(type: number, event: PointerEvent | MouseWheelEvent, localX, localY) {
+            super(type, event);
             this.skipOnPointerObservable = false;
             this.localPosition = new Vector2(localX, localY);
         }
@@ -49,8 +56,9 @@
      * This type contains all the data related to a pointer event in Babylon.js.
      * The event member is an instance of PointerEvent for all types except PointerWheel and is of type MouseWheelEvent when type equals PointerWheel. The different event types can be found in the PointerEventTypes class.
      */
-    export class PointerInfo {
-        constructor(public type: number, public event: PointerEvent | MouseWheelEvent, public pickInfo: PickingInfo) {
+    export class PointerInfo extends PointerInfoBase {
+        constructor(type: number, event: PointerEvent | MouseWheelEvent, public pickInfo: PickingInfo) {
+            super(type, event);
         }
     }
 
@@ -95,6 +103,8 @@
         public clipPlane: Plane;
         public animationsEnabled = true;
         public constantlyUpdateMeshUnderPointer = false;
+
+        public hoverCursor = "pointer";
 
         // Events
 
@@ -411,16 +421,25 @@
 
         // Private
         private _engine: Engine;
-        private _totalVertices = 0;
-        public _activeIndices = 0;
-        public _activeParticles = 0;
-        private _lastFrameDuration = 0;
-        private _evaluateActiveMeshesDuration = 0;
-        private _renderTargetsDuration = 0;
-        public _particlesDuration = 0;
-        private _renderDuration = 0;
-        public _spritesDuration = 0;
-        private _animationRatio = 0;
+
+        // Performance counters
+        private _totalMeshesCounter           = new PerfCounter();
+        private _totalLightsCounter           = new PerfCounter();
+        private _totalMaterialsCounter        = new PerfCounter();
+        private _totalTexturesCounter         = new PerfCounter();
+        private _totalVertices                = new PerfCounter();
+        public  _activeIndices                = new PerfCounter();
+        public  _activeParticles              = new PerfCounter();
+        private _lastFrameDuration            = new PerfCounter();
+        private _evaluateActiveMeshesDuration = new PerfCounter();
+        private _renderTargetsDuration        = new PerfCounter();
+        public  _particlesDuration            = new PerfCounter();
+        private _renderDuration               = new PerfCounter();
+        public  _spritesDuration              = new PerfCounter();
+        public  _activeBones                  = new PerfCounter();
+
+        private _animationRatio: number;
+
         private _animationStartDate: number;
         public _cachedMaterial: Material;
 
@@ -437,7 +456,6 @@
         public _activeParticleSystems = new SmartArray<ParticleSystem>(256);
         private _activeSkeletons = new SmartArray<Skeleton>(32);
         private _softwareSkinnedMeshes = new SmartArray<Mesh>(32);
-        public _activeBones = 0;
 
         private _renderingManager: RenderingManager;
         private _physicsEngine: PhysicsEngine;
@@ -576,27 +594,51 @@
         }
 
         public getTotalVertices(): number {
+            return this._totalVertices.current;
+        }
+
+        public get totalVerticesPerfCounter(): PerfCounter {
             return this._totalVertices;
         }
 
         public getActiveIndices(): number {
+            return this._activeIndices.current;
+        }
+
+        public get totalActiveIndicesPerfCounter(): PerfCounter {
             return this._activeIndices;
         }
 
         public getActiveParticles(): number {
+            return this._activeParticles.current;
+        }
+
+        public get activeParticlesPerfCounter(): PerfCounter {
             return this._activeParticles;
         }
 
         public getActiveBones(): number {
+            return this._activeBones.current;
+        }
+
+        public get activeBonesPerfCounter(): PerfCounter {
             return this._activeBones;
         }
 
         // Stats
         public getLastFrameDuration(): number {
+            return this._lastFrameDuration.current;
+        }
+
+        public get lastFramePerfCounter(): PerfCounter {
             return this._lastFrameDuration;
         }
 
         public getEvaluateActiveMeshesDuration(): number {
+            return this._evaluateActiveMeshesDuration.current;
+        }
+
+        public get evaluateActiveMeshesDurationPerfCounter(): PerfCounter {
             return this._evaluateActiveMeshesDuration;
         }
 
@@ -605,18 +647,30 @@
         }
 
         public getRenderTargetsDuration(): number {
-            return this._renderTargetsDuration;
+            return this._renderTargetsDuration.current;
         }
 
         public getRenderDuration(): number {
+            return this._renderDuration.current;
+        }
+
+        public get renderDurationPerfCounter(): PerfCounter {
             return this._renderDuration;
         }
 
         public getParticlesDuration(): number {
+            return this._particlesDuration.current;
+        }
+
+        public get particlesDurationPerfCounter(): PerfCounter {
             return this._particlesDuration;
         }
 
         public getSpritesDuration(): number {
+            return this._spritesDuration.current;
+        }
+
+        public get spriteDuractionPerfCounter(): PerfCounter {
             return this._spritesDuration;
         }
 
@@ -693,7 +747,7 @@
                     this.setPointerOverMesh(pickResult.pickedMesh);
 
                     if (this._pointerOverMesh.actionManager && this._pointerOverMesh.actionManager.hasPointerTriggers) {
-                        canvas.style.cursor = "pointer";
+                        canvas.style.cursor = this.hoverCursor;
                     } else {
                         canvas.style.cursor = "";
                     }
@@ -703,7 +757,7 @@
                     pickResult = this.pickSprite(this._unTranslatedPointerX, this._unTranslatedPointerY, spritePredicate, false, this.cameraToUseForPointers);
 
                     if (pickResult.hit && pickResult.pickedSprite) {
-                        canvas.style.cursor = "pointer";
+                        canvas.style.cursor = this.hoverCursor;
                         this.setPointerOverSprite(pickResult.pickedSprite);
                     } else {
                         this.setPointerOverSprite(null);
@@ -922,42 +976,42 @@
 
 
             var eventPrefix = Tools.GetPointerPrefix();
-
+            var canvas = this._engine.getRenderingCanvas();
             if (attachMove) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "move", this._onPointerMove, false);
+                canvas.addEventListener(eventPrefix + "move", this._onPointerMove, false);
                 // Wheel
-                this._engine.getRenderingCanvas().addEventListener('mousewheel', this._onPointerMove, false);
-                this._engine.getRenderingCanvas().addEventListener('DOMMouseScroll', this._onPointerMove, false);
+                canvas.addEventListener('mousewheel', this._onPointerMove, false);
+                canvas.addEventListener('DOMMouseScroll', this._onPointerMove, false);
             }
 
             if (attachDown) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "down", this._onPointerDown, false);
+                canvas.addEventListener(eventPrefix + "down", this._onPointerDown, false);
             }
 
             if (attachUp) {
-                this._engine.getRenderingCanvas().addEventListener(eventPrefix + "up", this._onPointerUp, false);
+                canvas.addEventListener(eventPrefix + "up", this._onPointerUp, false);
             }
 
-            Tools.RegisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp }
-            ]);
+            canvas.tabIndex = 1;
+
+            canvas.addEventListener("keydown", this._onKeyDown, false);
+            canvas.addEventListener("keyup", this._onKeyUp, false);
         }
 
         public detachControl() {
             var eventPrefix = Tools.GetPointerPrefix();
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "move", this._onPointerMove);
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "down", this._onPointerDown);
-            this._engine.getRenderingCanvas().removeEventListener(eventPrefix + "up", this._onPointerUp);
+            var canvas = this._engine.getRenderingCanvas();
+
+            canvas.removeEventListener(eventPrefix + "move", this._onPointerMove);
+            canvas.removeEventListener(eventPrefix + "down", this._onPointerDown);
+            canvas.removeEventListener(eventPrefix + "up", this._onPointerUp);
 
             // Wheel
-            this._engine.getRenderingCanvas().removeEventListener('mousewheel', this._onPointerMove);
-            this._engine.getRenderingCanvas().removeEventListener('DOMMouseScroll', this._onPointerMove);
+            canvas.removeEventListener('mousewheel', this._onPointerMove);
+            canvas.removeEventListener('DOMMouseScroll', this._onPointerMove);
 
-            Tools.UnregisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp }
-            ]);
+            canvas.removeEventListener("keydown", this._onKeyDown);
+            canvas.removeEventListener("keyup", this._onKeyUp);
         }
 
         // Ready
@@ -1174,6 +1228,13 @@
             this._projectionMatrix = projection;
 
             this._viewMatrix.multiplyToRef(this._projectionMatrix, this._transformMatrix);
+
+            // Update frustum
+            if (!this._frustumPlanes) {
+                this._frustumPlanes = Frustum.GetPlanes(this._transformMatrix);
+            } else {
+                Frustum.GetPlanesToRef(this._transformMatrix, this._frustumPlanes);
+            }
         }
 
         // Methods
@@ -1759,7 +1820,7 @@
                     }
 
                     // Dispatch
-                    this._activeIndices += subMesh.indexCount;
+                    this._activeIndices.addCount(subMesh.indexCount, false);
                     this._renderingManager.dispatch(subMesh);
                 }
             }
@@ -1779,12 +1840,6 @@
             this._softwareSkinnedMeshes.reset();
             this._boundingBoxRenderer.reset();
             this._edgesRenderers.reset();
-
-            if (!this._frustumPlanes) {
-                this._frustumPlanes = Frustum.GetPlanes(this._transformMatrix);
-            } else {
-                Frustum.GetPlanesToRef(this._transformMatrix, this._frustumPlanes);
-            }
 
             // Meshes
             var meshes: AbstractMesh[];
@@ -1806,7 +1861,7 @@
                     continue;
                 }
 
-                this._totalVertices += mesh.getTotalVertices();
+                this._totalVertices.addCount(mesh.getTotalVertices(), false);
 
                 if (!mesh.isReady() || !mesh.isEnabled()) {
                     continue;
@@ -1838,6 +1893,7 @@
             }
 
             // Particle systems
+            this._particlesDuration.beginMonitoring();
             var beforeParticlesDate = Tools.Now;
             if (this.particlesEnabled) {
                 Tools.StartPerformanceCounter("Particles", this.particleSystems.length > 0);
@@ -1855,12 +1911,14 @@
                 }
                 Tools.EndPerformanceCounter("Particles", this.particleSystems.length > 0);
             }
-            this._particlesDuration += Tools.Now - beforeParticlesDate;
+            this._particlesDuration.endMonitoring(false);
         }
 
         private _activeMesh(mesh: AbstractMesh): void {
             if (mesh.skeleton && this.skeletonsEnabled) {
-                this._activeSkeletons.pushNoDuplicate(mesh.skeleton);
+                if (this._activeSkeletons.pushNoDuplicate(mesh.skeleton)) {
+                    mesh.skeleton.prepare();
+                }
 
                 if (!mesh.computeBonesUsingShaders) {
                     this._softwareSkinnedMeshes.pushNoDuplicate(mesh);
@@ -1904,6 +1962,7 @@
 
         private _renderForCamera(camera: Camera): void {
             var engine = this._engine;
+            var startTime = Tools.Now;
 
             this.activeCamera = camera;
 
@@ -1923,18 +1982,11 @@
             this.onBeforeCameraRenderObservable.notifyObservers(this.activeCamera);
 
             // Meshes
-            var beforeEvaluateActiveMeshesDate = Tools.Now;
+            this._evaluateActiveMeshesDuration.beginMonitoring();
             Tools.StartPerformanceCounter("Active meshes evaluation");
             this._evaluateActiveMeshes();
-            this._evaluateActiveMeshesDuration += Tools.Now - beforeEvaluateActiveMeshesDate;
+            this._evaluateActiveMeshesDuration.endMonitoring(false);
             Tools.EndPerformanceCounter("Active meshes evaluation");
-
-            // Skeletons
-            for (var skeletonIndex = 0; skeletonIndex < this._activeSkeletons.length; skeletonIndex++) {
-                var skeleton = this._activeSkeletons.data[skeletonIndex];
-
-                skeleton.prepare();
-            }
 
             // Software skinning
             for (var softwareSkinnedMeshIndex = 0; softwareSkinnedMeshIndex < this._softwareSkinnedMeshes.length; softwareSkinnedMeshIndex++) {
@@ -1944,6 +1996,7 @@
             }
 
             // Render targets
+            this._renderTargetsDuration.beginMonitoring();
             var beforeRenderTargetDate = Tools.Now;
             if (this.renderTargetsEnabled && this._renderTargets.length > 0) {
                 this._intermediateRendering = true;
@@ -1962,12 +2015,12 @@
                 this._renderId++;
                 engine.restoreDefaultFramebuffer(); // Restore back buffer
             }
-            this._renderTargetsDuration += Tools.Now - beforeRenderTargetDate;
+            this._renderTargetsDuration.endMonitoring(false);
 
             // Prepare Frame
             this.postProcessManager._prepareFrame();
 
-            var beforeRenderDate = Tools.Now;
+            this._renderDuration.beginMonitoring();
             // Backgrounds
             var layerIndex;
             var layer;
@@ -2020,7 +2073,7 @@
                 engine.setDepthBuffer(true);
             }
 
-            this._renderDuration += Tools.Now - beforeRenderDate;
+            this._renderDuration.endMonitoring(false);
 
             // Finalize frame
             this.postProcessManager._finalizeFrame(camera.isIntermediate);
@@ -2094,17 +2147,17 @@
         }
 
         public render(): void {
-            var startDate = Tools.Now;
-            this._particlesDuration = 0;
-            this._spritesDuration = 0;
-            this._activeParticles = 0;
-            this._renderDuration = 0;
-            this._renderTargetsDuration = 0;
-            this._evaluateActiveMeshesDuration = 0;
-            this._totalVertices = 0;
-            this._activeIndices = 0;
-            this._activeBones = 0;
-            this.getEngine().resetDrawCalls();
+            this._lastFrameDuration.beginMonitoring();
+            this._particlesDuration.fetchNewFrame();
+            this._spritesDuration.fetchNewFrame();
+            this._activeParticles.fetchNewFrame();
+            this._renderDuration.fetchNewFrame();
+            this._renderTargetsDuration.fetchNewFrame();
+            this._evaluateActiveMeshesDuration.fetchNewFrame();
+            this._totalVertices.fetchNewFrame();
+            this._activeIndices.fetchNewFrame();
+            this._activeBones.fetchNewFrame();
+            this.getEngine().drawCallsPerfCounter.fetchNewFrame();
             this._meshesForIntersections.reset();
             this.resetCachedMaterial();
 
@@ -2136,6 +2189,7 @@
             this.onBeforeRenderObservable.notifyObservers(this);
 
             // Customs render targets
+            this._renderTargetsDuration.beginMonitoring();
             var beforeRenderTargetDate = Tools.Now;
             var engine = this.getEngine();
             var currentActiveCamera = this.activeCamera;
@@ -2168,7 +2222,7 @@
             if (this.customRenderTargets.length > 0) { // Restore back buffer
                 engine.restoreDefaultFramebuffer();
             }
-            this._renderTargetsDuration += Tools.Now - beforeRenderTargetDate;
+            this._renderTargetsDuration.endMonitoring();
             this.activeCamera = currentActiveCamera;
 
             // Procedural textures
@@ -2253,7 +2307,14 @@
             }
 
             Tools.EndPerformanceCounter("Scene rendering");
-            this._lastFrameDuration = Tools.Now - startDate;
+            this._lastFrameDuration.endMonitoring();
+            this._totalMeshesCounter.addCount(this.meshes.length, true);
+            this._totalLightsCounter.addCount(this.lights.length, true);
+            this._totalMaterialsCounter.addCount(this.materials.length, true);
+            this._totalTexturesCounter.addCount(this.textures.length, true);
+            this._activeBones.addCount(0, true);
+            this._activeIndices.addCount(0, true);
+            this._activeParticles.addCount(0, true);
         }
 
         private _updateAudioParameters() {

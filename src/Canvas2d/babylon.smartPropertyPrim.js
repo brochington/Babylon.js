@@ -10,7 +10,7 @@ var BABYLON;
         function Prim2DClassInfo() {
         }
         return Prim2DClassInfo;
-    }());
+    })();
     BABYLON.Prim2DClassInfo = Prim2DClassInfo;
     var Prim2DPropInfo = (function () {
         function Prim2DPropInfo() {
@@ -19,13 +19,16 @@ var BABYLON;
         Prim2DPropInfo.PROPKIND_INSTANCE = 2;
         Prim2DPropInfo.PROPKIND_DYNAMIC = 3;
         return Prim2DPropInfo;
-    }());
+    })();
     BABYLON.Prim2DPropInfo = Prim2DPropInfo;
+    /**
+     * Custom type of the propertyChanged observable
+     */
     var PropertyChangedInfo = (function () {
         function PropertyChangedInfo() {
         }
         return PropertyChangedInfo;
-    }());
+    })();
     BABYLON.PropertyChangedInfo = PropertyChangedInfo;
     var ClassTreeInfo = (function () {
         function ClassTreeInfo(baseClass, type, classContentFactory) {
@@ -62,13 +65,13 @@ var BABYLON;
         Object.defineProperty(ClassTreeInfo.prototype, "fullContent", {
             get: function () {
                 if (!this._fullContent) {
-                    var dic_1 = new BABYLON.StringDictionary();
+                    var dic = new BABYLON.StringDictionary();
                     var curLevel = this;
                     while (curLevel) {
-                        curLevel.levelContent.forEach(function (k, v) { return dic_1.add(k, v); });
+                        curLevel.levelContent.forEach(function (k, v) { return dic.add(k, v); });
                         curLevel = curLevel._baseClass;
                     }
-                    this._fullContent = dic_1;
+                    this._fullContent = dic;
                 }
                 return this._fullContent;
             },
@@ -128,27 +131,23 @@ var BABYLON;
             return dic;
         };
         return ClassTreeInfo;
-    }());
+    })();
     BABYLON.ClassTreeInfo = ClassTreeInfo;
     var SmartPropertyPrim = (function () {
         function SmartPropertyPrim() {
-        }
-        SmartPropertyPrim.prototype.setupSmartPropertyPrim = function () {
+            this._flags = 0;
             this._modelKey = null;
-            this._modelDirty = false;
-            this._levelBoundingInfoDirty = false;
             this._instanceDirtyFlags = 0;
-            this._isDisposed = false;
             this._levelBoundingInfo = new BABYLON.BoundingInfo2D();
             this.animations = new Array();
-        };
+        }
         Object.defineProperty(SmartPropertyPrim.prototype, "isDisposed", {
             /**
              * Check if the object is disposed or not.
              * @returns true if the object is dispose, false otherwise.
              */
             get: function () {
-                return this._isDisposed;
+                return this._isFlagSet(SmartPropertyPrim.flagIsDisposed);
             },
             enumerable: true,
             configurable: true
@@ -163,7 +162,7 @@ var BABYLON;
             }
             // Don't set to null, it may upset somebody...
             this.animations.splice(0);
-            this._isDisposed = true;
+            this._setFlags(SmartPropertyPrim.flagIsDisposed);
             return true;
         };
         /**
@@ -182,7 +181,7 @@ var BABYLON;
             get: function () {
                 var _this = this;
                 // No need to compute it?
-                if (!this._modelDirty && this._modelKey) {
+                if (!this._isFlagSet(SmartPropertyPrim.flagModelDirty) && this._modelKey) {
                     return this._modelKey;
                 }
                 var modelKey = "Class:" + BABYLON.Tools.getClassName(this) + ";";
@@ -203,7 +202,7 @@ var BABYLON;
                         modelKey += v.name + ":" + ((propVal != null) ? ((v.typeLevelCompare) ? BABYLON.Tools.getClassName(propVal) : propVal.toString()) : "[null]") + ";";
                     }
                 });
-                this._modelDirty = false;
+                this._clearFlags(SmartPropertyPrim.flagModelDirty);
                 this._modelKey = modelKey;
                 return modelKey;
             },
@@ -216,7 +215,7 @@ var BABYLON;
              * @returns true is dirty, false otherwise
              */
             get: function () {
-                return (this._instanceDirtyFlags !== 0) || this._modelDirty;
+                return (this._instanceDirtyFlags !== 0) || this._areSomeFlagsSet(SmartPropertyPrim.flagModelDirty | SmartPropertyPrim.flagPositioningDirty | SmartPropertyPrim.flagLayoutDirty);
             },
             enumerable: true,
             configurable: true
@@ -239,7 +238,7 @@ var BABYLON;
             enumerable: true,
             configurable: true
         });
-        SmartPropertyPrim._createPropInfo = function (target, propName, propId, dirtyBoundingInfo, typeLevelCompare, kind) {
+        SmartPropertyPrim._createPropInfo = function (target, propName, propId, dirtyBoundingInfo, dirtyParentBoundingBox, typeLevelCompare, kind) {
             var dic = ClassTreeInfo.getOrRegister(target, function () { return new Prim2DClassInfo(); });
             var node = dic.getLevelOf(target);
             var propInfo = node.levelContent.get(propId.toString());
@@ -253,6 +252,7 @@ var BABYLON;
             propInfo.kind = kind;
             propInfo.name = propName;
             propInfo.dirtyBoundingInfo = dirtyBoundingInfo;
+            propInfo.dirtyParentBoundingInfo = dirtyParentBoundingBox;
             propInfo.typeLevelCompare = typeLevelCompare;
             node.levelContent.add(propName, propInfo);
             return propInfo;
@@ -278,6 +278,9 @@ var BABYLON;
             return false;
         };
         SmartPropertyPrim.prototype.markAsDirty = function (propertyName) {
+            if (this.isDisposed) {
+                return;
+            }
             var i = propertyName.indexOf(".");
             if (i !== -1) {
                 propertyName = propertyName.substr(0, i);
@@ -289,22 +292,35 @@ var BABYLON;
             var newValue = this[propertyName];
             this._handlePropChanged(undefined, newValue, propertyName, propInfo, propInfo.typeLevelCompare);
         };
+        SmartPropertyPrim.prototype._boundingBoxDirty = function () {
+            this._setFlags(SmartPropertyPrim.flagLevelBoundingInfoDirty);
+            // Escalate the dirty flag in the instance hierarchy, stop when a renderable group is found or at the end
+            if (this instanceof BABYLON.Prim2DBase) {
+                var curprim = this;
+                while (curprim) {
+                    curprim._setFlags(SmartPropertyPrim.flagBoundingInfoDirty);
+                    if (curprim.isSizeAuto) {
+                        curprim.onPrimitivePropertyDirty(BABYLON.Prim2DBase.sizeProperty.flagId);
+                        curprim._setFlags(SmartPropertyPrim.flagPositioningDirty);
+                    }
+                    if (curprim instanceof BABYLON.Group2D) {
+                        if (curprim.isRenderableGroup) {
+                            break;
+                        }
+                    }
+                    curprim = curprim.parent;
+                }
+            }
+        };
         SmartPropertyPrim.prototype._handlePropChanged = function (curValue, newValue, propName, propInfo, typeLevelCompare) {
             // If the property change also dirty the boundingInfo, update the boundingInfo dirty flags
             if (propInfo.dirtyBoundingInfo) {
-                this._levelBoundingInfoDirty = true;
-                // Escalate the dirty flag in the instance hierarchy, stop when a renderable group is found or at the end
-                if (this instanceof BABYLON.Prim2DBase) {
-                    var curprim = this.parent;
-                    while (curprim) {
-                        curprim._boundingInfoDirty = true;
-                        if (curprim instanceof BABYLON.Group2D) {
-                            if (curprim.isRenderableGroup) {
-                                break;
-                            }
-                        }
-                        curprim = curprim.parent;
-                    }
+                this._boundingBoxDirty();
+            }
+            else if (propInfo.dirtyParentBoundingInfo) {
+                var p = this._parent;
+                if (p != null) {
+                    p._boundingBoxDirty();
                 }
             }
             // Trigger property changed
@@ -318,28 +334,33 @@ var BABYLON;
             if (this instanceof BABYLON.Group2D) {
                 this.handleGroupChanged(propInfo);
             }
-            // Check if we need to dirty only if the type change and make the test
-            var skipDirty = false;
+            // Check for parent layout dirty
+            if (this instanceof BABYLON.Prim2DBase) {
+                var p = this._parent;
+                if (p != null && p.layoutEngine && (p.layoutEngine.layoutDirtyOnPropertyChangedMask & propInfo.flagId) !== 0) {
+                    p._setLayoutDirty();
+                }
+            }
+            // For type level compare, if there's a change of type it's a change of model, otherwise we issue an instance change
+            var instanceDirty = false;
             if (typeLevelCompare && curValue != null && newValue != null) {
                 var cvProto = curValue.__proto__;
                 var nvProto = newValue.__proto__;
-                skipDirty = (cvProto === nvProto);
+                instanceDirty = (cvProto === nvProto);
             }
             // Set the dirty flags
-            if (!skipDirty) {
-                if (propInfo.kind === Prim2DPropInfo.PROPKIND_MODEL) {
-                    if (!this.isDirty) {
-                        this.onPrimBecomesDirty();
-                    }
-                    this._modelDirty = true;
-                }
-                else if ((propInfo.kind === Prim2DPropInfo.PROPKIND_INSTANCE) || (propInfo.kind === Prim2DPropInfo.PROPKIND_DYNAMIC)) {
-                    if (!this.isDirty) {
-                        this.onPrimBecomesDirty();
-                    }
-                    this._instanceDirtyFlags |= propMask;
-                }
+            if (!instanceDirty && (propInfo.kind === Prim2DPropInfo.PROPKIND_MODEL)) {
+                this.onPrimitivePropertyDirty(SmartPropertyPrim.flagModelDirty);
             }
+            else if (instanceDirty || (propInfo.kind === Prim2DPropInfo.PROPKIND_INSTANCE) || (propInfo.kind === Prim2DPropInfo.PROPKIND_DYNAMIC)) {
+                this.onPrimitivePropertyDirty(propMask);
+            }
+        };
+        SmartPropertyPrim.prototype.onPrimitivePropertyDirty = function (propFlagId) {
+            if (!this.isDirty) {
+                this.onPrimBecomesDirty();
+            }
+            this._instanceDirtyFlags |= propFlagId;
         };
         SmartPropertyPrim.prototype.handleGroupChanged = function (prop) {
         };
@@ -366,12 +387,11 @@ var BABYLON;
         Object.defineProperty(SmartPropertyPrim.prototype, "levelBoundingInfo", {
             /**
              * Retrieve the boundingInfo for this Primitive, computed based on the primitive itself and NOT its children
-             * @returns {}
              */
             get: function () {
-                if (this._levelBoundingInfoDirty) {
+                if (this._isFlagSet(SmartPropertyPrim.flagLevelBoundingInfoDirty)) {
                     this.updateLevelBoundingInfo();
-                    this._levelBoundingInfoDirty = false;
+                    this._clearFlags(SmartPropertyPrim.flagLevelBoundingInfoDirty);
                 }
                 return this._levelBoundingInfo;
             },
@@ -388,9 +408,9 @@ var BABYLON;
          */
         SmartPropertyPrim.prototype.onPrimBecomesDirty = function () {
         };
-        SmartPropertyPrim._hookProperty = function (propId, piStore, typeLevelCompare, dirtyBoundingInfo, kind) {
+        SmartPropertyPrim._hookProperty = function (propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox, kind) {
             return function (target, propName, descriptor) {
-                var propInfo = SmartPropertyPrim._createPropInfo(target, propName, propId, dirtyBoundingInfo, typeLevelCompare, kind);
+                var propInfo = SmartPropertyPrim._createPropInfo(target, propName, propId, dirtyBoundingInfo, dirtyParentBoundingBox, typeLevelCompare, kind);
                 if (piStore) {
                     piStore(propInfo);
                 }
@@ -414,29 +434,149 @@ var BABYLON;
                 };
             };
         };
+        /**
+         * Add an externally attached data from its key.
+         * This method call will fail and return false, if such key already exists.
+         * If you don't care and just want to get the data no matter what, use the more convenient getOrAddExternalDataWithFactory() method.
+         * @param key the unique key that identifies the data
+         * @param data the data object to associate to the key for this Engine instance
+         * @return true if no such key were already present and the data was added successfully, false otherwise
+         */
+        SmartPropertyPrim.prototype.addExternalData = function (key, data) {
+            if (!this._externalData) {
+                this._externalData = new BABYLON.StringDictionary();
+            }
+            return this._externalData.add(key, data);
+        };
+        /**
+         * Get an externally attached data from its key
+         * @param key the unique key that identifies the data
+         * @return the associated data, if present (can be null), or undefined if not present
+         */
+        SmartPropertyPrim.prototype.getExternalData = function (key) {
+            if (!this._externalData) {
+                return null;
+            }
+            return this._externalData.get(key);
+        };
+        /**
+         * Get an externally attached data from its key, create it using a factory if it's not already present
+         * @param key the unique key that identifies the data
+         * @param factory the factory that will be called to create the instance if and only if it doesn't exists
+         * @return the associated data, can be null if the factory returned null.
+         */
+        SmartPropertyPrim.prototype.getOrAddExternalDataWithFactory = function (key, factory) {
+            if (!this._externalData) {
+                this._externalData = new BABYLON.StringDictionary();
+            }
+            return this._externalData.getOrAddWithFactory(key, factory);
+        };
+        /**
+         * Remove an externally attached data from the Engine instance
+         * @param key the unique key that identifies the data
+         * @return true if the data was successfully removed, false if it doesn't exist
+         */
+        SmartPropertyPrim.prototype.removeExternalData = function (key) {
+            if (!this._externalData) {
+                return false;
+            }
+            return this._externalData.remove(key);
+        };
+        /**
+         * Check if a given flag is set
+         * @param flag the flag value
+         * @return true if set, false otherwise
+         */
+        SmartPropertyPrim.prototype._isFlagSet = function (flag) {
+            return (this._flags & flag) !== 0;
+        };
+        /**
+         * Check if all given flags are set
+         * @param flags the flags ORed
+         * @return true if all the flags are set, false otherwise
+         */
+        SmartPropertyPrim.prototype._areAllFlagsSet = function (flags) {
+            return (this._flags & flags) === flags;
+        };
+        /**
+         * Check if at least one flag of the given flags is set
+         * @param flags the flags ORed
+         * @return true if at least one flag is set, false otherwise
+         */
+        SmartPropertyPrim.prototype._areSomeFlagsSet = function (flags) {
+            return (this._flags & flags) !== 0;
+        };
+        /**
+         * Clear the given flags
+         * @param flags the flags to clear
+         */
+        SmartPropertyPrim.prototype._clearFlags = function (flags) {
+            this._flags &= ~flags;
+        };
+        /**
+         * Set the given flags to true state
+         * @param flags the flags ORed to set
+         * @return the flags state before this call
+         */
+        SmartPropertyPrim.prototype._setFlags = function (flags) {
+            var cur = this._flags;
+            this._flags |= flags;
+            return cur;
+        };
+        /**
+         * Change the state of the given flags
+         * @param flags the flags ORed to change
+         * @param state true to set them, false to clear them
+         */
+        SmartPropertyPrim.prototype._changeFlags = function (flags, state) {
+            if (state) {
+                this._flags |= flags;
+            }
+            else {
+                this._flags &= ~flags;
+            }
+        };
         SmartPropertyPrim.propChangedInfo = new PropertyChangedInfo();
+        SmartPropertyPrim.flagIsDisposed = 0x0000001; // set if the object is already disposed
+        SmartPropertyPrim.flagLevelBoundingInfoDirty = 0x0000002; // set if the primitive's level bounding box (not including children) is dirty
+        SmartPropertyPrim.flagModelDirty = 0x0000004; // set if the model must be changed
+        SmartPropertyPrim.flagLayoutDirty = 0x0000008; // set if the layout must be computed
+        SmartPropertyPrim.flagLevelVisible = 0x0000010; // set if the primitive is set as visible for its level only
+        SmartPropertyPrim.flagBoundingInfoDirty = 0x0000020; // set if the primitive's overall bounding box (including children) is dirty
+        SmartPropertyPrim.flagIsPickable = 0x0000040; // set if the primitive can be picked during interaction
+        SmartPropertyPrim.flagIsVisible = 0x0000080; // set if the primitive is concretely visible (use the levelVisible of parents)
+        SmartPropertyPrim.flagVisibilityChanged = 0x0000100; // set if there was a transition between visible/hidden status
+        SmartPropertyPrim.flagPositioningDirty = 0x0000200; // set if the primitive positioning must be computed
+        SmartPropertyPrim.flagTrackedGroup = 0x0000400; // set if the group2D is tracking a scene node
+        SmartPropertyPrim.flagWorldCacheChanged = 0x0000800; // set if the cached bitmap of a world space canvas changed
+        SmartPropertyPrim.flagChildrenFlatZOrder = 0x0001000; // set if all the children (direct and indirect) will share the same Z-Order
+        SmartPropertyPrim.flagZOrderDirty = 0x0002000; // set if the Z-Order for this prim and its children must be recomputed
+        SmartPropertyPrim.flagActualOpacityDirty = 0x0004000; // set if the actualOpactity should be recomputed
         SmartPropertyPrim = __decorate([
             BABYLON.className("SmartPropertyPrim")
         ], SmartPropertyPrim);
         return SmartPropertyPrim;
-    }());
+    })();
     BABYLON.SmartPropertyPrim = SmartPropertyPrim;
-    function modelLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo) {
+    function modelLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox) {
         if (typeLevelCompare === void 0) { typeLevelCompare = false; }
         if (dirtyBoundingInfo === void 0) { dirtyBoundingInfo = false; }
-        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, Prim2DPropInfo.PROPKIND_MODEL);
+        if (dirtyParentBoundingBox === void 0) { dirtyParentBoundingBox = false; }
+        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox, Prim2DPropInfo.PROPKIND_MODEL);
     }
     BABYLON.modelLevelProperty = modelLevelProperty;
-    function instanceLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo) {
+    function instanceLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox) {
         if (typeLevelCompare === void 0) { typeLevelCompare = false; }
         if (dirtyBoundingInfo === void 0) { dirtyBoundingInfo = false; }
-        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, Prim2DPropInfo.PROPKIND_INSTANCE);
+        if (dirtyParentBoundingBox === void 0) { dirtyParentBoundingBox = false; }
+        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox, Prim2DPropInfo.PROPKIND_INSTANCE);
     }
     BABYLON.instanceLevelProperty = instanceLevelProperty;
-    function dynamicLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo) {
+    function dynamicLevelProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox) {
         if (typeLevelCompare === void 0) { typeLevelCompare = false; }
         if (dirtyBoundingInfo === void 0) { dirtyBoundingInfo = false; }
-        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, Prim2DPropInfo.PROPKIND_DYNAMIC);
+        if (dirtyParentBoundingBox === void 0) { dirtyParentBoundingBox = false; }
+        return SmartPropertyPrim._hookProperty(propId, piStore, typeLevelCompare, dirtyBoundingInfo, dirtyParentBoundingBox, Prim2DPropInfo.PROPKIND_DYNAMIC);
     }
     BABYLON.dynamicLevelProperty = dynamicLevelProperty;
 })(BABYLON || (BABYLON = {}));

@@ -10,19 +10,21 @@ attribute float index;
 
 att vec2 topLeftUV;
 att vec2 sizeUV;
-att vec2 origin;
 att vec2 textureSize;
-att float frame;
-att float invertY;
+
+// x: frame, y: invertY, z: alignToPixel
+att vec3 properties;
+
 att vec2 zBias;
 att vec4 transformX;
 att vec4 transformY;
+att float opacity;
 
 // Uniforms
 
 // Output
 varying vec2 vUV;
-varying vec4 vColor;
+varying float vOpacity;
 
 void main(void) {
 
@@ -30,6 +32,10 @@ void main(void) {
 
 	//vec2 off = vec2(1.0 / textureSize.x, 1.0 / textureSize.y);
 	vec2 off = vec2(0.0, 0.0);
+
+	float frame = properties.x;
+	float invertY = properties.y;
+	float alignToPixel = properties.z;
 
 	// Left/Top
 	if (index == 0.0) {
@@ -60,8 +66,15 @@ void main(void) {
 	}
 
 	vec4 pos;
-	pos.xy = (pos2.xy * sizeUV * textureSize) - origin;
+	if (alignToPixel == 1.0)
+	{
+		pos.xy = floor(pos2.xy * sizeUV * textureSize);
+	} else {
+		pos.xy = pos2.xy * sizeUV * textureSize;
+	}
+
+	vOpacity = opacity;
 	pos.z = 1.0;
 	pos.w = 1.0;
-	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, zBias.y);
+	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, 1);
 }	

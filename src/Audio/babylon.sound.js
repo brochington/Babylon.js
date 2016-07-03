@@ -305,8 +305,9 @@ var BABYLON;
         /**
         * Play the sound
         * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
+        * @param offset (optional) Start the sound setting it at a specific time
         */
-        Sound.prototype.play = function (time) {
+        Sound.prototype.play = function (time, offset) {
             var _this = this;
             if (this._isReadyToPlay && this._scene.audioEnabled) {
                 try {
@@ -348,7 +349,7 @@ var BABYLON;
                         this._soundSource.loop = this.loop;
                         this._soundSource.playbackRate.value = this._playbackRate;
                         this._soundSource.onended = function () { _this._onended(); };
-                        this._soundSource.start(startTime, this.isPaused ? this._startOffset % this._soundSource.buffer.duration : 0);
+                        this._soundSource.start(startTime, this.isPaused ? this._startOffset % this._soundSource.buffer.duration : offset ? offset : 0);
                     }
                     this._startTime = startTime;
                     this.isPlaying = true;
@@ -381,6 +382,7 @@ var BABYLON;
                 else {
                     var stopTime = time ? BABYLON.Engine.audioEngine.audioContext.currentTime + time : BABYLON.Engine.audioEngine.audioContext.currentTime;
                     this._soundSource.stop(stopTime);
+                    this._soundSource.onended = null;
                     if (!this.isPaused) {
                         this._startOffset = 0;
                     }
@@ -446,6 +448,13 @@ var BABYLON;
             this._registerFunc = function (connectedMesh) { return _this._onRegisterAfterWorldMatrixUpdate(connectedMesh); };
             meshToConnectTo.registerAfterWorldMatrixUpdate(this._registerFunc);
         };
+        Sound.prototype.detachFromMesh = function () {
+            if (this._connectedMesh) {
+                this._connectedMesh.unregisterAfterWorldMatrixUpdate(this._registerFunc);
+                this._registerFunc = null;
+                this._connectedMesh = null;
+            }
+        };
         Sound.prototype._onRegisterAfterWorldMatrixUpdate = function (connectedMesh) {
             this.setPosition(connectedMesh.getBoundingInfo().boundingSphere.centerWorld);
             if (BABYLON.Engine.audioEngine.canUseWebAudio && this._isDirectional && this.isPlaying) {
@@ -488,6 +497,36 @@ var BABYLON;
         };
         Sound.prototype.getAudioBuffer = function () {
             return this._audioBuffer;
+        };
+        Sound.prototype.serialize = function () {
+            var serializationObject = {
+                name: this.name,
+                url: this.name,
+                autoplay: this.autoplay,
+                loop: this.loop,
+                volume: this._volume,
+                spatialSound: this.spatialSound,
+                maxDistance: this.maxDistance,
+                rolloffFactor: this.rolloffFactor,
+                refDistance: this.refDistance,
+                distanceModel: this.distanceModel,
+                playbackRate: this._playbackRate,
+                panningModel: this._panningModel,
+                soundTrackId: this.soundTrackId
+            };
+            if (this.spatialSound) {
+                if (this._connectedMesh)
+                    serializationObject.connectedMeshId = this._connectedMesh.id;
+                serializationObject.position = this._position.asArray();
+                serializationObject.refDistance = this.refDistance;
+                serializationObject.distanceModel = this.distanceModel;
+                serializationObject.isDirectional = this._isDirectional;
+                serializationObject.localDirectionToMesh = this._localDirection.asArray();
+                serializationObject.coneInnerAngle = this._coneInnerAngle;
+                serializationObject.coneOuterAngle = this._coneOuterAngle;
+                serializationObject.coneOuterGain = this._coneOuterGain;
+            }
+            return serializationObject;
         };
         Sound.Parse = function (parsedSound, scene, rootUrl, sourceSound) {
             var soundName = parsedSound.name;
@@ -547,6 +586,6 @@ var BABYLON;
             return newSound;
         };
         return Sound;
-    }());
+    })();
     BABYLON.Sound = Sound;
 })(BABYLON || (BABYLON = {}));

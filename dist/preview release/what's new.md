@@ -1,82 +1,51 @@
-- 2.4.0:
-  - **Major updates**    
-    - New refraction channel for Standard material (including fresnel support). Refraction texture can be provided by a reflection probe or a refraction texture. [See demo here](http://www.babylonjs.com/Demos/refraction/) ([deltakosh](https://github.com/deltakosh))
-    - Added support for HDR cubemaps. [demo here](http://www.babylonjs-playground.com/#19JGPR#4) ([sebavan](https://github.com/sebavan))
-    - Support for shaders includes ([deltakosh](https://github.com/deltakosh))
-    - New mesh type : `LineSystem`. [Demo here](http://www.babylonjs-playground.com/#2K1IS4#5) ([jerome](https://github.com/jbousquie))
-    - SerializationHelper for complex classes using TypeScript decorators ([deltakosh](https://github.com/deltakosh))
-    - StandardMaterial now supports Parallax and Parallax Occlusion Mapping ([tutorial](http://doc.babylonjs.com/tutorials/Using_parallax_mapping)) ([nockawa](https://github.com/nockawa))
-    - Animations blending. See [demo here](http://www.babylonjs-playground.com/#2BLI9T#3). More [info here](http://doc.babylonjs.com/tutorials/Animations#animation-blending) ([deltakosh](https://github.com/deltakosh))
-    - New debuger tool: SkeletonViewer. See [demo here](http://www.babylonjs-playground.com/#1BZJVJ#8) (Adam & [deltakosh](https://github.com/deltakosh))
-    - Added Camera Inputs Manager to manage camera inputs (mouse, touch, keyboard, gamepad, ...) in a composable way, without relying on class inheritance. [Documentation here](http://doc.babylonjs.com/tutorials/Customizing_Camera_Inputs) ([gleborgne](https://github.com/gleborgne))
-    - Introduced new observable system to handle events. [Documentation here](http://doc.babylonjs.com/overviews/Observables) ([nockawa](https://github.com/nockawa), [deltakosh](https://github.com/deltakosh))
-    - Added a new VR camera : VRDeviceOrientationArcRotateCamera ([temechon](https://github.com/Temechon))
-    - Moved PBR Material to core ([deltakosh](https://github.com/deltakosh))
-    - StandardMaterial.maxSimultaneousLights can define how many dynamic lights the material can handle. [Demo here](http://www.babylonjs-playground.com/#IRVAX#10) ([deltakosh](https://github.com/deltakosh))
-    - Introduced Canvas2D feature: a 2D engine to render primitives, sprites in 2D, text. Canvas2D can be displayed in Screen Space (above the 3D scene) or in World Space to be a part of the Scene. [overview](http://doc.babylonjs.com/overviews/Using_The_Canvas2D), [tutorial](http://doc.babylonjs.com/tutorials/Using_the_Canvas2D) ([nockawa](https://github.com/nockawa))
-    - Added two new types of Texture: FontTexture and MapTexture ([quick doc](http://www.html5gamedevs.com/topic/22565-two-new-texture-types-fonttexture-and-maptexture/)) ([nockawa](https://github.com/nockawa))
-    - Added a dynamic [2D Bin Packing Algorithm](http://stackoverflow.com/questions/8762569/how-is-2d-bin-packing-achieved-programmatically), ([more info here](http://www.html5gamedevs.com/topic/22565-two-new-texture-types-fonttexture-and-maptexture/)) ([nockawa](https://github.com/nockawa))
-    - Physics engine was completely rewritten, including both plugins for Oimo.js and Cannon.js. [overview](http://doc.babylonjs.com/overviews/Using_The_Physics_Engine) ([RaananW](https://github.com/RaananW))
-	- Interleaved buffers are now directly supported. Create a `Buffer` object and then use `buffer.createVertexBuffer` to specify the vertex buffers ([benaadams](https://github.com/benaadams)) 
-	- Vertex buffers can be marked as instanced to allow custom instancing attributes ([benaadams](https://github.com/benaadams)) 
-	- Mesh can have `overridenInstanceCount` set to specify the number of meshes to draw when custom instancing is used ([benaadams](https://github.com/benaadams)) 
-  - **Updates**
-    - Added `renderTargetTexture.useCameraPostProcesses` to control postprocesses for render targets ([deltakosh](https://github.com/deltakosh))
-    - Added `mesh.toLefthanded()` to convert a mesh from right handed system ([kesshi](https://github.com/Kesshi))
-    - Renderlists can now also be defined using predicates ([deltakosh](https://github.com/deltakosh))
-    - Added support for various normal maps conventions ([deltakosh](https://github.com/deltakosh))
-    - Added postprocess.enablePixelPerfectMode to avoid texture scaling/stretching when dealing with non-power of 2 resolutions. cannot be used on post-processes chain ([deltakosh](https://github.com/deltakosh))
-    - Enabled other post processes to be used when also using a 3D Rig ([jcpalmer](https://github.com/Palmer-JC))
-    - Added skeleton.getBoneIndexByName(boneName: string) ([dad72](https://github.com/dad72))
-    - Added node._children to track children hierarchy ([deltakosh](https://github.com/deltakosh))
-    - Added Camera.ForceAttachControlToAlwaysPreventDefault to help embedding Babylon.js in iFrames ([deltakosh](https://github.com/deltakosh))
-    - Support for Layer.alphaTest ([deltakosh](https://github.com/deltakosh))
-    - New scene.pointerDownPredicate, scene.pointerMovePredicate, scene.pointerUpPredicate to define your own predicates for meshes picking selection ([deltakosh](https://github.com/deltakosh))
-    - New OnPickTrigger support for spritesManager ([deltakosh](https://github.com/deltakosh))
-    - New SPS method `digest()` ([jerome](https://github.com/jbousquie))    
-    - New SPS property `computeBoundingBox` ([jerome](https://github.com/jbousquie))  
-    - New SPS particle property `isVisible` ([jerome](https://github.com/jbousquie)) 
-    - Added a new OnPickOut trigger fired when you release the pointer button outside of a mesh or sprite. ([deltakosh](https://github.com/deltakosh))
-    - Added support for OnPointerOver and OnPointerOut for sprites. ([deltakosh](https://github.com/deltakosh))
-    - Added an optional predicate on Node.getDescendants, Node.getChildren to filter out Nodes based on a callback execution. ([nockawa](https://github.com/nockawa))
-    - Added Ray.intersectionPlane & intersectionSegment. ([nockawa](https://github.com/nockawa))
-    - LinesMesh class now supports Intersection. Added the intersectionThreshold property to set a tolerance margin during intersection with wire lines. ([nockawa](https://github.com/nockawa))
-    - Geometry.boundingBias property to enlarge the boundingInfo objects ([nockawa](https://github.com/nockawa))
-    - Tools.ExtractMinAndMax & ExtractMinAndMaxIndexed now supports an optional Bias for Extent computation.
-    - Added StringDictionary<T> class to implement an efficient generic typed string dictionary based on Javascript associative array. ([quick doc](http://www.html5gamedevs.com/topic/22566-be-efficient-my-friend-use-stringdictionary/)) ([nockawa](https://github.com/nockawa))
-    - Added RectanglePackingMap class to fit several rectangles in a big map in the most optimal way, dynamically. ([nockawa](https://github.com/nockawa))
-    - Added DynamicFloatArray class to store float32 based elements of a given size (stride) into one big Float32Array, with allocation/free/pack operations to then access an optimal buffer that can be used to update a WebGLBuffer dynamically.([quick doc](http://www.html5gamedevs.com/topic/22567-dynamicfloatarray-to-the-rescue-for-efficient-instanced-array/)) ([nockawa](https://github.com/nockawa))
-    - Scene.onPointerObservable property added to enable a unique Observable event for user input (see ArcRotateCamera inputs for examples) ([nockawa](https://github.com/nockawa))
-    - Oimo.js updated to the latest version ([RaananW](https://github.com/RaananW))
-    - Added PhysicsImpostor and PhysicsJoint classes  ([RaananW](https://github.com/RaananW))
-    - LensFlareSystem now has both ID and name  ([RaananW](https://github.com/RaananW))
-    - TargetCamera has now a rotationQuaternion variable to can be used to set the camera's rotation  ([RaananW](https://github.com/RaananW))
-    - SSAORenderingPipeline now uses bilateral blur post-processes instead of standard blur post-process, in order to remove more efficiently the "textile effect"
-    - `Engine.updateDynamicVertexBuffer` now has optional count as well as offset to allow partial updates ([benaadams](https://github.com/benaadams)) 
-    - vertex attributes are only disabled if they aren't going to be reeabled by the next draw, to reduce gpu state changes ([benaadams](https://github.com/benaadams)) 
-  - **Exporters**
-    - Unity3D exporter: Added support for lightmaps ([davrous](https://github.com/davrous), [deltakosh](https://github.com/deltakosh))
-    - Unity3D exporter: Added support for export and run (local webserver) ([davrous](https://github.com/davrous), [deltakosh](https://github.com/deltakosh))
-    - Unity exporter now support skeletons ([sebavan](https://github.com/sebavan))
-    - Support for 3dsmax 2017 ([deltakosh](https://github.com/deltakosh))
-    - Added support for up to 8 bones influences per vertex for 3dsmax exporter ([deltakosh](https://github.com/deltakosh))
-    - Added console logging for .babylon file loading ([jcpalmer](https://github.com/Palmer-JC))
-  - **API doc**
-    - class `SolidParticleSystem` documented ([jerome](https://github.com/jbousquie))
-    - class `MeshBuilder` documented ([jerome](https://github.com/jbousquie))
-    - class `Mesh` documented ([jerome](https://github.com/jbousquie))
-  - **Bug fixes**
-    - Fixed bug with billboards and parenting ([deltakosh](https://github.com/deltakosh))
-    - Fixed bug with ArcRotateCamera.setTarget ([deltakosh](https://github.com/deltakosh))
-    - Fixed bug with OBJ Loader - All meshes were concatenated with the previous one ([Temechon](https://github.com/Temechon))
-    - Fixed the device orientation cameras (both VR and non-VR cameras)  ([RaananW](https://github.com/RaananW))
-    - Fixed the WebVR implementation  ([RaananW](https://github.com/RaananW))
-  - **Breaking changes**
-    - `VertexData.CreateLines()` removed as `MeshBuilder.CreateLines()` now calls `MeshBuilder.CreateLineSystem()`
-    - `scene.onNewXXXAdded` and `scene.onXXXRemoved` callbacks were removed and replaced by `scene.onNewXXXAddedObservable` and `scene.onXXXRemovedObservable`
-    - `Material.dispose` does not dispose textures by default. You have to call `material.dispose(false, true)` to get the previous behavior.
-    - `SSAORenderingPipeline.getBlurHPostProcess` and `SSAORenderingPipeline.getBlurVPostProcess`. The SSAO rendering pipeline doesn't use standard blur post-process anymore. A bilateral blur post-process is used instead.
-    - `Engine.bindBuffers` is now `Engine.bindBuffersDirectly` ([benaadams](https://github.com/benaadams))
-    - `Engine.bindMultiBuffers` is now `Engine.bindBuffers` and strongly typed `{ [key: string]: VertexBuffer; }` of buffers ([benaadams](https://github.com/benaadams))
-    - `Engine.createDynamicVertexBuffer` takes vertices rather than capacity, creating and initalizing in one gpu instruction ([benaadams](https://github.com/benaadams)) 
-    - Internally new `Engine.bindBuffer` is used rather than `gl.bindBuffer` which only binds when the bound buffer is changing ([benaadams](https://github.com/benaadams)) 
+# 2.5.0:
+
+### Major updates
+    
+### Updates
+- Added support for texture arrays ([deltakosh](https://github.com/deltakosh)) 
+- Added `camera.isInFrustum` and `camera.isCompletelyInFrustum`. Can be used with meshes, submeshes and boundingInfo ([deltakosh](https://github.com/deltakosh)) 
+- Several memory allocation reduction ([benaadams](https://github.com/benaadams))
+- Several GPU state change reduction ([benaadams](https://github.com/benaadams)) 
+- MapTexture: add `supersample` mode to double font quality. ([nockawa](https://github.com/nockawa))
+- New `invertUV` parameter an all ribbon based shapes : ribbon, tube, lathe, basic and custom extrusion ([jerome](https://github.com/jbousquie))
+- Text2D: new `fontSuperSample` setting to use high quality font ([nockawa](https://github.com/nockawa))
+- PerfCounter class added to monitor time/counter and expose min/max/average/lastSecondAverage/current metrics. Updated engine/scene current counter to use this class, exposing new properties as well to access the PerfCounter object ([nockawa](https://github.com/nockawa))
+- Better keyboard event handling which is now done at canvas level and not at window level ([deltakosh](https://github.com/deltakosh)) 
+- New `scene.hoverCursor` property to define a custom cursor when moving mouse over meshes ([deltakosh](https://github.com/deltakosh)) 
+- Canvas2D: ([nockawa](https://github.com/nockawa)) 
+ - Performance metrics added
+ - Text2D super sampling to enhance quality in World Space Canvas
+ - World Space Canvas is now rendering in an adaptive way for its resolution to fit the on screen projected one to achieve a good rendering quality
+ - Transparent Primitives are now drawn with Instanced Array when supported
+
+### Exporters
+    
+### API doc
+
+### Bug fixes
+- MapTexture: Font Characters are now correctly aligned on Chrome ([nockawa](https://github.com/nockawa))
+- Fixed some missing parameter default values in `MeshBuilder.CreateGroundFromHeightMap()` and `MeshBuilder.CreateTiledGround()` ([jerome](https://github.com/jbousquie))
+- Fixed cross vector calculation in `_computeHeightQuads()` that affected  all the `GroundMesh.getHeightAtCoordinates()` and `GroundMesh.getNormalAtCoordinates()` methods ([jerome](https://github.com/jbousquie))
+- Fixed `Mesh.CreateDashedLines()` missing `instance` parameter on update ([jerome](https://github.com/jbousquie))
+- Fixed model shape initial red vertex color set to zero not formerly being taken in account in the `SolidParticleSystem` ([jerome](https://github.com/jbousquie))
+- Fixed RenderTargetTexture meshes selection ([deltakosh](https://github.com/deltakosh))
+- Fixed camera speed computation ([deltakosh](https://github.com/deltakosh))
+- Canvas2D: ([nockawa](https://github.com/nockawa))
+ - `WorldSpaceCanvas2D`:
+	- Intersection/interaction now works on non squared canvas
+ - Primitive:
+	- `ZOrder` fixed in Primitives created inline
+	- Z-Order is now correctly distributed along the whole canvas object graph
+ - `Sprite2D`: 
+	- texture size is now set by default as expected
+	- can have no `id` set
+ - `Text2D`: 
+	- Fix bad rendering quality on Chrome
+	- Rendering above transparent surface is now blending correctly
+
+### Breaking changes
+ - Canvas2D: ([nockawa](https://github.com/nockawa))
+  - `WorldSpaceCanvas2D`:
+	- WorldSpaceRenderScale is no longer supported (deprecated because of adaptive feature added).
+

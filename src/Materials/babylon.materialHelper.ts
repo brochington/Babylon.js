@@ -4,6 +4,7 @@
             var lightIndex = 0;
             var needNormals = false;
             var needRebuild = false;
+            var needShadows = false;
 
             for (var index = 0; index < scene.lights.length; index++) {
                 var light = scene.lights[index];
@@ -73,7 +74,7 @@
 
                 // Shadows
                 if (scene.shadowsEnabled) {
-                    var shadowGenerator = light.getShadowGenerator();
+                    var shadowGenerator = <ShadowGenerator>light.getShadowGenerator();
                     if (mesh && mesh.receiveShadows && shadowGenerator) {
                         if (defines["SHADOW" + lightIndex] === undefined) {
                             needRebuild = true;
@@ -97,12 +98,22 @@
 
                             defines["SHADOWPCF" + lightIndex] = true;
                         }
+
+                        needShadows = true;
                     }
                 }
 
                 lightIndex++;
                 if (lightIndex === maxSimultaneousLights)
                     break;
+            }
+
+            if (needShadows && scene.getEngine().getCaps().textureFloat) {
+                if (defines["SHADOWFULLFLOAT"] === undefined) {
+                    needRebuild = true;
+                }
+
+                defines["SHADOWFULLFLOAT"] = true;
             }
 
             if (needRebuild) {
@@ -180,7 +191,7 @@
 
         // Bindings
         public static BindLightShadow(light: Light, scene: Scene, mesh: AbstractMesh, lightIndex: number, effect: Effect, depthValuesAlreadySet: boolean): boolean {
-            var shadowGenerator = light.getShadowGenerator();
+            var shadowGenerator = <ShadowGenerator>light.getShadowGenerator();
             if (mesh.receiveShadows && shadowGenerator) {
                 if (!(<any>light).needCube()) {
                     effect.setMatrix("lightMatrix" + lightIndex, shadowGenerator.getTransformMatrix());

@@ -16,7 +16,7 @@ module BABYLON {
         @serialize()
         public panningSensibility: number = 50.0;
 
-        private _isRightClick: boolean = false;
+        private _isPanClick: boolean = false;
         private _isCtrlPushed: boolean = false;
         public pinchInwards = true;
 
@@ -47,8 +47,8 @@ module BABYLON {
                     }
 
 
-                    // Manage panning with right click
-                    this._isRightClick = evt.button === 2;
+                    // Manage panning with pan button click
+                    this._isPanClick = evt.button === this.camera._panningMouseButton;
 
                     // manage pointers
                     cacheSoloPointer = { x: evt.clientX, y: evt.clientY, pointerId: evt.pointerId, type: evt.pointerType };
@@ -60,6 +60,7 @@ module BABYLON {
                     }
                     if (!noPreventDefault) {
                         evt.preventDefault();
+                        element.focus();
                     }
                 } else if (p.type === PointerEventTypes.POINTERUP) {
                     try {
@@ -89,7 +90,7 @@ module BABYLON {
                     if (pointA && pointB === undefined) {
                         if (this.panningSensibility !== 0 &&
                             ((this._isCtrlPushed && this.camera._useCtrlForPanning) ||
-                                (!this.camera._useCtrlForPanning && this._isRightClick))) {
+                                (!this.camera._useCtrlForPanning && this._isPanClick))) {
                             this.camera
                                 .inertialPanningX += -(evt.clientX - cacheSoloPointer.x) / this.panningSensibility;
                             this.camera
@@ -201,9 +202,10 @@ module BABYLON {
             element.addEventListener("MSPointerDown", this._onGestureStart, false);
             element.addEventListener("MSGestureChange", this._onGesture, false);
 
+            element.addEventListener("keydown", this._onKeyDown, false);
+            element.addEventListener("keyup", this._onKeyUp, false);
+
             Tools.RegisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp },
                 { name: "blur", handler: this._onLostFocus }
             ]);
         }
@@ -218,7 +220,10 @@ module BABYLON {
                 element.removeEventListener("MSPointerDown", this._onGestureStart);
                 element.removeEventListener("MSGestureChange", this._onGesture);
 
-                this._isRightClick = false;
+                element.removeEventListener("keydown", this._onKeyDown);
+                element.removeEventListener("keyup", this._onKeyUp);
+
+                this._isPanClick = false;
                 this._isCtrlPushed = false;
                 this.pinchInwards = true;
 
@@ -230,12 +235,9 @@ module BABYLON {
                 this._MSGestureHandler = null;
                 this._onLostFocus = null;
                 this._onContextMenu = null;
-
             }
 
             Tools.UnregisterTopRootEvents([
-                { name: "keydown", handler: this._onKeyDown },
-                { name: "keyup", handler: this._onKeyUp },
                 { name: "blur", handler: this._onLostFocus }
             ]);
         }

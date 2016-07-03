@@ -1,5 +1,5 @@
 ﻿module BABYLON {
-    export class AbstractMesh extends Node implements IDisposable {
+    export class AbstractMesh extends Node implements IDisposable, ICullable {
         // Statics
         private static _BILLBOARDMODE_NONE = 0;
         private static _BILLBOARDMODE_X = 1;
@@ -313,6 +313,10 @@
             return this._boundingInfo;
         }
 
+        public setBoundingInfo(boundingInfo: BoundingInfo): void {
+            this._boundingInfo = boundingInfo;
+        }
+
         public get useBones(): boolean {
             return this.skeleton && this.getScene().skeletonsEnabled && this.isVerticesDataPresent(VertexBuffer.MatricesIndicesKind) && this.isVerticesDataPresent(VertexBuffer.MatricesWeightsKind);
         }
@@ -361,6 +365,7 @@
             return this._isWorldMatrixFrozen;
         }
 
+        private static _rotationAxisCache = new Quaternion();
         public rotate(axis: Vector3, amount: number, space?: Space): void {
             axis.normalize();
 
@@ -370,8 +375,8 @@
             }
             var rotationQuaternion: Quaternion;
             if (!space || space === Space.LOCAL) {
-                rotationQuaternion = Quaternion.RotationAxis(axis, amount);
-                this.rotationQuaternion = this.rotationQuaternion.multiply(rotationQuaternion);
+                rotationQuaternion = Quaternion.RotationAxisToRef(axis, amount, AbstractMesh._rotationAxisCache);
+                this.rotationQuaternion.multiplyToRef(rotationQuaternion, this.rotationQuaternion);
             }
             else {
                 if (this.parent) {
@@ -380,8 +385,8 @@
 
                     axis = Vector3.TransformNormal(axis, invertParentWorldMatrix);
                 }
-                rotationQuaternion = Quaternion.RotationAxis(axis, amount);
-                this.rotationQuaternion = rotationQuaternion.multiply(this.rotationQuaternion);
+                rotationQuaternion = Quaternion.RotationAxisToRef(axis, amount, AbstractMesh._rotationAxisCache);
+                rotationQuaternion.multiplyToRef(this.rotationQuaternion, this.rotationQuaternion);
             }
         }
 
@@ -744,7 +749,8 @@
             this.position = Vector3.TransformCoordinates(vector3, this._localWorld);
         }
 
-        public lookAt(targetPoint: Vector3, yawCor: number, pitchCor: number, rollCor: number): void {
+        private static _lookAtVectorCache = new Vector3(0,0,0);
+        public lookAt(targetPoint: Vector3, yawCor: number = 0, pitchCor: number = 0, rollCor: number = 0, space: Space = Space.LOCAL): void {
             /// <summary>Orients a mesh towards a target point. Mesh must be drawn facing user.</summary>
             /// <param name="targetPoint" type="Vector3">The position (must be in same space as current mesh) to look at</param>
             /// <param name="yawCor" type="Number">optional yaw (y-axis) correction in radians</param>
@@ -752,15 +758,14 @@
             /// <param name="rollCor" type="Number">optional roll (z-axis) correction in radians</param>
             /// <returns>Mesh oriented towards targetMesh</returns>
 
-            yawCor = yawCor || 0; // default to zero if undefined
-            pitchCor = pitchCor || 0;
-            rollCor = rollCor || 0;
-
-            var dv = targetPoint.subtract(this.position);
+            var dv = AbstractMesh._lookAtVectorCache;
+            var pos = space === Space.LOCAL ? this.position : this.getAbsolutePosition();
+            targetPoint.subtractToRef(pos, dv);
             var yaw = -Math.atan2(dv.z, dv.x) - Math.PI / 2;
             var len = Math.sqrt(dv.x * dv.x + dv.z * dv.z);
             var pitch = Math.atan2(dv.y, len);
-            this.rotationQuaternion = Quaternion.RotationYawPitchRoll(yaw + yawCor, pitch + pitchCor, rollCor);
+            this.rotationQuaternion = this.rotationQuaternion || new Quaternion();
+            Quaternion.RotationYawPitchRollToRef(yaw + yawCor, pitch + pitchCor, rollCor, this.rotationQuaternion);
         }
 
         public attachToBone(bone: Bone, affectedMesh: AbstractMesh): void {
@@ -785,18 +790,8 @@
             return this._boundingInfo.isInFrustum(frustumPlanes);
         }
 
-        public isCompletelyInFrustum(camera?: Camera): boolean {
-            if (!camera) {
-                camera = this.getScene().activeCamera;
-            }
-
-            var transformMatrix = camera.getViewMatrix().multiply(camera.getProjectionMatrix());
-
-            if (!this._boundingInfo.isCompletelyInFrustum(Frustum.GetPlanes(transformMatrix))) {
-                return false;
-            }
-
-            return true;
+        public isCompletelyInFrustum(frustumPlanes: Plane[]): boolean {
+            return this._boundingInfo.isCompletelyInFrustum(frustumPlanes);;
         }
 
         public intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean {
@@ -851,7 +846,7 @@
          * @Deprecated. Use getPhysicsImpostor().getParam("restitution");
          */
         public getPhysicsRestitution(): number {
-            return this.physicsImpostor.getParam("resitution")
+            return this.physicsImpostor.getParam("restitution")
         }
 
         public getPositionInCameraSpace(camera?: Camera): Vector3 {

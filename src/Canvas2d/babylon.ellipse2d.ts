@@ -1,28 +1,36 @@
 ﻿module BABYLON {
     export class Ellipse2DRenderCache extends ModelRenderCache {
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFill: Effect;
+        effectsReady: boolean                               = false;
+        fillVB: WebGLBuffer                                 = null;
+        fillIB: WebGLBuffer                                 = null;
+        fillIndicesCount: number                            = 0;
+        instancingFillAttributes: InstancingAttributeInfo[] = null;
+        effectFillInstanced: Effect                         = null;
+        effectFill: Effect                                  = null;
 
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorder: Effect;
+        borderVB: WebGLBuffer                                 = null;
+        borderIB: WebGLBuffer                                 = null;
+        borderIndicesCount: number                            = 0;
+        instancingBorderAttributes: InstancingAttributeInfo[] = null;
+        effectBorderInstanced: Effect                         = null;
+        effectBorder: Effect                                  = null;
 
-        constructor(engine: Engine, modelKey: string, isTransparent: boolean) {
-            super(engine, modelKey, isTransparent);
+        constructor(engine: Engine, modelKey: string) {
+            super(engine, modelKey);
         }
 
         render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean {
             // Do nothing if the shader is still loading/preparing 
-            if ((this.effectFill && !this.effectFill.isReady()) || (this.effectBorder && !this.effectBorder.isReady())) {
-                return false;
+            if (!this.effectsReady) {
+                if ((this.effectFill && (!this.effectFill.isReady() || (this.effectFillInstanced && !this.effectFillInstanced.isReady()))) ||
+                    (this.effectBorder && (!this.effectBorder.isReady() || (this.effectBorderInstanced && !this.effectBorderInstanced.isReady())))) {
+                    return false;
+                }
+                this.effectsReady = true;
             }
 
-            var engine = instanceInfo._owner.owner.engine;
+            let canvas = instanceInfo.owner.owner;
+            var engine = canvas.engine;
 
             let depthFunction = 0;
             if (this.effectFill && this.effectBorder) {
@@ -30,60 +38,73 @@
                 engine.setDepthFunctionToLessOrEqual();
             }
 
-            var cur: number;
-            if (this.isTransparent) {
-                cur = engine.getAlphaMode();
-                engine.setAlphaMode(Engine.ALPHA_COMBINE);
-            }
+            let curAlphaMode = engine.getAlphaMode();
 
             if (this.effectFill) {
-                let partIndex = instanceInfo._partIndexFromId.get(Shape2D.SHAPE2D_FILLPARTID.toString());
+                let partIndex = instanceInfo.partIndexFromId.get(Shape2D.SHAPE2D_FILLPARTID.toString());
+                let pid = context.groupInfoPartData[partIndex];
 
-                engine.enableEffect(this.effectFill);
-                engine.bindBuffersDirectly(this.fillVB, this.fillIB, [1], 4, this.effectFill);
-                let count = instanceInfo._instancesPartsData[partIndex].usedElementCount;
-                if (instanceInfo._owner.owner.supportInstancedArray) {
+                if (context.renderMode !== Render2DContext.RenderModeOpaque) {
+                    engine.setAlphaMode(Engine.ALPHA_COMBINE);
+                }
+
+                let effect = context.useInstancing ? this.effectFillInstanced : this.effectFill;
+
+                engine.enableEffect(effect);
+                engine.bindBuffersDirectly(this.fillVB, this.fillIB, [1], 4, effect);
+                if (context.useInstancing) {
                     if (!this.instancingFillAttributes) {
-                        // Compute the offset locations of the attributes in the vertex shader that will be mapped to the instance buffer data
-                        this.instancingFillAttributes = this.loadInstancingAttributes(Shape2D.SHAPE2D_FILLPARTID, this.effectFill);
+                        this.instancingFillAttributes = this.loadInstancingAttributes(Shape2D.SHAPE2D_FILLPARTID, effect);
                     }
 
-                    engine.updateAndBindInstancesBuffer(instanceInfo._instancesPartsBuffer[partIndex], null, this.instancingFillAttributes);
+                    let glBuffer = context.instancedBuffers ? context.instancedBuffers[partIndex] : pid._partBuffer;
+                    let count = context.instancedBuffers ? context.instancesCount : pid._partData.usedElementCount;
+                    canvas._addDrawCallCount(1, context.renderMode);
+                    engine.updateAndBindInstancesBuffer(glBuffer, null, this.instancingFillAttributes);
                     engine.draw(true, 0, this.fillIndicesCount, count);
                     engine.unbindInstanceAttributes();
                 } else {
-                    for (let i = 0; i < count; i++) {
-                        this.setupUniforms(this.effectFill, partIndex, instanceInfo._instancesPartsData[partIndex], i);
+                    canvas._addDrawCallCount(context.partDataEndIndex - context.partDataStartIndex, context.renderMode);
+                    for (let i = context.partDataStartIndex; i < context.partDataEndIndex; i++) {
+                        this.setupUniforms(effect, partIndex, pid._partData, i);
                         engine.draw(true, 0, this.fillIndicesCount);                        
                     }
                 }
             }
 
             if (this.effectBorder) {
-                let partIndex = instanceInfo._partIndexFromId.get(Shape2D.SHAPE2D_BORDERPARTID.toString());
+                let partIndex = instanceInfo.partIndexFromId.get(Shape2D.SHAPE2D_BORDERPARTID.toString());
+                let pid = context.groupInfoPartData[partIndex];
 
-                engine.enableEffect(this.effectBorder);
-                engine.bindBuffersDirectly(this.borderVB, this.borderIB, [1], 4, this.effectBorder);
-                let count = instanceInfo._instancesPartsData[partIndex].usedElementCount;
-                if (instanceInfo._owner.owner.supportInstancedArray) {
+                if (context.renderMode !== Render2DContext.RenderModeOpaque) {
+                    engine.setAlphaMode(Engine.ALPHA_COMBINE);
+                }
+
+                let effect = context.useInstancing ? this.effectBorderInstanced : this.effectBorder;
+
+                engine.enableEffect(effect);
+                engine.bindBuffersDirectly(this.borderVB, this.borderIB, [1], 4, effect);
+                if (context.useInstancing) {
                     if (!this.instancingBorderAttributes) {
-                        this.instancingBorderAttributes = this.loadInstancingAttributes(Shape2D.SHAPE2D_BORDERPARTID, this.effectBorder);
+                        this.instancingBorderAttributes = this.loadInstancingAttributes(Shape2D.SHAPE2D_BORDERPARTID, effect);
                     }
 
-                    engine.updateAndBindInstancesBuffer(instanceInfo._instancesPartsBuffer[partIndex], null, this.instancingBorderAttributes);
+                    let glBuffer = context.instancedBuffers ? context.instancedBuffers[partIndex] : pid._partBuffer;
+                    let count = context.instancedBuffers ? context.instancesCount : pid._partData.usedElementCount;
+                    canvas._addDrawCallCount(1, context.renderMode);
+                    engine.updateAndBindInstancesBuffer(glBuffer, null, this.instancingBorderAttributes);
                     engine.draw(true, 0, this.borderIndicesCount, count);
                     engine.unbindInstanceAttributes();
                 } else {
-                    for (let i = 0; i < count; i++) {
-                        this.setupUniforms(this.effectBorder, partIndex, instanceInfo._instancesPartsData[partIndex], i);
+                    canvas._addDrawCallCount(context.partDataEndIndex - context.partDataStartIndex, context.renderMode);
+                    for (let i = context.partDataStartIndex; i < context.partDataEndIndex; i++) {
+                        this.setupUniforms(effect, partIndex, pid._partData, i);
                         engine.draw(true, 0, this.borderIndicesCount);
                     }
                 }
             }
 
-            if (this.isTransparent) {
-                engine.setAlphaMode(cur);
-            }
+            engine.setAlphaMode(curAlphaMode);
 
             if (this.effectFill && this.effectBorder) {
                 engine.setDepthFunction(depthFunction);
@@ -111,6 +132,11 @@
                 this.effectFill = null;
             }
 
+            if (this.effectFillInstanced) {
+                this._engine._releaseEffect(this.effectFillInstanced);
+                this.effectFillInstanced = null;
+            }
+
             if (this.borderVB) {
                 this._engine._releaseBuffer(this.borderVB);
                 this.borderVB = null;
@@ -124,6 +150,11 @@
             if (this.effectBorder) {
                 this._engine._releaseEffect(this.effectBorder);
                 this.effectBorder = null;
+            }
+
+            if (this.effectBorderInstanced) {
+                this._engine._releaseEffect(this.effectBorderInstanced);
+                this.effectBorderInstanced = null;
             }
 
             return true;
@@ -142,25 +173,33 @@
     }
 
     @className("Ellipse2D")
+    /**
+     * Ellipse Primitive class
+     */
     export class Ellipse2D extends Shape2D {
 
-        public static sizeProperty: Prim2DPropInfo;
+        public static acutalSizeProperty: Prim2DPropInfo;
         public static subdivisionsProperty: Prim2DPropInfo;
 
+        @instanceLevelProperty(Shape2D.SHAPE2D_PROPCOUNT + 1, pi => Ellipse2D.acutalSizeProperty = pi, false, true)
+        /**
+         * Get/Set the size of the ellipse
+         */
         public get actualSize(): Size {
+            if (this._actualSize) {
+                return this._actualSize;
+            }
             return this.size;
         }
 
-        @instanceLevelProperty(Shape2D.SHAPE2D_PROPCOUNT + 1, pi => Ellipse2D.sizeProperty = pi, false, true)
-        public get size(): Size {
-            return this._size;
-        }
-
-        public set size(value: Size) {
-            this._size = value;
+        public set actualSize(value: Size) {
+            this._actualSize = value;
         }
 
         @modelLevelProperty(Shape2D.SHAPE2D_PROPCOUNT + 2, pi => Ellipse2D.subdivisionsProperty = pi)
+        /**
+         * Get/set the number of subdivisions used to draw the ellipsis. Default is 64.
+         */
         public get subdivisions(): number {
             return this._subdivisions;
         }
@@ -170,55 +209,106 @@
         }
 
         protected levelIntersect(intersectInfo: IntersectInfo2D): boolean {
-            let x = intersectInfo._localPickPosition.x;
-            let y = intersectInfo._localPickPosition.y;
-            let w = this.size.width/2;
-            let h = this.size.height/2;
+            let w = this.size.width / 2;
+            let h = this.size.height / 2;
+            let x = intersectInfo._localPickPosition.x-w;
+            let y = intersectInfo._localPickPosition.y-h;
             return ((x * x) / (w * w) + (y * y) / (h * h)) <= 1;
         }
 
         protected updateLevelBoundingInfo() {
-            BoundingInfo2D.CreateFromSizeToRef(this.size, this._levelBoundingInfo, this.origin);
-        }
-
-        protected setupEllipse2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, size: Size, subdivisions: number=64, fill?: IBrush2D, border?: IBrush2D, borderThickness: number = 1) {
-            this.setupShape2D(owner, parent, id, position, origin, true, fill, border, borderThickness);
-            this.size = size;
-            this.subdivisions = subdivisions;
+            BoundingInfo2D.CreateFromSizeToRef(this.actualSize, this._levelBoundingInfo);
         }
 
         /**
          * Create an Ellipse 2D Shape primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * options:
-         *  - id: a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - width: the width of the ellipse, default is 10
-         *  - height: the height of the ellipse, default is 10
-         *  - subdivision: the number of subdivision to create the ellipse perimeter, default is 64.
-         *  - fill: the brush used to draw the fill content of the ellipse, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white.
-         *  - border: the brush used to draw the border of the ellipse, you can set null to draw nothing (but you will have to set a fill brush), default is null.
-         *  - borderThickness: the thickness of the drawn border, default is 1.
+         * @param settings a combination of settings, possible ones are
+         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
+         * - children: an array of direct children 
+         * - id: a text identifier, for information purpose
+         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
+         * - rotation: the initial rotation (in radian) of the primitive. default is 0
+         * - scale: the initial scale of the primitive. default is 1
+         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
+         * - origin: define the normalized origin point location, default [0.5;0.5]
+         * - size: the size of the group. Alternatively the width and height properties can be set. Default will be [10;10].
+         * - subdivision: the number of subdivision to create the ellipse perimeter, default is 64.
+         * - fill: the brush used to draw the fill content of the ellipse, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white. can also be a string value (see Canvas2D.GetBrushFromString)
+         * - border: the brush used to draw the border of the ellipse, you can set null to draw nothing (but you will have to set a fill brush), default is null. can be a string value (see Canvas2D.GetBrushFromString)
+         * - borderThickness: the thickness of the drawn border, default is 1.
+         * - isVisible: true if the group must be visible, false for hidden. Default is true.
+         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
+         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
+         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
+         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
+         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
+         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
          */
-        public static Create(parent: Prim2DBase, options: { id?: string, x?: number, y?: number, origin?: Vector2, width?: number, height?: number, subdivisions?: number, fill?: IBrush2D, border?: IBrush2D, borderThickness?: number }): Ellipse2D {
-            Prim2DBase.CheckParent(parent);
+        constructor(settings?: {
 
-            let fill: IBrush2D;
-            if (options && options.fill !== undefined) {
-                fill = options.fill;
-            } else {
-                fill = Canvas2D.GetSolidColorBrushFromHex("#FFFFFFFF");
+            parent            ?: Prim2DBase, 
+            children          ?: Array<Prim2DBase>,
+            id                ?: string,
+            position          ?: Vector2,
+            x                 ?: number,
+            y                 ?: number,
+            rotation          ?: number,
+            scale             ?: number,
+            opacity           ?: number,
+            origin            ?: Vector2,
+            size              ?: Size,
+            width             ?: number,
+            height            ?: number,
+            subdivisions      ?: number,
+            fill              ?: IBrush2D | string,
+            border            ?: IBrush2D | string,
+            borderThickness   ?: number,
+            isVisible         ?: boolean,
+            childrenFlatZOrder?: boolean,
+            marginTop         ?: number | string,
+            marginLeft        ?: number | string,
+            marginRight       ?: number | string,
+            marginBottom      ?: number | string,
+            margin            ?: number | string,
+            marginHAlignment  ?: number,
+            marginVAlignment  ?: number,
+            marginAlignment   ?: string,
+            paddingTop        ?: number | string,
+            paddingLeft       ?: number | string,
+            paddingRight      ?: number | string,
+            paddingBottom     ?: number | string,
+            padding           ?: string,
+        }) {
+
+            // Avoid checking every time if the object exists
+            if (settings == null) {
+                settings = {};
             }
 
-            let ellipse = new Ellipse2D();
-            ellipse.setupEllipse2D(parent.owner, parent, options && options.id || null, new Vector2(options && options.x || 0, options && options.y || 0), options && options.origin || null, new Size(options && options.width || 10, options && options.height || 10), options && options.subdivisions || 64, fill, options && options.border || null, options && options.borderThickness || 1);
-            return ellipse;
+            super(settings);
+
+            if (settings.size != null) {
+                this.size = settings.size;
+            }
+            else if (settings.width || settings.height) {
+                let size = new Size(settings.width, settings.height);
+                this.size = size;
+            }
+
+            let sub  = (settings.subdivisions == null) ? 64 : settings.subdivisions;
+            this.subdivisions = sub;
         }
 
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache {
-            let renderCache = new Ellipse2DRenderCache(this.owner.engine, modelKey, isTransparent);
+        protected createModelRenderCache(modelKey: string): ModelRenderCache {
+            let renderCache = new Ellipse2DRenderCache(this.owner.engine, modelKey);
             return renderCache;
         }
 
@@ -247,7 +337,14 @@
                 renderCache.fillIB = engine.createIndexBuffer(ib);
                 renderCache.fillIndicesCount = triCount * 3;
 
-                let ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_FILLPARTID, ["index"]);
+                // Get the instanced version of the effect, if the engine does not support it, null is return and we'll only draw on by one
+                let ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_FILLPARTID, ["index"], true);
+                if (ei) {
+                    renderCache.effectFillInstanced = engine.createEffect({ vertex: "ellipse2d", fragment: "ellipse2d" }, ei.attributes, ei.uniforms, [], ei.defines, null);
+                }
+
+                // Get the non instanced version
+                ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_FILLPARTID, ["index"], false);
                 renderCache.effectFill = engine.createEffect({ vertex: "ellipse2d", fragment: "ellipse2d" }, ei.attributes, ei.uniforms, [], ei.defines, null);
             }
 
@@ -279,8 +376,15 @@
                 renderCache.borderIB = engine.createIndexBuffer(ib);
                 renderCache.borderIndicesCount = (triCount* 3);
 
-                let ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_BORDERPARTID, ["index"]);
-                renderCache.effectBorder = engine.createEffect({ vertex: "ellipse2d", fragment: "ellipse2d" }, ei.attributes, ei.uniforms, [], ei.defines, null);
+                // Get the instanced version of the effect, if the engine does not support it, null is return and we'll only draw on by one
+                let ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_BORDERPARTID, ["index"], true);
+                if (ei) {
+                    renderCache.effectBorderInstanced = engine.createEffect("ellipse2d", ei.attributes, ei.uniforms, [], ei.defines, null);
+                }
+
+                // Get the non instanced version
+                ei = this.getDataPartEffectInfo(Shape2D.SHAPE2D_BORDERPARTID, ["index"], false);
+                renderCache.effectBorder = engine.createEffect("ellipse2d", ei.attributes, ei.uniforms, [], ei.defines, null);
             }
 
             return renderCache;
@@ -304,18 +408,17 @@
             }
             if (part.id === Shape2D.SHAPE2D_BORDERPARTID) {
                 let d = <Ellipse2DInstanceData>part;
-                let size = this.size;
+                let size = this.actualSize;
                 d.properties = new Vector3(size.width, size.height, this.subdivisions);
             }
             else if (part.id === Shape2D.SHAPE2D_FILLPARTID) {
                 let d = <Ellipse2DInstanceData>part;
-                let size = this.size;
+                let size = this.actualSize;
                 d.properties = new Vector3(size.width, size.height, this.subdivisions);
             }
             return true;
         }
 
-        private _size: Size;
         private _subdivisions: number;
     }
 }

@@ -9,7 +9,7 @@ attribute float index;
 att vec2 zBias;
 att vec4 transformX;
 att vec4 transformY;
-att vec2 origin;
+att float opacity;
 
 #ifdef Border
 att float borderThickness;
@@ -99,10 +99,11 @@ void main(void) {
 	vColor = mix(borderGradientColor2, borderGradientColor1, v);	// As Y is inverted, Color2 first, then Color1
 #endif
 
+	vColor.a *= opacity;
 	vec4 pos;
-	pos.xy = (pos2.xy - origin) * properties.xy;
+	pos.xy = pos2.xy * properties.xy;
 	pos.z = 1.0;
 	pos.w = 1.0;
-	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, zBias.y);
+	gl_Position = vec4(dot(pos, transformX), dot(pos, transformY), zBias.x, 1);
 
 }

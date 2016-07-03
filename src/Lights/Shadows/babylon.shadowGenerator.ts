@@ -1,5 +1,11 @@
 ﻿module BABYLON {
-    export class ShadowGenerator {
+    export interface IShadowGenerator {
+        getShadowMap(): RenderTargetTexture;
+
+        dispose(): void;
+    }
+
+    export class ShadowGenerator implements IShadowGenerator {
         private static _FILTER_NONE = 0;
         private static _FILTER_VARIANCESHADOWMAP = 1;
         private static _FILTER_POISSONSAMPLING = 2;
@@ -126,6 +132,8 @@
         private _currentFaceIndex = 0;
         private _currentFaceIndexCache = 0;
 
+        private _useFullFloat = true;
+
         constructor(mapSize: number, light: IShadowLight) {
             this._light = light;
             this._scene = light.getScene();
@@ -133,14 +141,24 @@
 
             light._shadowGenerator = this;
 
+            // Texture type fallback from float to int if not supported.
+            var textureType: number;
+            if (this._scene.getEngine().getCaps().textureFloat) {
+                this._useFullFloat = true;
+                textureType = Engine.TEXTURETYPE_FLOAT;
+            }
+            else {
+                this._useFullFloat = false;
+                textureType = Engine.TEXTURETYPE_UNSIGNED_INT;
+            }
+            
             // Render target
-            this._shadowMap = new RenderTargetTexture(light.name + "_shadowMap", mapSize, this._scene, false, true, Engine.TEXTURETYPE_UNSIGNED_INT, light.needCube());
+            this._shadowMap = new RenderTargetTexture(light.name + "_shadowMap", mapSize, this._scene, false, true, textureType, light.needCube());
             this._shadowMap.wrapU = Texture.CLAMP_ADDRESSMODE;
             this._shadowMap.wrapV = Texture.CLAMP_ADDRESSMODE;
             this._shadowMap.anisotropicFilteringLevel = 1;
             this._shadowMap.updateSamplingMode(Texture.NEAREST_SAMPLINGMODE);
             this._shadowMap.renderParticles = false;
-
 
             this._shadowMap.onBeforeRenderObservable.add((faceIndex: number) => {
                 this._currentFaceIndex = faceIndex;
@@ -152,7 +170,7 @@
                 }
 
                 if (!this._shadowMap2) {
-                    this._shadowMap2 = new RenderTargetTexture(light.name + "_shadowMap", mapSize, this._scene, false);
+                    this._shadowMap2 = new RenderTargetTexture(light.name + "_shadowMap", mapSize, this._scene, false, true, textureType);
                     this._shadowMap2.wrapU = Texture.CLAMP_ADDRESSMODE;
                     this._shadowMap2.wrapV = Texture.CLAMP_ADDRESSMODE;
                     this._shadowMap2.updateSamplingMode(Texture.TRILINEAR_SAMPLINGMODE);
@@ -256,6 +274,10 @@
 
         public isReady(subMesh: SubMesh, useInstances: boolean): boolean {
             var defines = [];
+
+            if (this._useFullFloat) {
+                defines.push("#define FULLFLOAT");
+            }
 
             if (this.useVarianceShadowMap || this.useBlurVarianceShadowMap) {
                 defines.push("#define VSM");

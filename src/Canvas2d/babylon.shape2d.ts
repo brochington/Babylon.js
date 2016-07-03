@@ -1,7 +1,12 @@
 ﻿module BABYLON {
 
     @className("Shape2D")
-    export class Shape2D extends RenderablePrim2D {
+    /**
+     * The abstract class for parametric shape based Primitives types.
+     * Shape2D based primitives are composed of two parts: fill and border, both are optional but at least one must be specified.
+     * The fill part is the primitive 'body', the border is a border around this body. The border has a thickness that can be changed.
+     */
+    export abstract class Shape2D extends RenderablePrim2D {
         static SHAPE2D_BORDERPARTID            = 1;
         static SHAPE2D_FILLPARTID              = 2;
         static SHAPE2D_CATEGORY_BORDER         = "Border";
@@ -16,6 +21,9 @@
         public static borderThicknessProperty: Prim2DPropInfo;
 
         @modelLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 1, pi => Shape2D.borderProperty = pi, true)
+        /**
+         * Get/set the brush to render the Border part of the Primitive
+         */
         public get border(): IBrush2D {
             return this._border;
         }
@@ -25,6 +33,9 @@
             this._updateTransparencyStatus();
         }
 
+        /**
+         * Get/set the brush to render the Fill part of the Primitive
+         */
         @modelLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 2, pi => Shape2D.fillProperty = pi, true)
         public get fill(): IBrush2D {
             return this._fill;
@@ -36,6 +47,9 @@
         }
 
         @instanceLevelProperty(RenderablePrim2D.RENDERABLEPRIM2D_PROPCOUNT + 3, pi => Shape2D.borderThicknessProperty = pi)
+        /**
+         * Get/set the thickness of the border part.
+         */
         public get borderThickness(): number {
             return this._borderThickness;
         }
@@ -44,11 +58,39 @@
             this._borderThickness = value;
         }
 
-        setupShape2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, isVisible: boolean, fill: IBrush2D, border: IBrush2D, borderThickness: number = 1.0) {
-            this.setupRenderablePrim2D(owner, parent, id, position, origin, isVisible);
-            this.border = border;
-            this.fill = fill;
-            this.borderThickness = borderThickness;
+        constructor(settings?: {
+            fill           ?: IBrush2D | string,
+            border         ?: IBrush2D | string,
+            borderThickness?: number,
+        }) {
+
+            super(settings);
+
+            if (!settings) {
+                settings = {};
+            }
+
+            let borderBrush: IBrush2D = null;
+            if (settings.border) {
+                if (typeof (settings.border) === "string") {
+                    borderBrush = Canvas2D.GetBrushFromString(<string>settings.border);
+                } else {
+                    borderBrush = <IBrush2D>settings.border;
+                }
+            }
+
+            let fillBrush: IBrush2D = null;
+            if (settings.fill) {
+                if (typeof (settings.fill) === "string") {
+                    fillBrush = Canvas2D.GetBrushFromString(<string>settings.fill);
+                } else {
+                    fillBrush = <IBrush2D>settings.fill;
+                }
+            }
+
+            this.border = borderBrush;
+            this.fill = fillBrush;
+            this.borderThickness = settings.borderThickness;
         }
 
         protected getUsedShaderCategories(dataPart: InstanceDataBase): string[] {
@@ -129,7 +171,7 @@
         }
 
         private _updateTransparencyStatus() {
-            this.isTransparent = (this._border && this._border.isTransparent()) || (this._fill && this._fill.isTransparent());
+            this.isTransparent = (this._border && this._border.isTransparent()) || (this._fill && this._fill.isTransparent()) || (this.actualOpacity<1);
         }
 
         private _border: IBrush2D;

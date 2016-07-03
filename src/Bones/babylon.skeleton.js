@@ -118,11 +118,12 @@ var BABYLON;
                 BABYLON.Tools.Warn("copyAnimationRange: this rig has " + this.bones.length + " bones, while source as " + sourceBones.length);
                 ret = false;
             }
+            var skelDimensionsRatio = (rescaleAsRequired && this.dimensionsAtRest && source.dimensionsAtRest) ? this.dimensionsAtRest.divide(source.dimensionsAtRest) : null;
             for (i = 0, nBones = this.bones.length; i < nBones; i++) {
                 var boneName = this.bones[i].name;
                 var sourceBone = boneDict[boneName];
                 if (sourceBone) {
-                    ret = ret && this.bones[i].copyAnimationRange(sourceBone, name, frameOffset, rescaleAsRequired);
+                    ret = ret && this.bones[i].copyAnimationRange(sourceBone, name, frameOffset, rescaleAsRequired, skelDimensionsRatio);
                 }
                 else {
                     BABYLON.Tools.Warn("copyAnimationRange: not same rig, missing source bone " + boneName);
@@ -219,7 +220,7 @@ var BABYLON;
                 this._computeTransformMatrices(this._transformMatrices, null);
             }
             this._isDirty = false;
-            this._scene._activeBones += this.bones.length;
+            this._scene._activeBones.addCount(this.bones.length, false);
         };
         Skeleton.prototype.getAnimatables = function () {
             if (!this._animatables || this._animatables.length !== this.bones.length) {
@@ -333,6 +334,6 @@ var BABYLON;
             return skeleton;
         };
         return Skeleton;
-    }());
+    })();
     BABYLON.Skeleton = Skeleton;
 })(BABYLON || (BABYLON = {}));
