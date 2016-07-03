@@ -54,8 +54,7 @@ module BABYLON {
             this.rightEyeRenderWidth = rightEye.renderWidth;
         }
 
-        // public getLeftEyeFOV(out: Matrix): Matrix {
-        public getRightEyeFOV(out: Matrix): Matrix {
+        public getLeftEyeFOV(out: Matrix): Matrix {
           var result = this.perspectiveFromFieldOfView(
             out,
             this.leftEyeFOVupDegrees,
@@ -67,8 +66,7 @@ module BABYLON {
           return result;
         }
 
-        // public getRightEyeFOV(out: Matrix): Matrix {
-        public getLeftEyeFOV(out: Matrix): Matrix {
+        public getRightEyeFOV(out: Matrix): Matrix {
           var result = this.perspectiveFromFieldOfView(
             out,
             this.rightEyeFOVupDegrees,

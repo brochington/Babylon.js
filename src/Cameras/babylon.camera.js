@@ -314,10 +314,7 @@ var BABYLON;
         Camera.prototype._getViewMatrix = function () {
             return BABYLON.Matrix.Identity();
         };
-        // I think the View matrix positions the camera, if you will.
-        // need to use position and orientation to change the view matrix.
         Camera.prototype.getViewMatrix = function (force) {
-            // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
             if (!force && this._isSynchronizedViewMatrix()) {
                 return this._computedViewMatrix;
@@ -340,9 +337,9 @@ var BABYLON;
             return this._computedViewMatrix;
         };
         Camera.prototype._computeViewMatrix = function (force) {
-            // if (!force && this._isSynchronizedViewMatrix()) {
-            //     return this._computedViewMatrix;
-            // }
+            if (!force && this._isSynchronizedViewMatrix()) {
+                return this._computedViewMatrix;
+            }
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();
             return this._computedViewMatrix;

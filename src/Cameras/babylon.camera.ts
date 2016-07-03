@@ -1,4 +1,4 @@
-﻿module BABYLON {
+module BABYLON {
     export class Camera extends Node {
         public inputs: CameraInputsManager<Camera>;
 
@@ -369,10 +369,8 @@
         public _getViewMatrix(): Matrix {
             return Matrix.Identity();
         }
-        // I think the View matrix positions the camera, if you will.
-        // need to use position and orientation to change the view matrix.
+
         public getViewMatrix(force?: boolean): Matrix {
-          // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
 
             if (!force && this._isSynchronizedViewMatrix()) {
@@ -405,9 +403,9 @@
         }
 
         public _computeViewMatrix(force?: boolean): Matrix {
-            // if (!force && this._isSynchronizedViewMatrix()) {
-            //     return this._computedViewMatrix;
-            // }
+            if (!force && this._isSynchronizedViewMatrix()) {
+                return this._computedViewMatrix;
+            }
 
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();

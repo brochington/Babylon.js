@@ -5,29 +5,56 @@ module BABYLON {
 
           this.inputs.addVRDisplay();
 
-          this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
-          this._updatePosition = this._updatePosition.bind(this);
-          this.rotationQuaternion = new Quaternion();
-
-          this.minZ = -1;
-          this.maxZ = 1;
-
           this._myViewMatrix = Matrix.Identity();
 
           this._consoleTimer = 0;
-
-          this._hmdOrigin = new Vector3(0, 0, 0);
         }
 
         private _vrDisplay; // VRDisplay
         private _vrEnabled; // bool
         public _myViewMatrix : Matrix;
         private _consoleTimer;
-        private _hmdOrigin;
 
-        // Very slopy, but also very much a work in progress.
-        _updatePosition2() {
-          const oldPosition = this.position;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean) {
+          if (navigator.getVRDisplays) {
+            navigator.getVRDisplays().then(displays => {
+              if (displays.length > 0) {
+                // Right now this is only handling the first display,
+                // But handling of additional displays should be added.
+                this._vrDisplay = displays[0];
+                this._vrEnabled = true;
+              }
+
+              if (this._vrEnabled) {
+                const renderingCanvas = this.getEngine().getRenderingCanvas();
+
+                this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
+                  if (this._vrDisplay.isPresenting) {
+                    const pose = this._vrDisplay.getPose();
+                    const leftEye = this._vrDisplay.getEyeParameters('left');
+                    const rightEye = this._vrDisplay.getEyeParameters('right');
+
+                    // setting up camera rig here so that we can get eye parameter
+                    // data into the metrics.
+                    var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
+
+                    this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
+                    // Will need to update camera rigs with eye parameters
+
+                    renderingCanvas.width = metrics.renderingWidth;
+                    renderingCanvas.height = metrics.renderingHeight;
+                  }
+                })
+              }
+            });
+          }
+        }
+
+        public _checkInputs(): void {
+          if (!this._vrDisplay) {
+            return;
+          }
+
           const pose = this._vrDisplay.getPose();
           const {sittingToStandingTransform, sizeX, sizeZ} = this._vrDisplay.stageParameters;
           var standMatrix = Matrix.FromArray(sittingToStandingTransform);
@@ -50,120 +77,28 @@ module BABYLON {
 
           this._myViewMatrix = result;
 
-          if (this._consoleTimer % 90 === 0) {
-            // console.log('result', result);
-            // console.log(pose);
-            // console.log(workMatrix2);
-            // console.log(invertedWorkMatrix);
-          }
-
           this._vrDisplay.submitFrame(pose);
-        }
 
-        onAnimationFrame() {
-          // Should this be moved externally to something like engine.runRenderLoop()?
-          // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
-          this._updatePosition2();
-          this._consoleTimer += 1;
-        }
-
-        attachControl(element: HTMLElement, noPreventDefault?: boolean) {
-          if (navigator.getVRDisplays) {
-            navigator.getVRDisplays().then(displays => {
-              if (displays.length > 0) {
-                this._vrDisplay = displays[0];
-                this._vrEnabled = true;
-              }
-
-              if (this._vrEnabled) {
-                console.log("Engine");
-                console.dir(this.getEngine());
-                console.log('this camera');
-                console.dir(this);
-
-                const renderingCanvas = this.getEngine().getRenderingCanvas();
-
-                this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
-                  if (this._vrDisplay.isPresenting) {
-                    const pose = this._vrDisplay.getPose();
-                    const leftEye = this._vrDisplay.getEyeParameters('left');
-                    const rightEye = this._vrDisplay.getEyeParameters('right');
-
-                    // setting up camera rig here so that we can get eye parameter
-                    // data into the metrics.
-                    var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
-
-                    this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
-                    // Will need to update camera rigs with eye parameters
-
-                    renderingCanvas.width = metrics.renderingWidth;
-                    renderingCanvas.height = metrics.renderingHeight;
-
-                    // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
-                  }
-                })
-              }
-            });
-          }
-        }
-
-        public _checkInputs(): void {
-          this.onAnimationFrame();
-            // if (!this._localDirection) {
-            //     this._localDirection = Vector3.Zero();
-            //     this._transformedDirection = Vector3.Zero();
-            // }
-            //
-            // this.inputs.checkInputs();
-
-            super._checkInputs();
-        }
-
-        detachControl(element: HTMLElement) {
-          console.log('detachControl', HTMLElement);
-          super.detachControl(element);
+          super._checkInputs();
         }
 
         public createRigCamera(name: string, cameraIndex: number): Camera {
             var rigCamera = new FreeCamera(name, this.position.clone(), this.getScene());
 
-            if (!this.rotationQuaternion) {
-              this.rotationQuaternion = new Quaternion();
-            }
-
-            rigCamera.rotationQuaternion = new Quaternion();
             rigCamera._cameraRigParams = {};
-            // rigCamera._cameraRigParams.vrActualUp = new Vector3(0, 0, 0);
-            // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
 
             return rigCamera;
         }
 
         public _updateRigCameras() {
           for (var i = 0; i < this._rigCameras.length; i++) {
-            this._rigCameras[i].position.copyFrom(this.position);
-            // Why is rotationQuaternion not present on the Camera?
-            this._rigCameras[i].rotationQuaternion.copyFrom(this.rotationQuaternion);
-            // console.log(this._rigCameras[i].rotationQuaternion);
-            // console.log(this._rigCameras[i].cameraDirection);
-            // Why does minZ and maxZ seem to break things?
-              // this._rigCameras[i].minZ = this.minZ;
-              // this._rigCameras[i].maxZ = this.maxZ;
-              // this._rigCameras[i].fov = this.fov;
+            this._rigCameras[i]._getViewMatrix = this._getViewMatrix;
           }
         }
 
         public _getViewMatrix(): Matrix {
-          // console.log('getViewMatrix');
-          if (this._consoleTimer % 90 === 0) {
-
-            console.log('this._myViewMatrix', this._myViewMatrix);
-          }
-          // return Matrix.Identity();
           return this._myViewMatrix;
         }
-
-        // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
 
         public getTypeName(): string {
             return "VRRoomScaleCamera";

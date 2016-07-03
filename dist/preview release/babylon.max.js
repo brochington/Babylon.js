@@ -12095,10 +12095,7 @@ var BABYLON;
         Camera.prototype._getViewMatrix = function () {
             return BABYLON.Matrix.Identity();
         };
-        // I think the View matrix positions the camera, if you will.
-        // need to use position and orientation to change the view matrix.
         Camera.prototype.getViewMatrix = function (force) {
-            // console.log('getViewMatrix');
             this._computedViewMatrix = this._computeViewMatrix(force);
             if (!force && this._isSynchronizedViewMatrix()) {
                 return this._computedViewMatrix;
@@ -12121,9 +12118,9 @@ var BABYLON;
             return this._computedViewMatrix;
         };
         Camera.prototype._computeViewMatrix = function (force) {
-            // if (!force && this._isSynchronizedViewMatrix()) {
-            //     return this._computedViewMatrix;
-            // }
+            if (!force && this._isSynchronizedViewMatrix()) {
+                return this._computedViewMatrix;
+            }
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();
             return this._computedViewMatrix;
@@ -32373,6 +32370,7 @@ var BABYLON;
             this._nextActiveAction = this;
             this._condition = condition;
         }
+        // Methods
         Action.prototype._prepare = function () {
         };
         Action.prototype.getTriggerParameter = function () {
@@ -32382,6 +32380,7 @@ var BABYLON;
             if (this._nextActiveAction._condition) {
                 var condition = this._nextActiveAction._condition;
                 var currentRenderId = this._actionManager.getScene().getRenderId();
+                // We cache the current evaluation for the current frame
                 if (condition._evaluationId === currentRenderId) {
                     if (!condition._currentResult) {
                         return;
@@ -32426,6 +32425,7 @@ var BABYLON;
         };
         Action.prototype.serialize = function (parent) {
         };
+        // Called by BABYLON.Action objects in serialize(...). Internal use
         Action.prototype._serialize = function (serializedAction, parent) {
             var serializationObject = {
                 type: 1,
@@ -32433,9 +32433,11 @@ var BABYLON;
                 name: serializedAction.name,
                 properties: serializedAction.properties || []
             };
+            // Serialize child
             if (this._child) {
                 this._child.serialize(serializationObject);
             }
+            // Check if "this" has a condition
             if (this._condition) {
                 var serializedCondition = this._condition.serialize();
                 serializedCondition.children.push(serializationObject);
@@ -32468,14 +32470,14 @@ var BABYLON;
             if (value instanceof BABYLON.Color4) {
                 return value.r + ", " + value.g + ", " + value.b + ", " + value.a;
             }
-            return value;
+            return value; // string
         };
         Action._GetTargetProperty = function (target) {
             return {
                 name: "target",
                 targetType: target instanceof BABYLON.Mesh ? "MeshProperties"
                     : target instanceof BABYLON.Light ? "LightProperties"
-                        : target instanceof Camera ? "CameraProperties"
+                        : target instanceof BABYLON.Camera ? "CameraProperties"
                             : "SceneProperties",
                 value: target instanceof BABYLON.Scene ? "Scene" : target.name
             };
@@ -51695,13 +51697,11 @@ var BABYLON;
             this.rightEyeRenderHeight = rightEye.renderHeight;
             this.rightEyeRenderWidth = rightEye.renderWidth;
         }
-        // public getLeftEyeFOV(out: Matrix): Matrix {
-        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
+        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.leftEyeFOVupDegrees, this.leftEyeFOVdownDegrees, this.leftEyeFOVleftDegrees, this.leftEyeFOVrightDegrees);
             return result;
         };
-        // public getRightEyeFOV(out: Matrix): Matrix {
-        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
+        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.rightEyeFOVupDegrees, this.rightEyeFOVdownDegrees, this.rightEyeFOVleftDegrees, this.rightEyeFOVrightDegrees);
             return result;
         };
@@ -51831,54 +51831,20 @@ var BABYLON;
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
             this.inputs.addVRDisplay();
-            this.onAnimationFrame = this.onAnimationFrame.bind(this); // use () => {}?
-            this._updatePosition = this._updatePosition.bind(this);
-            this.rotationQuaternion = new BABYLON.Quaternion();
-            this.minZ = -1;
-            this.maxZ = 1;
             this._myViewMatrix = BABYLON.Matrix.Identity();
             this._consoleTimer = 0;
-            this._hmdOrigin = new BABYLON.Vector3(0, 0, 0);
         }
-        // Very slopy, but also very much a work in progress.
-        VRRoomScaleCamera.prototype._updatePosition2 = function () {
-            var oldPosition = this.position;
-            var pose = this._vrDisplay.getPose();
-            var _a = this._vrDisplay.stageParameters, sittingToStandingTransform = _a.sittingToStandingTransform, sizeX = _a.sizeX, sizeZ = _a.sizeZ;
-            var standMatrix = BABYLON.Matrix.FromArray(sittingToStandingTransform);
-            var position = pose.position, orientation = pose.orientation;
-            var x = position[0], y = position[1], z = position[2];
-            if (position === null || orientation === null) {
-                console.warn('position or orientation are null...', pose);
-                return;
-            }
-            var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])), new BABYLON.Vector3(x, y, z));
-            result = result.multiply(standMatrix);
-            result = result.invert();
-            this._myViewMatrix = result;
-            if (this._consoleTimer % 90 === 0) {
-            }
-            this._vrDisplay.submitFrame(pose);
-        };
-        VRRoomScaleCamera.prototype.onAnimationFrame = function () {
-            // Should this be moved externally to something like engine.runRenderLoop()?
-            // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
-            this._updatePosition2();
-            this._consoleTimer += 1;
-        };
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
             if (navigator.getVRDisplays) {
                 navigator.getVRDisplays().then(function (displays) {
                     if (displays.length > 0) {
+                        // Right now this is only handling the first display,
+                        // But handling of additional displays should be added.
                         _this._vrDisplay = displays[0];
                         _this._vrEnabled = true;
                     }
                     if (_this._vrEnabled) {
-                        console.log("Engine");
-                        console.dir(_this.getEngine());
-                        console.log('this camera');
-                        console.dir(_this);
                         var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
@@ -51899,46 +51865,38 @@ var BABYLON;
             }
         };
         VRRoomScaleCamera.prototype._checkInputs = function () {
-            this.onAnimationFrame();
-            // if (!this._localDirection) {
-            //     this._localDirection = Vector3.Zero();
-            //     this._transformedDirection = Vector3.Zero();
-            // }
-            //
-            // this.inputs.checkInputs();
+            if (!this._vrDisplay) {
+                return;
+            }
+            var pose = this._vrDisplay.getPose();
+            var _a = this._vrDisplay.stageParameters, sittingToStandingTransform = _a.sittingToStandingTransform, sizeX = _a.sizeX, sizeZ = _a.sizeZ;
+            var standMatrix = BABYLON.Matrix.FromArray(sittingToStandingTransform);
+            var position = pose.position, orientation = pose.orientation;
+            var x = position[0], y = position[1], z = position[2];
+            if (position === null || orientation === null) {
+                console.warn('position or orientation are null...', pose);
+                return;
+            }
+            var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])), new BABYLON.Vector3(x, y, z));
+            result = result.multiply(standMatrix);
+            result = result.invert();
+            this._myViewMatrix = result;
+            this._vrDisplay.submitFrame(pose);
             _super.prototype._checkInputs.call(this);
-        };
-        VRRoomScaleCamera.prototype.detachControl = function (element) {
-            console.log('detachControl', HTMLElement);
-            _super.prototype.detachControl.call(this, element);
         };
         VRRoomScaleCamera.prototype.createRigCamera = function (name, cameraIndex) {
             var rigCamera = new BABYLON.FreeCamera(name, this.position.clone(), this.getScene());
-            if (!this.rotationQuaternion) {
-                this.rotationQuaternion = new BABYLON.Quaternion();
-            }
-            rigCamera.rotationQuaternion = new BABYLON.Quaternion();
             rigCamera._cameraRigParams = {};
-            // rigCamera._cameraRigParams.vrActualUp = new Vector3(0, 0, 0);
-            // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
             return rigCamera;
         };
         VRRoomScaleCamera.prototype._updateRigCameras = function () {
             for (var i = 0; i < this._rigCameras.length; i++) {
-                this._rigCameras[i].position.copyFrom(this.position);
-                // Why is rotationQuaternion not present on the Camera?
-                this._rigCameras[i].rotationQuaternion.copyFrom(this.rotationQuaternion);
+                this._rigCameras[i]._getViewMatrix = this._getViewMatrix;
             }
         };
         VRRoomScaleCamera.prototype._getViewMatrix = function () {
-            // console.log('getViewMatrix');
-            if (this._consoleTimer % 90 === 0) {
-                console.log('this._myViewMatrix', this._myViewMatrix);
-            }
-            // return Matrix.Identity();
             return this._myViewMatrix;
         };
-        // rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
         VRRoomScaleCamera.prototype.getTypeName = function () {
             return "VRRoomScaleCamera";
         };

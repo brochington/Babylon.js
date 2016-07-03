@@ -22,13 +22,11 @@ var BABYLON;
             this.rightEyeRenderHeight = rightEye.renderHeight;
             this.rightEyeRenderWidth = rightEye.renderWidth;
         }
-        // public getLeftEyeFOV(out: Matrix): Matrix {
-        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
+        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.leftEyeFOVupDegrees, this.leftEyeFOVdownDegrees, this.leftEyeFOVleftDegrees, this.leftEyeFOVrightDegrees);
             return result;
         };
-        // public getRightEyeFOV(out: Matrix): Matrix {
-        VRRoomScaleMetrics.prototype.getLeftEyeFOV = function (out) {
+        VRRoomScaleMetrics.prototype.getRightEyeFOV = function (out) {
             var result = this.perspectiveFromFieldOfView(out, this.rightEyeFOVupDegrees, this.rightEyeFOVdownDegrees, this.rightEyeFOVleftDegrees, this.rightEyeFOVrightDegrees);
             return result;
         };
