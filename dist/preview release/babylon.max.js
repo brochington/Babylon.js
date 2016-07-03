@@ -263,6 +263,11 @@ var BABYLON;
             result.a = this.a * scale;
             return this;
         };
+        /**
+          * Multipy an RGBA Color4 value by another and return a new Color4 object
+          * @param color The Color4 (RGBA) value to multiply by
+          * @returns A new Color4.
+          */
         Color4.prototype.multiply = function (color) {
             return new Color4(this.r * color.r, this.g * color.g, this.b * color.b, this.a * color.a);
         };
@@ -32368,7 +32373,6 @@ var BABYLON;
             this._nextActiveAction = this;
             this._condition = condition;
         }
-        // Methods
         Action.prototype._prepare = function () {
         };
         Action.prototype.getTriggerParameter = function () {
@@ -32378,7 +32382,6 @@ var BABYLON;
             if (this._nextActiveAction._condition) {
                 var condition = this._nextActiveAction._condition;
                 var currentRenderId = this._actionManager.getScene().getRenderId();
-                // We cache the current evaluation for the current frame
                 if (condition._evaluationId === currentRenderId) {
                     if (!condition._currentResult) {
                         return;
@@ -32423,7 +32426,6 @@ var BABYLON;
         };
         Action.prototype.serialize = function (parent) {
         };
-        // Called by BABYLON.Action objects in serialize(...). Internal use
         Action.prototype._serialize = function (serializedAction, parent) {
             var serializationObject = {
                 type: 1,
@@ -32431,11 +32433,9 @@ var BABYLON;
                 name: serializedAction.name,
                 properties: serializedAction.properties || []
             };
-            // Serialize child
             if (this._child) {
                 this._child.serialize(serializationObject);
             }
-            // Check if "this" has a condition
             if (this._condition) {
                 var serializedCondition = this._condition.serialize();
                 serializedCondition.children.push(serializationObject);
@@ -32468,14 +32468,14 @@ var BABYLON;
             if (value instanceof BABYLON.Color4) {
                 return value.r + ", " + value.g + ", " + value.b + ", " + value.a;
             }
-            return value; // string
+            return value;
         };
         Action._GetTargetProperty = function (target) {
             return {
                 name: "target",
                 targetType: target instanceof BABYLON.Mesh ? "MeshProperties"
                     : target instanceof BABYLON.Light ? "LightProperties"
-                        : target instanceof BABYLON.Camera ? "CameraProperties"
+                        : target instanceof Camera ? "CameraProperties"
                             : "SceneProperties",
                 value: target instanceof BABYLON.Scene ? "Scene" : target.name
             };
