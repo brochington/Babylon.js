@@ -304,16 +304,16 @@
 
             return this;
         }
-        
-       /**
-         * Multipy an RGBA Color4 value by another and return a new Color4 object
-         * @param color The Color4 (RGBA) value to multiply by
-         * @returns A new Color4.
-         */
+
+        /**
+          * Multipy an RGBA Color4 value by another and return a new Color4 object
+          * @param color The Color4 (RGBA) value to multiply by
+          * @returns A new Color4.
+          */
         public multiply(color: Color4): Color4 {
             return new Color4(this.r * color.r, this.g * color.g, this.b * color.b, this.a * color.a);
         }
-        
+
         /**
          * Multipy an RGBA Color4 value by another and push the result in a reference value
          * @param color The Color4 (RGBA) value to multiply by
@@ -325,10 +325,10 @@
             result.g = this.g * color.g;
             result.b = this.b * color.b;
             result.a = this.a * color.a;
-            
+
             return result;
         }
-        
+
         public toString(): string {
             return "{R: " + this.r + " G:" + this.g + " B:" + this.b + " A:" + this.a + "}";
         }
@@ -695,7 +695,7 @@
             let s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y) * sign;
             let t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y) * sign;
 
-            return s > 0 && t > 0 && (s + t) < 2 * a * sign;            
+            return s > 0 && t > 0 && (s + t) < 2 * a * sign;
         }
 
         public static Distance(value1: Vector2, value2: Vector2): number {
@@ -1132,9 +1132,10 @@
         }
 
         public static CrossToRef(left: Vector3, right: Vector3, result: Vector3): void {
-            result.x = left.y * right.z - left.z * right.y;
-            result.y = left.z * right.x - left.x * right.z;
-            result.z = left.x * right.y - left.y * right.x;
+            Tmp.Vector3[0].x = left.y * right.z - left.z * right.y;
+            Tmp.Vector3[0].y = left.z * right.x - left.x * right.z;
+            Tmp.Vector3[0].z = left.x * right.y - left.y * right.x;
+            result.copyFrom(Tmp.Vector3[0]);
         }
 
         public static Normalize(vector: Vector3): Vector3 {
@@ -1148,25 +1149,32 @@
             result.normalize();
         }
 
+        private static _viewportMatrixCache: Matrix;
+        private static _matrixCache: Matrix;
         public static Project(vector: Vector3, world: Matrix, transform: Matrix, viewport: Viewport): Vector3 {
             var cw = viewport.width;
             var ch = viewport.height;
             var cx = viewport.x;
             var cy = viewport.y;
 
-            var viewportMatrix = Matrix.FromValues(
+            var viewportMatrix = Vector3._viewportMatrixCache ? Vector3._viewportMatrixCache : (Vector3._viewportMatrixCache = new Matrix());
+
+            Matrix.FromValuesToRef(
                 cw / 2.0, 0, 0, 0,
                 0, -ch / 2.0, 0, 0,
                 0, 0, 1, 0,
-                cx + cw / 2.0, ch / 2.0 + cy, 0, 1);
+                cx + cw / 2.0, ch / 2.0 + cy, 0, 1, viewportMatrix);
 
-            var finalMatrix = world.multiply(transform).multiply(viewportMatrix);
+            var matrix = Vector3._matrixCache ? Vector3._matrixCache : (Vector3._matrixCache = new Matrix());
+            world.multiplyToRef(transform, matrix);
+            matrix.multiplyToRef(viewportMatrix, matrix);
 
-            return Vector3.TransformCoordinates(vector, finalMatrix);
+            return Vector3.TransformCoordinates(vector, matrix);
         }
 
         public static UnprojectFromTransform(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, transform: Matrix): Vector3 {
-            var matrix = world.multiply(transform);
+            var matrix = Vector3._matrixCache ? Vector3._matrixCache : (Vector3._matrixCache = new Matrix());
+            world.multiplyToRef(transform, matrix);
             matrix.invert();
             source.x = source.x / viewportWidth * 2 - 1;
             source.y = -(source.y / viewportHeight * 2 - 1);
@@ -1181,7 +1189,9 @@
         }
 
         public static Unproject(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Vector3 {
-            var matrix = world.multiply(view).multiply(projection);
+            var matrix = Vector3._matrixCache ? Vector3._matrixCache : (Vector3._matrixCache = new Matrix());
+            world.multiplyToRef(view, matrix)
+            matrix.multiplyToRef(projection, matrix);
             matrix.invert();
             var screenSource = new Vector3(source.x / viewportWidth * 2 - 1, -(source.y / viewportHeight * 2 - 1), source.z);
             var vector = Vector3.TransformCoordinates(screenSource, matrix);
@@ -1707,6 +1717,20 @@
             return hash;
         }
 
+        public copyFrom(src: Size) {
+            this.width  = src.width;
+            this.height = src.height;
+        }
+
+        public copyFromFloats(width: number, height: number) {
+            this.width = width;
+            this.height = height;
+        }
+
+        public multiplyByFloats(w: number, h: number): Size {
+            return new Size(this.width * w, this.height * h);
+        }
+
         public clone(): Size {
             return new Size(this.width, this.height);
         }
@@ -2005,7 +2029,10 @@
         }
 
         public static RotationAxis(axis: Vector3, angle: number): Quaternion {
-            var result = new Quaternion();
+            return Quaternion.RotationAxisToRef(axis, angle, new Quaternion());
+        }
+
+        public static RotationAxisToRef(axis: Vector3, angle: number, result: Quaternion): Quaternion {
             var sin = Math.sin(angle / 2);
 
             axis.normalize();
@@ -2027,11 +2054,9 @@
         }
 
         public static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Quaternion {
-            var result = new Quaternion();
-
-            Quaternion.RotationYawPitchRollToRef(yaw, pitch, roll, result);
-
-            return result;
+            var q = new Quaternion();
+            Quaternion.RotationYawPitchRollToRef(yaw, pitch, roll, q);
+            return q;
         }
 
         public static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Quaternion): void {
@@ -3567,7 +3592,6 @@
             else {
                 normal0 = Vector3.Cross(vt, va);
                 Vector3.CrossToRef(normal0, vt, normal0);
-                //normal0 = Vector3.Cross(normal0, vt);
             }
             normal0.normalize();
             return normal0;

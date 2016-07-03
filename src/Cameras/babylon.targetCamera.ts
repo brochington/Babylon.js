@@ -97,7 +97,7 @@
         // Methods
         public _computeLocalCameraSpeed(): number {
             var engine = this.getEngine();
-            return this.speed * ((engine.getDeltaTime() / (engine.getFps() * 10.0)));
+            return this.speed * Math.sqrt((engine.getDeltaTime() / (engine.getFps() * 100.0)));
         }
 
         // Target
@@ -210,6 +210,7 @@
                 //update the up vector!
                 BABYLON.Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this.upVector);
             } else {
+<<<<<<< HEAD
               Matrix.RotationYawPitchRollToRef(this.rotation.y, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
 
                 //if (this.upVector.x !== 0 || this.upVector.y !== 1.0 || this.upVector.z !== 0) {
@@ -218,6 +219,9 @@
                 //    this._lookAtTemp.invert();
                 //    this._tempMatrix.multiplyToRef(this._lookAtTemp, this._cameraRotationMatrix);
                 //}
+=======
+                Matrix.RotationYawPitchRollToRef(this.rotation.y, this.rotation.x, this.rotation.z, this._cameraRotationMatrix);
+>>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
             }
         }
 
@@ -238,21 +242,6 @@
             return this._viewMatrix;
         }
 
-        public _getVRViewMatrix(): Matrix {
-            this._updateCameraRotationMatrix();
-
-            Vector3.TransformCoordinatesToRef(this._referencePoint, this._cameraRotationMatrix, this._transformedReferencePoint);
-            Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this._cameraRigParams.vrActualUp);
-
-            // Computing target and final matrix
-            this.position.addToRef(this._transformedReferencePoint, this._currentTarget);
-
-            Matrix.LookAtLHToRef(this.position, this._currentTarget, this._cameraRigParams.vrActualUp, this._cameraRigParams.vrWorkMatrix);
-
-            this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrPreViewMatrix, this._viewMatrix);
-            return this._viewMatrix;
-        }
-
         /**
          * @override
          * Override Camera.createRigCamera
@@ -265,8 +254,6 @@
                         this.rotationQuaternion = new Quaternion();
                     }
                     rigCamera._cameraRigParams = {};
-                    rigCamera._cameraRigParams.vrActualUp = new Vector3(0, 0, 0);
-                    rigCamera._getViewMatrix = rigCamera._getVRViewMatrix;
                     rigCamera.rotationQuaternion = new Quaternion();
                 }
                 return rigCamera;
