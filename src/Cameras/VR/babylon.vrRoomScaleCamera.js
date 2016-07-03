@@ -42,7 +42,7 @@ var BABYLON;
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
             // Should this be moved externally to something like engine.runRenderLoop()?
-            this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+            // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
             this._updatePosition2();
             this._consoleTimer += 1;
         };
@@ -62,30 +62,31 @@ var BABYLON;
                         var renderingCanvas_1 = _this.getEngine().getRenderingCanvas();
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
-                                // reset position and pose.
-                                // this._vrDisplay.resetPose();
-                                // this.position = new Vector3(0, 3, 0);
                                 var pose = _this._vrDisplay.getPose();
-                                console.log('pose', pose);
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
                                 var rightEye = _this._vrDisplay.getEyeParameters('right');
-                                console.log(leftEye, rightEye);
                                 // setting up camera rig here so that we can get eye parameter
                                 // data into the metrics.
                                 var metrics = new BABYLON.VRRoomScaleMetrics(leftEye, rightEye);
-                                console.log('metrics 2', metrics);
                                 _this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, { vrRoomScaleMetrics: metrics });
                                 // Will need to update camera rigs with eye parameters
                                 renderingCanvas_1.width = metrics.renderingWidth;
                                 renderingCanvas_1.height = metrics.renderingHeight;
-                                // this._hmdOrigin = new Vector3(pose.position[0], pose.position[1], pose.position[2]);
-                                console.log("_hmdOrigin", _this._hmdOrigin);
-                                _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
                         });
                     }
                 });
             }
+        };
+        VRRoomScaleCamera.prototype._checkInputs = function () {
+            this.onAnimationFrame();
+            // if (!this._localDirection) {
+            //     this._localDirection = Vector3.Zero();
+            //     this._transformedDirection = Vector3.Zero();
+            // }
+            //
+            // this.inputs.checkInputs();
+            _super.prototype._checkInputs.call(this);
         };
         VRRoomScaleCamera.prototype.detachControl = function (element) {
             console.log('detachControl', HTMLElement);

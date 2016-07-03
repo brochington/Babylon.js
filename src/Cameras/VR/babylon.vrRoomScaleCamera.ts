@@ -62,7 +62,7 @@ module BABYLON {
 
         onAnimationFrame() {
           // Should this be moved externally to something like engine.runRenderLoop()?
-          this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+          // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
           this._updatePosition2();
           this._consoleTimer += 1;
         }
@@ -85,35 +85,38 @@ module BABYLON {
 
                 this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
                   if (this._vrDisplay.isPresenting) {
-                    // reset position and pose.
-                    // this._vrDisplay.resetPose();
-                    // this.position = new Vector3(0, 3, 0);
                     const pose = this._vrDisplay.getPose();
-                    console.log('pose', pose);
                     const leftEye = this._vrDisplay.getEyeParameters('left');
                     const rightEye = this._vrDisplay.getEyeParameters('right');
-                    console.log(leftEye, rightEye);
 
                     // setting up camera rig here so that we can get eye parameter
                     // data into the metrics.
                     var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
-                    console.log('metrics 2', metrics);
+
                     this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
                     // Will need to update camera rigs with eye parameters
 
                     renderingCanvas.width = metrics.renderingWidth;
                     renderingCanvas.height = metrics.renderingHeight;
 
-                    // this._hmdOrigin = new Vector3(pose.position[0], pose.position[1], pose.position[2]);
-
-                    console.log("_hmdOrigin", this._hmdOrigin);
-
-                    this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
+                    // this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
                   }
                 })
               }
             });
           }
+        }
+
+        public _checkInputs(): void {
+          this.onAnimationFrame();
+            // if (!this._localDirection) {
+            //     this._localDirection = Vector3.Zero();
+            //     this._transformedDirection = Vector3.Zero();
+            // }
+            //
+            // this.inputs.checkInputs();
+
+            super._checkInputs();
         }
 
         detachControl(element: HTMLElement) {

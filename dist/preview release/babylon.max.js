@@ -46191,7 +46191,6 @@ var BABYLON;
             this._vrDisplay.submitFrame(pose);
         };
         VRRoomScaleCamera.prototype.onAnimationFrame = function () {
-            this._vrDisplay.requestAnimationFrame(this.onAnimationFrame);
             this._updatePosition2();
             this._consoleTimer += 1;
         };
@@ -46212,22 +46211,21 @@ var BABYLON;
                         _this._vrDisplay.requestPresent([{ source: renderingCanvas_1 }]).then(function () {
                             if (_this._vrDisplay.isPresenting) {
                                 var pose = _this._vrDisplay.getPose();
-                                console.log('pose', pose);
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
                                 var rightEye = _this._vrDisplay.getEyeParameters('right');
-                                console.log(leftEye, rightEye);
                                 var metrics = new BABYLON.VRRoomScaleMetrics(leftEye, rightEye);
-                                console.log('metrics 2', metrics);
                                 _this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, { vrRoomScaleMetrics: metrics });
                                 renderingCanvas_1.width = metrics.renderingWidth;
                                 renderingCanvas_1.height = metrics.renderingHeight;
-                                console.log("_hmdOrigin", _this._hmdOrigin);
-                                _this._vrDisplay.requestAnimationFrame(_this.onAnimationFrame);
                             }
                         });
                     }
                 });
             }
+        };
+        VRRoomScaleCamera.prototype._checkInputs = function () {
+            this.onAnimationFrame();
+            _super.prototype._checkInputs.call(this);
         };
         VRRoomScaleCamera.prototype.detachControl = function (element) {
             console.log('detachControl', HTMLElement);
