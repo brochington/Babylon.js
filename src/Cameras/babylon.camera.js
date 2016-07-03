@@ -15,6 +15,8 @@ var BABYLON;
         __extends(Camera, _super);
         function Camera(name, position, scene) {
             _super.call(this, name, scene);
+            // test
+            this._counter = 0;
             this.upVector = BABYLON.Vector3.Up();
             this.orthoLeft = null;
             this.orthoRight = null;
@@ -338,9 +340,9 @@ var BABYLON;
             return this._computedViewMatrix;
         };
         Camera.prototype._computeViewMatrix = function (force) {
-            if (!force && this._isSynchronizedViewMatrix()) {
-                return this._computedViewMatrix;
-            }
+            // if (!force && this._isSynchronizedViewMatrix()) {
+            //     return this._computedViewMatrix;
+            // }
             this._computedViewMatrix = this._getViewMatrix();
             this._currentRenderId = this.getScene().getRenderId();
             return this._computedViewMatrix;
@@ -404,6 +406,7 @@ var BABYLON;
         };
         // ---- Camera rigs section ----
         Camera.prototype.setCameraRigMode = function (mode, rigParams) {
+            var _this = this;
             while (this._rigCameras.length > 0) {
                 this._rigCameras.pop().dispose();
             }
@@ -450,13 +453,20 @@ var BABYLON;
                     }
                     break;
                 case Camera.RIG_MODE_VIVE:
+                    var metrics = rigParams.vrRoomScaleMetrics;
                     this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    // this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0]._cameraRigParams.vrHMatrix = metrics.rightHMatrix;
+                    this._rigCameras[0].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[0].getEyeFOV = metrics.getLeftEyeFOV.bind(metrics);
                     this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
                     this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
-                    // this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1]._cameraRigParams.vrHMatrix = metrics.leftHMatrix;
+                    this._rigCameras[1].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
+                    this._rigCameras[1].getEyeFOV = metrics.getRightEyeFOV.bind(metrics);
                     this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
                     break;
             }
@@ -471,13 +481,13 @@ var BABYLON;
         // The projection matrix "flattens" the 3d stuff to 2d, and can distort it if needed for things
         // like separate eyes.
         Camera.prototype._getVRRoomScaleProjectionMatrix = function () {
-            // console.log('_getVRRoomScaleProjectionMatrix');
-            // console.log("Do I get this far???");
-            // Matrix.PerspectiveFovLHToRef(this._cameraRigParams.roomScaleMetrics)
-            // this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.)
-            // var metrics = this._rigCameras[0]._cameraRigParams.roomScaleMetrics;
-            // Matrix.PerspectiveFovLHToRef(0.959931, 0.5555, -1, 1, this._projectionMatrix, this.fovMode === Camera.FOVMODE_VERTICAL_FIXED);
-            // this._projectionMatrix.multiply()
+            this._projectionMatrix = this.getEyeFOV(this._cameraRigParams.vrWorkMatrix);
+            this._cameraRigParams.vrWorkMatrix.multiplyToRef(this._cameraRigParams.vrHMatrix, this._projectionMatrix);
+            // if (this._counter % 90 === 0) {
+            //   console.log("vrWorkMatrix");
+            //   console.log(this._cameraRigParams.vrWorkMatrix);
+            // }
+            // this._counter += 1;
             return this._projectionMatrix;
         };
         Camera.prototype.setCameraRigParameter = function (name, value) {

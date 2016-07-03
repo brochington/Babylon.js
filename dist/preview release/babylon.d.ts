@@ -1195,162 +1195,41 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class Action {
-        triggerOptions: any;
-        trigger: number;
-        _actionManager: ActionManager;
-        private _nextActiveAction;
-        private _child;
-        private _condition;
-        private _triggerParameter;
-        constructor(triggerOptions: any, condition?: Condition);
-        _prepare(): void;
-        getTriggerParameter(): any;
-        _executeCurrent(evt: ActionEvent): void;
-        execute(evt: ActionEvent): void;
-        skipToNextActiveAction(): void;
-        then(action: Action): Action;
-        _getProperty(propertyPath: string): string;
-        _getEffectiveTarget(target: any, propertyPath: string): any;
-        serialize(parent: any): any;
-        protected _serialize(serializedAction: any, parent?: any): any;
-        static _SerializeValueAsString: (value: any) => string;
-        static _GetTargetProperty: (target: Scene | Node) => {
-            name: string;
-            targetType: string;
-            value: string;
+    class Analyser {
+        SMOOTHING: number;
+        FFT_SIZE: number;
+        BARGRAPHAMPLITUDE: number;
+        DEBUGCANVASPOS: {
+            x: number;
+            y: number;
         };
-    }
-}
-
-declare module BABYLON {
-    /**
-     * ActionEvent is the event beint sent when an action is triggered.
-     */
-    class ActionEvent {
-        source: any;
-        pointerX: number;
-        pointerY: number;
-        meshUnderPointer: AbstractMesh;
-        sourceEvent: any;
-        additionalData: any;
-        /**
-         * @constructor
-         * @param source The mesh or sprite that triggered the action.
-         * @param pointerX The X mouse cursor position at the time of the event
-         * @param pointerY The Y mouse cursor position at the time of the event
-         * @param meshUnderPointer The mesh that is currently pointed at (can be null)
-         * @param sourceEvent the original (browser) event that triggered the ActionEvent
-         */
-        constructor(source: any, pointerX: number, pointerY: number, meshUnderPointer: AbstractMesh, sourceEvent?: any, additionalData?: any);
-        /**
-         * Helper function to auto-create an ActionEvent from a source mesh.
-         * @param source The source mesh that triggered the event
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNew(source: AbstractMesh, evt?: Event, additionalData?: any): ActionEvent;
-        /**
-         * Helper function to auto-create an ActionEvent from a source mesh.
-         * @param source The source sprite that triggered the event
-         * @param scene Scene associated with the sprite
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNewFromSprite(source: Sprite, scene: Scene, evt?: Event, additionalData?: any): ActionEvent;
-        /**
-         * Helper function to auto-create an ActionEvent from a scene. If triggered by a mesh use ActionEvent.CreateNew
-         * @param scene the scene where the event occurred
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNewFromScene(scene: Scene, evt: Event): ActionEvent;
-        static CreateNewFromPrimitive(prim: any, pointerPos: Vector2, evt?: Event, additionalData?: any): ActionEvent;
-    }
-    /**
-     * Action Manager manages all events to be triggered on a given mesh or the global scene.
-     * A single scene can have many Action Managers to handle predefined actions on specific meshes.
-     */
-    class ActionManager {
-        private static _NothingTrigger;
-        private static _OnPickTrigger;
-        private static _OnLeftPickTrigger;
-        private static _OnRightPickTrigger;
-        private static _OnCenterPickTrigger;
-        private static _OnPickDownTrigger;
-        private static _OnPickUpTrigger;
-        private static _OnLongPressTrigger;
-        private static _OnPointerOverTrigger;
-        private static _OnPointerOutTrigger;
-        private static _OnEveryFrameTrigger;
-        private static _OnIntersectionEnterTrigger;
-        private static _OnIntersectionExitTrigger;
-        private static _OnKeyDownTrigger;
-        private static _OnKeyUpTrigger;
-        private static _OnPickOutTrigger;
-        static NothingTrigger: number;
-        static OnPickTrigger: number;
-        static OnLeftPickTrigger: number;
-        static OnRightPickTrigger: number;
-        static OnCenterPickTrigger: number;
-        static OnPickDownTrigger: number;
-        static OnPickUpTrigger: number;
-        static OnPickOutTrigger: number;
-        static OnLongPressTrigger: number;
-        static OnPointerOverTrigger: number;
-        static OnPointerOutTrigger: number;
-        static OnEveryFrameTrigger: number;
-        static OnIntersectionEnterTrigger: number;
-        static OnIntersectionExitTrigger: number;
-        static OnKeyDownTrigger: number;
-        static OnKeyUpTrigger: number;
-        static DragMovementThreshold: number;
-        static LongPressDelay: number;
-        actions: Action[];
+        DEBUGCANVASSIZE: {
+            width: number;
+            height: number;
+        };
+        private _byteFreqs;
+        private _byteTime;
+        private _floatFreqs;
+        private _webAudioAnalyser;
+        private _debugCanvas;
+        private _debugCanvasContext;
         private _scene;
+        private _registerFunc;
+        private _audioEngine;
         constructor(scene: Scene);
+        getFrequencyBinCount(): number;
+        getByteFrequencyData(): Uint8Array;
+        getByteTimeDomainData(): Uint8Array;
+        getFloatFrequencyData(): Uint8Array;
+        drawDebugCanvas(): void;
+        stopDebugCanvas(): void;
+        connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
         dispose(): void;
-        getScene(): Scene;
-        /**
-         * Does this action manager handles actions of any of the given triggers
-         * @param {number[]} triggers - the triggers to be tested
-         * @return {boolean} whether one (or more) of the triggers is handeled
-         */
-        hasSpecificTriggers(triggers: number[]): boolean;
-        /**
-         * Does this action manager handles actions of a given trigger
-         * @param {number} trigger - the trigger to be tested
-         * @return {boolean} whether the trigger is handeled
-         */
-        hasSpecificTrigger(trigger: number): boolean;
-        /**
-         * Does this action manager has pointer triggers
-         * @return {boolean} whether or not it has pointer triggers
-         */
-        hasPointerTriggers: boolean;
-        /**
-         * Does this action manager has pick triggers
-         * @return {boolean} whether or not it has pick triggers
-         */
-        hasPickTriggers: boolean;
-        /**
-         * Registers an action to this action manager
-         * @param {BABYLON.Action} action - the action to be registered
-         * @return {BABYLON.Action} the action amended (prepared) after registration
-         */
-        registerAction(action: Action): Action;
-        /**
-         * Process a specific trigger
-         * @param {number} trigger - the trigger to process
-         * @param evt {BABYLON.ActionEvent} the event details to be processed
-         */
-        processTrigger(trigger: number, evt: ActionEvent): void;
-        _getEffectiveTarget(target: any, propertyPath: string): any;
-        _getProperty(propertyPath: string): string;
-        serialize(name: string): any;
-        static Parse(parsedActions: any, object: AbstractMesh, scene: Scene): void;
-        static GetTriggerName(trigger: number): string;
     }
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class Condition {
         _actionManager: ActionManager;
         _evaluationId: number;
@@ -1396,10 +1275,30 @@ declare module BABYLON {
         constructor(actionManager: ActionManager, target: any, value: string);
         isValid(): boolean;
         serialize(): any;
+=======
+    class AudioEngine {
+        private _audioContext;
+        private _audioContextInitialized;
+        canUseWebAudio: boolean;
+        masterGain: GainNode;
+        private _connectedAnalyser;
+        WarnedWebAudioUnsupported: boolean;
+        unlocked: boolean;
+        onAudioUnlocked: () => any;
+        audioContext: AudioContext;
+        constructor();
+        private _unlockiOSaudio();
+        private _initializeAudioContext();
+        dispose(): void;
+        getGlobalVolume(): number;
+        setGlobalVolume(newVolume: number): void;
+        connectToAnalyser(analyser: Analyser): void;
+>>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class SwitchBooleanAction extends Action {
         propertyPath: string;
         private _target;
@@ -1494,10 +1393,105 @@ declare module BABYLON {
         _prepare(): void;
         execute(): void;
         serialize(parent: any): any;
+=======
+    class Sound {
+        name: string;
+        autoplay: boolean;
+        loop: boolean;
+        useCustomAttenuation: boolean;
+        soundTrackId: number;
+        spatialSound: boolean;
+        refDistance: number;
+        rolloffFactor: number;
+        maxDistance: number;
+        distanceModel: string;
+        private _panningModel;
+        onended: () => any;
+        private _playbackRate;
+        private _streaming;
+        private _startTime;
+        private _startOffset;
+        private _position;
+        private _localDirection;
+        private _volume;
+        private _isLoaded;
+        private _isReadyToPlay;
+        isPlaying: boolean;
+        isPaused: boolean;
+        private _isDirectional;
+        private _readyToPlayCallback;
+        private _audioBuffer;
+        private _soundSource;
+        private _streamingSource;
+        private _soundPanner;
+        private _soundGain;
+        private _inputAudioNode;
+        private _ouputAudioNode;
+        private _coneInnerAngle;
+        private _coneOuterAngle;
+        private _coneOuterGain;
+        private _scene;
+        private _connectedMesh;
+        private _customAttenuationFunction;
+        private _registerFunc;
+        private _isOutputConnected;
+        private _htmlAudioElement;
+        /**
+        * Create a sound and attach it to a scene
+        * @param name Name of your sound
+        * @param urlOrArrayBuffer Url to the sound to load async or ArrayBuffer
+        * @param readyToPlayCallback Provide a callback function if you'd like to load your code once the sound is ready to be played
+        * @param options Objects to provide with the current available options: autoplay, loop, volume, spatialSound, maxDistance, rolloffFactor, refDistance, distanceModel, panningModel, streaming
+        */
+        constructor(name: string, urlOrArrayBuffer: any, scene: Scene, readyToPlayCallback?: () => void, options?: any);
+        dispose(): void;
+        private _soundLoaded(audioData);
+        setAudioBuffer(audioBuffer: AudioBuffer): void;
+        updateOptions(options: any): void;
+        private _createSpatialParameters();
+        private _updateSpatialParameters();
+        switchPanningModelToHRTF(): void;
+        switchPanningModelToEqualPower(): void;
+        private _switchPanningModel();
+        connectToSoundTrackAudioNode(soundTrackAudioNode: AudioNode): void;
+        /**
+        * Transform this sound into a directional source
+        * @param coneInnerAngle Size of the inner cone in degree
+        * @param coneOuterAngle Size of the outer cone in degree
+        * @param coneOuterGain Volume of the sound outside the outer cone (between 0.0 and 1.0)
+        */
+        setDirectionalCone(coneInnerAngle: number, coneOuterAngle: number, coneOuterGain: number): void;
+        setPosition(newPosition: Vector3): void;
+        setLocalDirectionToMesh(newLocalDirection: Vector3): void;
+        private _updateDirection();
+        updateDistanceFromListener(): void;
+        setAttenuationFunction(callback: (currentVolume: number, currentDistance: number, maxDistance: number, refDistance: number, rolloffFactor: number) => number): void;
+        /**
+        * Play the sound
+        * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
+        */
+        play(time?: number): void;
+        private _onended();
+        /**
+        * Stop the sound
+        * @param time (optional) Stop the sound after X seconds. Stop immediately (0) by default.
+        */
+        stop(time?: number): void;
+        pause(): void;
+        setVolume(newVolume: number, time?: number): void;
+        setPlaybackRate(newPlaybackRate: number): void;
+        getVolume(): number;
+        attachToMesh(meshToConnectTo: AbstractMesh): void;
+        private _onRegisterAfterWorldMatrixUpdate(connectedMesh);
+        clone(): Sound;
+        getAudioBuffer(): AudioBuffer;
+        static Parse(parsedSound: any, scene: Scene, rootUrl: string, sourceSound?: Sound): Sound;
+>>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class InterpolateValueAction extends Action {
         propertyPath: string;
         value: any;
@@ -1511,6 +1505,28 @@ declare module BABYLON {
         _prepare(): void;
         execute(): void;
         serialize(parent: any): any;
+=======
+    class SoundTrack {
+        private _outputAudioNode;
+        private _inputAudioNode;
+        private _trackConvolver;
+        private _scene;
+        id: number;
+        soundCollection: Array<Sound>;
+        private _isMainTrack;
+        private _connectedAnalyser;
+        private _options;
+        private _isInitialized;
+        constructor(scene: Scene, options?: any);
+        private _initializeSoundTrackAudioGraph();
+        dispose(): void;
+        AddSound(sound: Sound): void;
+        RemoveSound(sound: Sound): void;
+        setVolume(newVolume: number): void;
+        switchPanningModelToHRTF(): void;
+        switchPanningModelToEqualPower(): void;
+        connectToAnalyser(analyser: Analyser): void;
+>>>>>>> vr_room_scale_camera
     }
 }
 
@@ -1742,6 +1758,7 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class Analyser {
         SMOOTHING: number;
         FFT_SIZE: number;
@@ -1772,10 +1789,38 @@ declare module BABYLON {
         stopDebugCanvas(): void;
         connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
         dispose(): void;
+=======
+    class Action {
+        triggerOptions: any;
+        trigger: number;
+        _actionManager: ActionManager;
+        private _nextActiveAction;
+        private _child;
+        private _condition;
+        private _triggerParameter;
+        constructor(triggerOptions: any, condition?: Condition);
+        _prepare(): void;
+        getTriggerParameter(): any;
+        _executeCurrent(evt: ActionEvent): void;
+        execute(evt: ActionEvent): void;
+        skipToNextActiveAction(): void;
+        then(action: Action): Action;
+        _getProperty(propertyPath: string): string;
+        _getEffectiveTarget(target: any, propertyPath: string): any;
+        serialize(parent: any): any;
+        protected _serialize(serializedAction: any, parent?: any): any;
+        static _SerializeValueAsString: (value: any) => string;
+        static _GetTargetProperty: (target: Scene | Node) => {
+            name: string;
+            targetType: string;
+            value: string;
+        };
+>>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class AudioEngine {
         private _audioContext;
         private _audioContextInitialized;
@@ -1968,40 +2013,49 @@ declare module BABYLON {
         getScene(): Scene;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
+=======
+    /**
+     * ActionEvent is the event beint sent when an action is triggered.
+     */
+    class ActionEvent {
+        source: any;
+        pointerX: number;
+        pointerY: number;
+        meshUnderPointer: AbstractMesh;
+        sourceEvent: any;
+        additionalData: any;
         /**
-        * Get bone's index searching by name
-        * @param {string} name is bone's name to search for
-        * @return {number} Indice of the bone. Returns -1 if not found
-        */
-        getBoneIndexByName(name: string): number;
-        createAnimationRange(name: string, from: number, to: number): void;
-        deleteAnimationRange(name: string, deleteFrames?: boolean): void;
-        getAnimationRange(name: string): AnimationRange;
-        /**
-         *  Returns as an Array, all AnimationRanges defined on this skeleton
+         * @constructor
+         * @param source The mesh or sprite that triggered the action.
+         * @param pointerX The X mouse cursor position at the time of the event
+         * @param pointerY The Y mouse cursor position at the time of the event
+         * @param meshUnderPointer The mesh that is currently pointed at (can be null)
+         * @param sourceEvent the original (browser) event that triggered the ActionEvent
+>>>>>>> vr_room_scale_camera
          */
-        getAnimationRanges(): AnimationRange[];
+        constructor(source: any, pointerX: number, pointerY: number, meshUnderPointer: AbstractMesh, sourceEvent?: any, additionalData?: any);
         /**
-         *  note: This is not for a complete retargeting, only between very similar skeleton's with only possible bone length differences
+         * Helper function to auto-create an ActionEvent from a source mesh.
+         * @param source The source mesh that triggered the event
+         * @param evt {Event} The original (browser) event
          */
-        copyAnimationRange(source: Skeleton, name: string, rescaleAsRequired?: boolean): boolean;
-        returnToRest(): void;
-        private _getHighestAnimationFrame();
-        beginAnimation(name: string, loop?: boolean, speedRatio?: number, onAnimationEnd?: () => void): Animatable;
-        _markAsDirty(): void;
-        _registerMeshWithPoseMatrix(mesh: AbstractMesh): void;
-        _unregisterMeshWithPoseMatrix(mesh: AbstractMesh): void;
-        _computeTransformMatrices(targetMatrix: Float32Array, initialSkinMatrix: Matrix): void;
-        prepare(): void;
-        getAnimatables(): IAnimatable[];
-        clone(name: string, id: string): Skeleton;
-        enableBlending(blendingSpeed?: number): void;
-        dispose(): void;
-        serialize(): any;
-        static Parse(parsedSkeleton: any, scene: Scene): Skeleton;
+        static CreateNew(source: AbstractMesh, evt?: Event, additionalData?: any): ActionEvent;
+        /**
+         * Helper function to auto-create an ActionEvent from a source mesh.
+         * @param source The source sprite that triggered the event
+         * @param scene Scene associated with the sprite
+         * @param evt {Event} The original (browser) event
+         */
+        static CreateNewFromSprite(source: Sprite, scene: Scene, evt?: Event, additionalData?: any): ActionEvent;
+        /**
+         * Helper function to auto-create an ActionEvent from a scene. If triggered by a mesh use ActionEvent.CreateNew
+         * @param scene the scene where the event occurred
+         * @param evt {Event} The original (browser) event
+         */
+        static CreateNewFromScene(scene: Scene, evt: Event): ActionEvent;
+        static CreateNewFromPrimitive(prim: any, pointerPos: Vector2, evt?: Event, additionalData?: any): ActionEvent;
     }
+<<<<<<< HEAD
 }
 
 declare module BABYLON {
@@ -2079,6 +2133,413 @@ declare module BABYLON {
          * @override
          * Override Camera.createRigCamera
 <<<<<<< HEAD
+=======
+    /**
+     * Action Manager manages all events to be triggered on a given mesh or the global scene.
+     * A single scene can have many Action Managers to handle predefined actions on specific meshes.
+     */
+    class ActionManager {
+        private static _NothingTrigger;
+        private static _OnPickTrigger;
+        private static _OnLeftPickTrigger;
+        private static _OnRightPickTrigger;
+        private static _OnCenterPickTrigger;
+        private static _OnPickDownTrigger;
+        private static _OnPickUpTrigger;
+        private static _OnLongPressTrigger;
+        private static _OnPointerOverTrigger;
+        private static _OnPointerOutTrigger;
+        private static _OnEveryFrameTrigger;
+        private static _OnIntersectionEnterTrigger;
+        private static _OnIntersectionExitTrigger;
+        private static _OnKeyDownTrigger;
+        private static _OnKeyUpTrigger;
+        private static _OnPickOutTrigger;
+        static NothingTrigger: number;
+        static OnPickTrigger: number;
+        static OnLeftPickTrigger: number;
+        static OnRightPickTrigger: number;
+        static OnCenterPickTrigger: number;
+        static OnPickDownTrigger: number;
+        static OnPickUpTrigger: number;
+        static OnPickOutTrigger: number;
+        static OnLongPressTrigger: number;
+        static OnPointerOverTrigger: number;
+        static OnPointerOutTrigger: number;
+        static OnEveryFrameTrigger: number;
+        static OnIntersectionEnterTrigger: number;
+        static OnIntersectionExitTrigger: number;
+        static OnKeyDownTrigger: number;
+        static OnKeyUpTrigger: number;
+        static DragMovementThreshold: number;
+        static LongPressDelay: number;
+        actions: Action[];
+        private _scene;
+        constructor(scene: Scene);
+        dispose(): void;
+        getScene(): Scene;
+        /**
+         * Does this action manager handles actions of any of the given triggers
+         * @param {number[]} triggers - the triggers to be tested
+         * @return {boolean} whether one (or more) of the triggers is handeled
+>>>>>>> vr_room_scale_camera
+         */
+        hasSpecificTriggers(triggers: number[]): boolean;
+        /**
+         * Does this action manager handles actions of a given trigger
+         * @param {number} trigger - the trigger to be tested
+         * @return {boolean} whether the trigger is handeled
+         */
+        hasSpecificTrigger(trigger: number): boolean;
+        /**
+         * Does this action manager has pointer triggers
+         * @return {boolean} whether or not it has pointer triggers
+         */
+        hasPointerTriggers: boolean;
+        /**
+         * Does this action manager has pick triggers
+         * @return {boolean} whether or not it has pick triggers
+         */
+        hasPickTriggers: boolean;
+        /**
+         * Registers an action to this action manager
+         * @param {BABYLON.Action} action - the action to be registered
+         * @return {BABYLON.Action} the action amended (prepared) after registration
+         */
+        registerAction(action: Action): Action;
+        /**
+         * Process a specific trigger
+         * @param {number} trigger - the trigger to process
+         * @param evt {BABYLON.ActionEvent} the event details to be processed
+         */
+        processTrigger(trigger: number, evt: ActionEvent): void;
+        _getEffectiveTarget(target: any, propertyPath: string): any;
+        _getProperty(propertyPath: string): string;
+        serialize(name: string): any;
+        static Parse(parsedActions: any, object: AbstractMesh, scene: Scene): void;
+        static GetTriggerName(trigger: number): string;
+    }
+}
+
+declare module BABYLON {
+    class Condition {
+        _actionManager: ActionManager;
+        _evaluationId: number;
+        _currentResult: boolean;
+        constructor(actionManager: ActionManager);
+        isValid(): boolean;
+        _getProperty(propertyPath: string): string;
+        _getEffectiveTarget(target: any, propertyPath: string): any;
+        serialize(): any;
+        protected _serialize(serializedCondition: any): any;
+    }
+    class ValueCondition extends Condition {
+        propertyPath: string;
+        value: any;
+        operator: number;
+        private static _IsEqual;
+        private static _IsDifferent;
+        private static _IsGreater;
+        private static _IsLesser;
+        static IsEqual: number;
+        static IsDifferent: number;
+        static IsGreater: number;
+        static IsLesser: number;
+        _actionManager: ActionManager;
+        private _target;
+        private _effectiveTarget;
+        private _property;
+        constructor(actionManager: ActionManager, target: any, propertyPath: string, value: any, operator?: number);
+        isValid(): boolean;
+        serialize(): any;
+        static GetOperatorName(operator: number): string;
+    }
+    class PredicateCondition extends Condition {
+        predicate: () => boolean;
+        _actionManager: ActionManager;
+        constructor(actionManager: ActionManager, predicate: () => boolean);
+        isValid(): boolean;
+    }
+    class StateCondition extends Condition {
+        value: string;
+        _actionManager: ActionManager;
+        private _target;
+        constructor(actionManager: ActionManager, target: any, value: string);
+        isValid(): boolean;
+        serialize(): any;
+    }
+}
+
+declare module BABYLON {
+    class SwitchBooleanAction extends Action {
+        propertyPath: string;
+        private _target;
+        private _effectiveTarget;
+        private _property;
+        constructor(triggerOptions: any, target: any, propertyPath: string, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class SetStateAction extends Action {
+        value: string;
+        private _target;
+        constructor(triggerOptions: any, target: any, value: string, condition?: Condition);
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class SetValueAction extends Action {
+        propertyPath: string;
+        value: any;
+        private _target;
+        private _effectiveTarget;
+        private _property;
+        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class IncrementValueAction extends Action {
+        propertyPath: string;
+        value: any;
+        private _target;
+        private _effectiveTarget;
+        private _property;
+        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class PlayAnimationAction extends Action {
+        from: number;
+        to: number;
+        loop: boolean;
+        private _target;
+        constructor(triggerOptions: any, target: any, from: number, to: number, loop?: boolean, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class StopAnimationAction extends Action {
+        private _target;
+        constructor(triggerOptions: any, target: any, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class DoNothingAction extends Action {
+        constructor(triggerOptions?: any, condition?: Condition);
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class CombineAction extends Action {
+        children: Action[];
+        constructor(triggerOptions: any, children: Action[], condition?: Condition);
+        _prepare(): void;
+        execute(evt: ActionEvent): void;
+        serialize(parent: any): any;
+    }
+    class ExecuteCodeAction extends Action {
+        func: (evt: ActionEvent) => void;
+        constructor(triggerOptions: any, func: (evt: ActionEvent) => void, condition?: Condition);
+        execute(evt: ActionEvent): void;
+    }
+    class SetParentAction extends Action {
+        private _parent;
+        private _target;
+        constructor(triggerOptions: any, target: any, parent: any, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class PlaySoundAction extends Action {
+        private _sound;
+        constructor(triggerOptions: any, sound: Sound, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+    class StopSoundAction extends Action {
+        private _sound;
+        constructor(triggerOptions: any, sound: Sound, condition?: Condition);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+}
+
+declare module BABYLON {
+    class InterpolateValueAction extends Action {
+        propertyPath: string;
+        value: any;
+        duration: number;
+        stopOtherAnimations: boolean;
+        onInterpolationDone: () => void;
+        private _target;
+        private _effectiveTarget;
+        private _property;
+        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, duration?: number, condition?: Condition, stopOtherAnimations?: boolean, onInterpolationDone?: () => void);
+        _prepare(): void;
+        execute(): void;
+        serialize(parent: any): any;
+    }
+}
+
+declare module BABYLON {
+    class Bone extends Node {
+        name: string;
+        children: Bone[];
+        animations: Animation[];
+        length: number;
+        private _skeleton;
+        _matrix: Matrix;
+        private _restPose;
+        private _baseMatrix;
+        private _worldTransform;
+        private _absoluteTransform;
+        private _invertedAbsoluteTransform;
+        private _parent;
+        constructor(name: string, skeleton: Skeleton, parentBone: Bone, matrix: Matrix, restPose?: Matrix);
+        getParent(): Bone;
+        getLocalMatrix(): Matrix;
+        getBaseMatrix(): Matrix;
+        getRestPose(): Matrix;
+        returnToRest(): void;
+        getWorldMatrix(): Matrix;
+        getInvertedAbsoluteTransform(): Matrix;
+        getAbsoluteTransform(): Matrix;
+        updateMatrix(matrix: Matrix): void;
+        _updateDifferenceMatrix(rootMatrix?: Matrix): void;
+        markAsDirty(): void;
+        copyAnimationRange(source: Bone, rangeName: string, frameOffset: number, rescaleAsRequired?: boolean): boolean;
+    }
+}
+
+declare module BABYLON {
+    class Skeleton {
+        name: string;
+        id: string;
+        bones: Bone[];
+        dimensionsAtRest: Vector3;
+        needInitialSkinMatrix: boolean;
+        private _scene;
+        private _isDirty;
+        private _transformMatrices;
+        private _meshesWithPoseMatrix;
+        private _animatables;
+        private _identity;
+        private _ranges;
+        constructor(name: string, id: string, scene: Scene);
+        getTransformMatrices(mesh: AbstractMesh): Float32Array;
+        getScene(): Scene;
+        /**
+         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
+         */
+        toString(fullDetails?: boolean): string;
+        /**
+        * Get bone's index searching by name
+        * @param {string} name is bone's name to search for
+        * @return {number} Indice of the bone. Returns -1 if not found
+        */
+        getBoneIndexByName(name: string): number;
+        createAnimationRange(name: string, from: number, to: number): void;
+        deleteAnimationRange(name: string, deleteFrames?: boolean): void;
+        getAnimationRange(name: string): AnimationRange;
+        /**
+         *  Returns as an Array, all AnimationRanges defined on this skeleton
+         */
+        getAnimationRanges(): AnimationRange[];
+        /**
+         *  note: This is not for a complete retargeting, only between very similar skeleton's with only possible bone length differences
+         */
+<<<<<<< HEAD
+=======
+=======
+        copyAnimationRange(source: Skeleton, name: string, rescaleAsRequired?: boolean): boolean;
+        returnToRest(): void;
+        private _getHighestAnimationFrame();
+        beginAnimation(name: string, loop?: boolean, speedRatio?: number, onAnimationEnd?: () => void): Animatable;
+        _markAsDirty(): void;
+        _registerMeshWithPoseMatrix(mesh: AbstractMesh): void;
+        _unregisterMeshWithPoseMatrix(mesh: AbstractMesh): void;
+        _computeTransformMatrices(targetMatrix: Float32Array, initialSkinMatrix: Matrix): void;
+        prepare(): void;
+        getAnimatables(): IAnimatable[];
+        clone(name: string, id: string): Skeleton;
+        enableBlending(blendingSpeed?: number): void;
+        dispose(): void;
+        serialize(): any;
+        static Parse(parsedSkeleton: any, scene: Scene): Skeleton;
+    }
+}
+
+declare module BABYLON {
+    class ArcRotateCamera extends TargetCamera {
+        alpha: number;
+        beta: number;
+        radius: number;
+        target: Vector3;
+        inertialAlphaOffset: number;
+        inertialBetaOffset: number;
+        inertialRadiusOffset: number;
+        lowerAlphaLimit: any;
+        upperAlphaLimit: any;
+        lowerBetaLimit: number;
+        upperBetaLimit: number;
+        lowerRadiusLimit: any;
+        upperRadiusLimit: any;
+        inertialPanningX: number;
+        inertialPanningY: number;
+        angularSensibilityX: number;
+        angularSensibilityY: number;
+        pinchPrecision: number;
+        panningSensibility: number;
+        keysUp: number[];
+        keysDown: number[];
+        keysLeft: number[];
+        keysRight: number[];
+        wheelPrecision: number;
+        zoomOnFactor: number;
+        targetScreenOffset: Vector2;
+        allowUpsideDown: boolean;
+        _viewMatrix: Matrix;
+        _useCtrlForPanning: boolean;
+        inputs: ArcRotateCameraInputsManager;
+        _reset: () => void;
+        panningAxis: Vector3;
+        private _localDirection;
+        private _transformedDirection;
+        onCollide: (collidedMesh: AbstractMesh) => void;
+        checkCollisions: boolean;
+        collisionRadius: Vector3;
+        private _collider;
+        private _previousPosition;
+        private _collisionVelocity;
+        private _newPosition;
+        private _previousAlpha;
+        private _previousBeta;
+        private _previousRadius;
+        private _collisionTriggered;
+        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene);
+        _initCache(): void;
+        _updateCache(ignoreParentClass?: boolean): void;
+        private _getTargetPosition();
+        _isSynchronizedViewMatrix(): boolean;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean, useCtrlForPanning?: boolean): void;
+        detachControl(element: HTMLElement): void;
+        _checkInputs(): void;
+        private _checkLimits();
+        rebuildAnglesAndRadius(): void;
+        setPosition(position: Vector3): void;
+        setTarget(target: Vector3): void;
+        _getViewMatrix(): Matrix;
+        private _onCollisionPositionChange;
+        zoomOn(meshes?: AbstractMesh[], doNotUpdateMaxZ?: boolean): void;
+        focusOn(meshesOrMinMaxVectorAndDistance: any, doNotUpdateMaxZ?: boolean): void;
+        /**
+         * @override
+         * Override Camera.createRigCamera
+>>>>>>> vr_room_scale_camera
          */
         createRigCamera(name: string, cameraIndex: number): Camera;
         /**
@@ -2088,6 +2549,8 @@ declare module BABYLON {
         _updateRigCameras(): void;
         dispose(): void;
         getTypeName(): string;
+<<<<<<< HEAD
+=======
     }
 }
 
@@ -2128,6 +2591,7 @@ declare module BABYLON {
         static RIG_MODE_VR: number;
         static RIG_MODE_VIVE: number;
         static ForceAttachControlToAlwaysPreventDefault: boolean;
+        _counter: number;
         position: Vector3;
         upVector: Vector3;
         orthoLeft: any;
@@ -2193,16 +2657,49 @@ declare module BABYLON {
         /**
          * May need to be overridden by children
          */
-=======
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * @override
-         * Override Camera._updateRigCameras
-         */
         _updateRigCameras(): void;
-        dispose(): void;
+        _setupInputs(): void;
+        serialize(): any;
         getTypeName(): string;
+        clone(name: string): Camera;
+        static GetConstructorFromName(type: string, name: string, scene: Scene, interaxial_distance?: number, isStereoscopicSideBySide?: boolean): () => Camera;
+        static Parse(parsedCamera: any, scene: Scene): Camera;
+    }
+}
+
+declare module BABYLON {
+    var CameraInputTypes: {};
+    interface ICameraInput<TCamera extends BABYLON.Camera> {
+        camera: TCamera;
+        getTypeName(): string;
+        getSimpleName(): string;
+        attachControl: (element: HTMLElement, noPreventDefault?: boolean) => void;
+        detachControl: (element: HTMLElement) => void;
+        checkInputs?: () => void;
+    }
+    interface CameraInputsMap<TCamera extends BABYLON.Camera> {
+        [name: string]: ICameraInput<TCamera>;
+        [idx: number]: ICameraInput<TCamera>;
+    }
+    class CameraInputsManager<TCamera extends BABYLON.Camera> {
+        attached: CameraInputsMap<TCamera>;
+        attachedElement: HTMLElement;
+        noPreventDefault: boolean;
+        camera: TCamera;
+        checkInputs: () => void;
+        constructor(camera: TCamera);
+        add(input: ICameraInput<TCamera>): void;
+        remove(inputToRemove: ICameraInput<TCamera>): void;
+        removeByType(inputType: string): void;
+        private _addCheckInputs(fn);
+        attachInput(input: ICameraInput<TCamera>): void;
+        attachElement(element: HTMLElement, noPreventDefault?: boolean): void;
+        detachElement(element: HTMLElement): void;
+        rebuildInputCheck(): void;
+        clear(): void;
+        serialize(serializedCamera: any): void;
+        parse(parsedCamera: any): void;
+>>>>>>> vr_room_scale_camera
     }
 }
 
@@ -3007,6 +3504,7 @@ declare module BABYLON {
 
 declare module BABYLON {
 <<<<<<< HEAD
+<<<<<<< HEAD
     class BoundingBox {
         minimum: Vector3;
         maximum: Vector3;
@@ -3131,6 +3629,8 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+=======
+>>>>>>> vr_room_scale_camera
     /**
      * Stores 2D Bounding Information.
      * This class handles a circle area and a bounding rectangle one.
@@ -7883,6 +8383,7 @@ declare module BABYLON.Debug {
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class Layer {
         name: string;
         texture: Texture;
@@ -8017,10 +8518,72 @@ declare module BABYLON.Debug {
         private _system;
         constructor(size: number, position: number, color: any, imgUrl: string, system: LensFlareSystem);
         dispose: () => void;
+=======
+    class BoundingBox {
+        minimum: Vector3;
+        maximum: Vector3;
+        vectors: Vector3[];
+        center: Vector3;
+        extendSize: Vector3;
+        directions: Vector3[];
+        vectorsWorld: Vector3[];
+        minimumWorld: Vector3;
+        maximumWorld: Vector3;
+        private _worldMatrix;
+        constructor(minimum: Vector3, maximum: Vector3);
+        getWorldMatrix(): Matrix;
+        setWorldMatrix(matrix: Matrix): BoundingBox;
+        _update(world: Matrix): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
+        intersectsPoint(point: Vector3): boolean;
+        intersectsSphere(sphere: BoundingSphere): boolean;
+        intersectsMinMax(min: Vector3, max: Vector3): boolean;
+        static Intersects(box0: BoundingBox, box1: BoundingBox): boolean;
+        static IntersectsSphere(minPoint: Vector3, maxPoint: Vector3, sphereCenter: Vector3, sphereRadius: number): boolean;
+        static IsCompletelyInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
+        static IsInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
     }
 }
 
 declare module BABYLON {
+    class BoundingInfo {
+        minimum: Vector3;
+        maximum: Vector3;
+        boundingBox: BoundingBox;
+        boundingSphere: BoundingSphere;
+        private _isLocked;
+        constructor(minimum: Vector3, maximum: Vector3);
+        isLocked: boolean;
+        update(world: Matrix): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
+        _checkCollision(collider: Collider): boolean;
+        intersectsPoint(point: Vector3): boolean;
+        intersects(boundingInfo: BoundingInfo, precise: boolean): boolean;
+    }
+}
+
+declare module BABYLON {
+    class BoundingSphere {
+        minimum: Vector3;
+        maximum: Vector3;
+        center: Vector3;
+        radius: number;
+        centerWorld: Vector3;
+        radiusWorld: number;
+        private _tempRadiusVector;
+        constructor(minimum: Vector3, maximum: Vector3);
+        _update(world: Matrix): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        intersectsPoint(point: Vector3): boolean;
+        static Intersects(sphere0: BoundingSphere, sphere1: BoundingSphere): boolean;
+>>>>>>> vr_room_scale_camera
+    }
+}
+
+declare module BABYLON {
+<<<<<<< HEAD
     class LensFlareSystem {
         name: string;
         lensFlares: LensFlare[];
@@ -8049,6 +8612,43 @@ declare module BABYLON {
         static Parse(parsedLensFlareSystem: any, scene: Scene, rootUrl: string): LensFlareSystem;
         serialize(): any;
 >>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
+=======
+    class Ray {
+        origin: Vector3;
+        direction: Vector3;
+        length: number;
+        private _edge1;
+        private _edge2;
+        private _pvec;
+        private _tvec;
+        private _qvec;
+        constructor(origin: Vector3, direction: Vector3, length?: number);
+        intersectsBoxMinMax(minimum: Vector3, maximum: Vector3): boolean;
+        intersectsBox(box: BoundingBox): boolean;
+        intersectsSphere(sphere: BoundingSphere): boolean;
+        intersectsTriangle(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3): IntersectionInfo;
+        intersectsPlane(plane: Plane): number;
+        private static smallnum;
+        private static rayl;
+        /**
+         * Intersection test between the ray and a given segment whithin a given tolerance (threshold)
+         * @param sega the first point of the segment to test the intersection against
+         * @param segb the second point of the segment to test the intersection against
+         * @param threshold the tolerance margin, if the ray doesn't intersect the segment but is close to the given threshold, the intersection is successful
+         * @return the distance from the ray origin to the intersection point if there's intersection, or -1 if there's no intersection
+         */
+        intersectionSegment(sega: Vector3, segb: Vector3, threshold: number): number;
+        static CreateNew(x: number, y: number, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Ray;
+        /**
+        * Function will create a new transformed ray starting from origin and ending at the end point. Ray's length will be set, and ray will be
+        * transformed to the given world matrix.
+        * @param origin The origin point
+        * @param end The end point
+        * @param world a matrix to transform the ray to. Default is the identity matrix.
+        */
+        static CreateNewFromTo(origin: Vector3, end: Vector3, world?: Matrix): Ray;
+        static Transform(ray: Ray, matrix: Matrix): Ray;
+>>>>>>> vr_room_scale_camera
     }
 }
 
@@ -8273,6 +8873,94 @@ declare module BABYLON {
 
 declare module BABYLON {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    class DebugLayer {
+        private _scene;
+        private _camera;
+        private _transformationMatrix;
+        private _enabled;
+        private _labelsEnabled;
+        private _displayStatistics;
+        private _displayTree;
+        private _displayLogs;
+        private _globalDiv;
+        private _statsDiv;
+        private _statsSubsetDiv;
+        private _optionsDiv;
+        private _optionsSubsetDiv;
+        private _logDiv;
+        private _logSubsetDiv;
+        private _treeDiv;
+        private _treeSubsetDiv;
+        private _drawingCanvas;
+        private _drawingContext;
+        private _rootElement;
+        private _skeletonViewers;
+        _syncPositions: () => void;
+        private _syncData;
+        private _syncUI;
+        private _onCanvasClick;
+        private _clickPosition;
+        private _ratio;
+        private _identityMatrix;
+        private _showUI;
+        private _needToRefreshMeshesTree;
+        shouldDisplayLabel: (node: Node) => boolean;
+        shouldDisplayAxis: (mesh: Mesh) => boolean;
+        axisRatio: number;
+        accentColor: string;
+        customStatsFunction: () => string;
+        constructor(scene: Scene);
+        private _refreshMeshesTreeContent();
+        private _renderSingleAxis(zero, unit, unitText, label, color);
+        private _renderAxis(projectedPosition, mesh, globalViewport);
+        private _renderLabel(text, projectedPosition, labelOffset, onClick, getFillStyle);
+        private _isClickInsideRect(x, y, width, height);
+        isVisible(): boolean;
+        hide(): void;
+        private _clearSkeletonViewers();
+        show(showUI?: boolean, camera?: Camera, rootElement?: HTMLElement): void;
+        private _clearLabels();
+        private _generateheader(root, text);
+        private _generateTexBox(root, title, color);
+        private _generateAdvancedCheckBox(root, leftTitle, rightTitle, initialState, task, tag?);
+        private _generateCheckBox(root, title, initialState, task, tag?);
+        private _generateButton(root, title, task, tag?);
+        private _generateRadio(root, title, name, initialState, task, tag?);
+        private _generateDOMelements();
+        private _displayStats();
+    }
+}
+
+declare module BABYLON.Debug {
+    /**
+    * Demo available here: http://www.babylonjs-playground.com/#1BZJVJ#8
+    */
+    class SkeletonViewer {
+        skeleton: Skeleton;
+        mesh: AbstractMesh;
+        autoUpdateBonesMatrices: boolean;
+        renderingGroupId: number;
+        color: Color3;
+        private _scene;
+        private _debugLines;
+        private _debugMesh;
+        private _isEnabled;
+        private _renderFunction;
+        constructor(skeleton: Skeleton, mesh: AbstractMesh, scene: Scene, autoUpdateBonesMatrices?: boolean, renderingGroupId?: number);
+        isEnabled: boolean;
+        private _getBonePosition(position, bone, meshMat, x?, y?, z?);
+        private _getLinesForBonesWithLength(bones, meshMat);
+        private _getLinesForBonesNoLength(bones, meshMat);
+        update(): void;
+        private _updateBoneMatrix(bone);
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+>>>>>>> vr_room_scale_camera
     class DirectionalLight extends Light implements IShadowLight {
         position: Vector3;
         direction: Vector3;
@@ -8295,6 +8983,7 @@ declare module BABYLON {
         getShadowDirection(faceIndex?: number): Vector3;
         computeTransformedPosition(): boolean;
         transferToEffect(effect: Effect, directionUniformName: string): void;
+<<<<<<< HEAD
 =======
     class PointLight extends Light implements IShadowLight {
         private _worldMatrix;
@@ -8310,6 +8999,8 @@ declare module BABYLON {
         getShadowDirection(faceIndex?: number): Vector3;
         setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
 >>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
+=======
+>>>>>>> vr_room_scale_camera
         _getWorldMatrix(): Matrix;
         getTypeID(): number;
     }
@@ -8317,6 +9008,9 @@ declare module BABYLON {
 
 declare module BABYLON {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> vr_room_scale_camera
     class HemisphericLight extends Light {
         groundColor: Color3;
         direction: Vector3;
@@ -8421,6 +9115,50 @@ declare module BABYLON {
         transferToEffect(effect: Effect, positionUniformName: string, directionUniformName: string): void;
         _getWorldMatrix(): Matrix;
         getTypeID(): number;
+    }
+}
+
+declare module BABYLON {
+    interface ISceneLoaderPlugin {
+        extensions: string;
+        importMesh: (meshesNames: any, scene: Scene, data: any, rootUrl: string, meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => boolean;
+        load: (scene: Scene, data: string, rootUrl: string) => boolean;
+    }
+    interface ISceneLoaderPluginAsync {
+        extensions: string;
+        importMeshAsync: (meshesNames: any, scene: Scene, data: any, rootUrl: string, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, onerror?: () => void) => void;
+        loadAsync: (scene: Scene, data: string, rootUrl: string, onsuccess: () => void, onerror: () => void) => boolean;
+    }
+    class SceneLoader {
+        private static _ForceFullSceneLoadingForIncremental;
+        private static _ShowLoadingScreen;
+        static NO_LOGGING: number;
+        static MINIMAL_LOGGING: number;
+        static SUMMARY_LOGGING: number;
+        static DETAILED_LOGGING: number;
+        private static _loggingLevel;
+        static ForceFullSceneLoadingForIncremental: boolean;
+        static ShowLoadingScreen: boolean;
+        static loggingLevel: number;
+        private static _registeredPlugins;
+        private static _getPluginForFilename(sceneFilename);
+        static GetPluginForExtension(extension: string): ISceneLoaderPlugin | ISceneLoaderPluginAsync;
+        static RegisterPlugin(plugin: ISceneLoaderPlugin): void;
+        static ImportMesh(meshesNames: any, rootUrl: string, sceneFilename: string, scene: Scene, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, progressCallBack?: () => void, onerror?: (scene: Scene, message: string, exception?: any) => void): void;
+        /**
+        * Load a scene
+        * @param rootUrl a string that defines the root url for scene and resources
+        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
+        * @param engine is the instance of BABYLON.Engine to use to create the scene
+        */
+        static Load(rootUrl: string, sceneFilename: any, engine: Engine, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+        /**
+        * Append a scene
+        * @param rootUrl a string that defines the root url for scene and resources
+        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
+        * @param scene is the instance of BABYLON.Scene to append to
+        */
+        static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
     }
 }
 
@@ -10596,6 +11334,7 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class AbstractMesh extends Node implements IDisposable, ICullable {
         private static _BILLBOARDMODE_NONE;
         private static _BILLBOARDMODE_X;
@@ -10607,115 +11346,162 @@ declare module BABYLON {
         static BILLBOARDMODE_Y: number;
         static BILLBOARDMODE_Z: number;
         static BILLBOARDMODE_ALL: number;
+=======
+    class Particle {
+        position: Vector3;
+        direction: Vector3;
+        color: Color4;
+        colorStep: Color4;
+        lifeTime: number;
+        age: number;
+        size: number;
+        angle: number;
+        angularSpeed: number;
+        copyTo(other: Particle): void;
+    }
+}
+
+declare module BABYLON {
+    class ParticleSystem implements IDisposable, IAnimatable {
+        name: string;
+        static BLENDMODE_ONEONE: number;
+        static BLENDMODE_STANDARD: number;
+        animations: Animation[];
+        id: string;
+        renderingGroupId: number;
+        emitter: any;
+        emitRate: number;
+        manualEmitCount: number;
+        updateSpeed: number;
+        targetStopDuration: number;
+        disposeOnStop: boolean;
+        minEmitPower: number;
+        maxEmitPower: number;
+        minLifeTime: number;
+        maxLifeTime: number;
+        minSize: number;
+        maxSize: number;
+        minAngularSpeed: number;
+        maxAngularSpeed: number;
+        particleTexture: Texture;
+        layerMask: number;
+>>>>>>> vr_room_scale_camera
         /**
-        * An event triggered when the mesh is disposed.
+        * An event triggered when the system is disposed.
         * @type {BABYLON.Observable}
         */
-        onDisposeObservable: Observable<AbstractMesh>;
+        onDisposeObservable: Observable<ParticleSystem>;
         private _onDisposeObserver;
         onDispose: () => void;
-        /**
-        * An event triggered when this mesh collides with another one
-        * @type {BABYLON.Observable}
-        */
-        onCollideObservable: Observable<AbstractMesh>;
-        private _onCollideObserver;
-        onCollide: () => void;
-        /**
-        * An event triggered when the collision's position changes
-        * @type {BABYLON.Observable}
-        */
-        onCollisionPositionChangeObservable: Observable<Vector3>;
-        private _onCollisionPositionChangeObserver;
-        onCollisionPositionChange: () => void;
-        /**
-        * An event triggered after the world matrix is updated
-        * @type {BABYLON.Observable}
-        */
-        onAfterWorldMatrixUpdateObservable: Observable<AbstractMesh>;
-        definedFacingForward: boolean;
+        updateFunction: (particles: Particle[]) => void;
+        blendMode: number;
+        forceDepthWrite: boolean;
+        gravity: Vector3;
+        direction1: Vector3;
+        direction2: Vector3;
+        minEmitBox: Vector3;
+        maxEmitBox: Vector3;
+        color1: Color4;
+        color2: Color4;
+        colorDead: Color4;
+        textureMask: Color4;
+        startDirectionFunction: (emitPower: number, worldMatrix: Matrix, directionToUpdate: Vector3, particle: Particle) => void;
+        startPositionFunction: (worldMatrix: Matrix, positionToUpdate: Vector3, particle: Particle) => void;
+        private particles;
+        private _capacity;
+        private _scene;
+        private _stockParticles;
+        private _newPartsExcess;
+        private _vertexData;
+        private _vertexBuffer;
+        private _vertexBuffers;
+        private _indexBuffer;
+        private _effect;
+        private _customEffect;
+        private _cachedDefines;
+        private _scaledColorStep;
+        private _colorDiff;
+        private _scaledDirection;
+        private _scaledGravity;
+        private _currentRenderId;
+        private _alive;
+        private _started;
+        private _stopped;
+        private _actualFrame;
+        private _scaledUpdateSpeed;
+        constructor(name: string, capacity: number, scene: Scene, customEffect?: Effect);
+        recycleParticle(particle: Particle): void;
+        getCapacity(): number;
+        isAlive(): boolean;
+        isStarted(): boolean;
+        start(): void;
+        stop(): void;
+        _appendParticleVertex(index: number, particle: Particle, offsetX: number, offsetY: number): void;
+        private _update(newParticles);
+        private _getEffect();
+        animate(): void;
+        render(): number;
+        dispose(): void;
+        clone(name: string, newEmitter: any): ParticleSystem;
+        serialize(): any;
+        static Parse(parsedParticleSystem: any, scene: Scene, rootUrl: string): ParticleSystem;
+    }
+}
+
+declare module BABYLON {
+    class SolidParticle {
+        idx: number;
+        color: Color4;
         position: Vector3;
-        private _rotation;
-        _rotationQuaternion: Quaternion;
-        private _scaling;
-        billboardMode: number;
-        visibility: number;
-        alphaIndex: number;
-        infiniteDistance: boolean;
+        rotation: Vector3;
+        rotationQuaternion: Quaternion;
+        scaling: Vector3;
+        uvs: Vector4;
+        velocity: Vector3;
+        alive: boolean;
         isVisible: boolean;
-        isPickable: boolean;
-        showBoundingBox: boolean;
-        showSubMeshesBoundingBox: boolean;
-        isBlocker: boolean;
-        renderingGroupId: number;
-        material: Material;
-        receiveShadows: boolean;
-        renderOutline: boolean;
-        outlineColor: Color3;
-        outlineWidth: number;
-        renderOverlay: boolean;
-        overlayColor: Color3;
-        overlayAlpha: number;
-        hasVertexAlpha: boolean;
-        useVertexColors: boolean;
-        applyFog: boolean;
-        computeBonesUsingShaders: boolean;
-        scalingDeterminant: number;
-        numBoneInfluencers: number;
-        useOctreeForRenderingSelection: boolean;
-        useOctreeForPicking: boolean;
-        useOctreeForCollisions: boolean;
-        layerMask: number;
-        alwaysSelectAsActiveMesh: boolean;
+        _pos: number;
+        _model: ModelShape;
+        shapeId: number;
+        idxInShape: number;
+        constructor(particleIndex: number, positionIndex: number, model: ModelShape, shapeId: number, idxInShape: number);
+        scale: Vector3;
+        quaternion: Quaternion;
+    }
+    class ModelShape {
+        shapeID: number;
+        _shape: Vector3[];
+        _shapeUV: number[];
+        _positionFunction: (particle: SolidParticle, i: number, s: number) => void;
+        _vertexFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void;
+        constructor(id: number, shape: Vector3[], shapeUV: number[], posFunction: (particle: SolidParticle, i: number, s: number) => void, vtxFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void);
+    }
+}
+
+declare module BABYLON {
+    /**
+    * Full documentation here : http://doc.babylonjs.com/overviews/Solid_Particle_System
+    */
+    class SolidParticleSystem implements IDisposable {
         /**
-         * This scene's action manager
-         * @type {BABYLON.ActionManager}
+        *  The SPS array of Solid Particle objects. Just access each particle as with any classic array.
+        *  Example : var p = SPS.particles[i];
         */
-        actionManager: ActionManager;
-        physicsImpostor: BABYLON.PhysicsImpostor;
-        onPhysicsCollide: (collidedMesh: AbstractMesh, contact: any) => void;
-        private _checkCollisions;
-        ellipsoid: Vector3;
-        ellipsoidOffset: Vector3;
-        private _collider;
-        private _oldPositionForCollisions;
-        private _diffPositionForCollisions;
-        private _newPositionForCollisions;
-        private _meshToBoneReferal;
-        edgesWidth: number;
-        edgesColor: Color4;
-        _edgesRenderer: EdgesRenderer;
-        private _localWorld;
-        _worldMatrix: Matrix;
-        private _rotateYByPI;
-        private _absolutePosition;
-        private _collisionsTransformMatrix;
-        private _collisionsScalingMatrix;
-        _positions: Vector3[];
-        private _isDirty;
-        _masterMesh: AbstractMesh;
-        _materialDefines: MaterialDefines;
-        _boundingInfo: BoundingInfo;
-        private _pivotMatrix;
-        _isDisposed: boolean;
-        _renderId: number;
-        subMeshes: SubMesh[];
-        _submeshesOctree: Octree<SubMesh>;
-        _intersectionsInProgress: AbstractMesh[];
-        private _isWorldMatrixFrozen;
-        _unIndexed: boolean;
-        _poseMatrix: Matrix;
-        _waitingActions: any;
-        _waitingFreezeWorldMatrix: boolean;
-        private _skeleton;
-        _bonesTransformMatrices: Float32Array;
-        skeleton: Skeleton;
-        constructor(name: string, scene: Scene);
+        particles: SolidParticle[];
         /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
+        * The SPS total number of particles. Read only. Use SPS.counter instead if you need to set your own value.
+        */
+        nbParticles: number;
         /**
+        * If the particles must ever face the camera (default false). Useful for planar particles.
+        */
+        billboard: boolean;
+        /**
+        * This a counter ofr your own usage. It's not set by any SPS functions.
+        */
+        counter: number;
+        /**
+<<<<<<< HEAD
          * Getting the rotation object.
          * If rotation quaternion is set, this vector will (almost always) be the Zero vector!
          */
@@ -10749,52 +11535,104 @@ declare module BABYLON {
         translate(axis: Vector3, distance: number, space?: Space): void;
         getAbsolutePosition(): Vector3;
         setAbsolutePosition(absolutePosition: Vector3): void;
-        /**
-         * Perform relative position change from the point of view of behind the front of the mesh.
-         * This is performed taking into account the meshes current rotation, so you do not have to care.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} amountRight
-         * @param {number} amountUp
-         * @param {number} amountForward
-         */
-        movePOV(amountRight: number, amountUp: number, amountForward: number): void;
-        /**
-         * Calculate relative position change from the point of view of behind the front of the mesh.
-         * This is performed taking into account the meshes current rotation, so you do not have to care.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} amountRight
-         * @param {number} amountUp
-         * @param {number} amountForward
-         */
-        calcMovePOV(amountRight: number, amountUp: number, amountForward: number): Vector3;
-        /**
-         * Perform relative rotation change from the point of view of behind the front of the mesh.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} flipBack
-         * @param {number} twirlClockwise
-         * @param {number} tiltRight
-         */
-        rotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): void;
-        /**
-         * Calculate relative rotation change from the point of view of behind the front of the mesh.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} flipBack
-         * @param {number} twirlClockwise
-         * @param {number} tiltRight
-         */
-        calcRotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): Vector3;
-        setPivotMatrix(matrix: Matrix): void;
-        getPivotMatrix(): Matrix;
-        _isSynchronized(): boolean;
-        _initCache(): void;
-        markAsDirty(property: string): void;
-        _updateBoundingInfo(): void;
-        _updateSubMeshesBoundingInfo(matrix: Matrix): void;
-        computeWorldMatrix(force?: boolean): Matrix;
-        /**
-        * If you'd like to be callbacked after the mesh position, rotation or scaling has been updated
-        * @param func: callback function to add
+=======
+        * The SPS name. This name is also given to the underlying mesh.
         */
+        name: string;
+>>>>>>> vr_room_scale_camera
+        /**
+        * The SPS mesh. It's a standard BJS Mesh, so all the methods from the Mesh class are avalaible.
+        */
+        mesh: Mesh;
+        /**
+        * This empty object is intended to store some SPS specific or temporary values in order to lower the Garbage Collector activity.
+        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#garbage-collector-concerns
+        */
+        vars: any;
+        /**
+        * This array is populated when the SPS is set as 'pickable'.
+        * Each key of this array is a `faceId` value that you can get from a pickResult object.
+        * Each element of this array is an object `{idx: int, faceId: int}`.
+        * `idx` is the picked particle index in the `SPS.particles` array
+        * `faceId` is the picked face index counted within this particle.
+        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#pickable-particles
+        */
+        pickedParticles: {
+            idx: number;
+            faceId: number;
+        }[];
+        private _scene;
+        private _positions;
+        private _indices;
+        private _normals;
+        private _colors;
+        private _uvs;
+        private _positions32;
+        private _normals32;
+        private _fixedNormal32;
+        private _colors32;
+        private _uvs32;
+        private _index;
+        private _updatable;
+        private _pickable;
+        private _isVisibilityBoxLocked;
+        private _alwaysVisible;
+        private _shapeCounter;
+        private _copy;
+        private _shape;
+        private _shapeUV;
+        private _color;
+        private _computeParticleColor;
+        private _computeParticleTexture;
+        private _computeParticleRotation;
+        private _computeParticleVertex;
+        private _computeBoundingBox;
+        private _cam_axisZ;
+        private _cam_axisY;
+        private _cam_axisX;
+        private _axisX;
+        private _axisY;
+        private _axisZ;
+        private _camera;
+        private _particle;
+        private _fakeCamPos;
+        private _rotMatrix;
+        private _invertMatrix;
+        private _rotated;
+        private _quaternion;
+        private _vertex;
+        private _normal;
+        private _yaw;
+        private _pitch;
+        private _roll;
+        private _halfroll;
+        private _halfpitch;
+        private _halfyaw;
+        private _sinRoll;
+        private _cosRoll;
+        private _sinPitch;
+        private _cosPitch;
+        private _sinYaw;
+        private _cosYaw;
+        private _w;
+        private _minimum;
+        private _maximum;
+        /**
+        * Creates a SPS (Solid Particle System) object.
+        * `name` (String) is the SPS name, this will be the underlying mesh name.
+        * `scene` (Scene) is the scene in which the SPS is added.
+        * `updatable` (default true) : if the SPS must be updatable or immutable.
+        * `isPickable` (default false) : if the solid particles must be pickable.
+        */
+        constructor(name: string, scene: Scene, options?: {
+            updatable?: boolean;
+            isPickable?: boolean;
+        });
+        /**
+        * Builds the SPS underlying mesh. Returns a standard Mesh.
+        * If no model shape was added to the SPS, the returned mesh is just a single triangular plane.
+        */
+<<<<<<< HEAD
         registerAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
         unregisterAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
         setPositionWithLocalVector(vector3: Vector3): void;
@@ -10808,44 +11646,72 @@ declare module BABYLON {
         isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
         intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
         intersectsPoint(point: Vector3): boolean;
+=======
+        buildMesh(): Mesh;
+>>>>>>> vr_room_scale_camera
         /**
-         *  @Deprecated. Use new PhysicsImpostor instead.
-         * */
-        setPhysicsState(impostor?: any, options?: PhysicsImpostorParameters): any;
-        getPhysicsImpostor(): PhysicsImpostor;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("mass");
-         */
-        getPhysicsMass(): number;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("friction");
-         */
-        getPhysicsFriction(): number;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("restitution");
-         */
-        getPhysicsRestitution(): number;
-        getPositionInCameraSpace(camera?: Camera): Vector3;
-        getDistanceToCamera(camera?: Camera): number;
-        applyImpulse(force: Vector3, contactPoint: Vector3): void;
-        setPhysicsLinkWith(otherMesh: Mesh, pivot1: Vector3, pivot2: Vector3, options?: any): void;
-        /**
-         * @Deprecated
-         */
-        updatePhysicsBodyPosition(): void;
-        /**
-         * @Deprecated
-         * Calling this function is not needed anymore.
-         * The physics engine takes care of transofmration automatically.
-         */
-        updatePhysicsBody(): void;
-        checkCollisions: boolean;
-        moveWithCollisions(velocity: Vector3): void;
-        private _onCollisionPositionChange;
-        /**
-        * This function will create an octree to help select the right submeshes for rendering, picking and collisions
-        * Please note that you must have a decent number of submeshes to get performance improvements when using octree
+        * Digests the mesh and generates as many solid particles in the system as wanted. Returns the SPS.
+        * These particles will have the same geometry than the mesh parts and will be positioned at the same localisation than the mesh original places.
+        * Thus the particles generated from `digest()` have their property `position` set yet.
+        * `mesh` ( Mesh ) is the mesh to be digested
+        * `facetNb` (optional integer, default 1) is the number of mesh facets per particle, this parameter is overriden by the parameter `number` if any
+        * `delta` (optional integer, default 0) is the random extra number of facets per particle , each particle will have between `facetNb` and `facetNb + delta` facets
+        * `number` (optional positive integer) is the wanted number of particles : each particle is built with `mesh_total_facets / number` facets
         */
+        digest(mesh: Mesh, options?: {
+            facetNb?: number;
+            number?: number;
+            delta?: number;
+        }): SolidParticleSystem;
+        private _resetCopy();
+        private _meshBuilder(p, shape, positions, meshInd, indices, meshUV, uvs, meshCol, colors, idx, idxInShape, options);
+        private _posToShape(positions);
+        private _uvsToShapeUV(uvs);
+        private _addParticle(idx, idxpos, model, shapeId, idxInShape);
+        /**
+        * Adds some particles to the SPS from the model shape. Returns the shape id.
+        * Please read the doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#create-an-immutable-sps
+        * `mesh` is any Mesh object that will be used as a model for the solid particles.
+        * `nb` (positive integer) the number of particles to be created from this model
+        * `positionFunction` is an optional javascript function to called for each particle on SPS creation.
+        * `vertexFunction` is an optional javascript function to called for each vertex of each particle on SPS creation
+        */
+        addShape(mesh: Mesh, nb: number, options?: {
+            positionFunction?: any;
+            vertexFunction?: any;
+        }): number;
+        private _rebuildParticle(particle);
+        /**
+        * Rebuilds the whole mesh and updates the VBO : custom positions and vertices are recomputed if needed.
+        */
+        rebuildMesh(): void;
+        /**
+        *  Sets all the particles : this method actually really updates the mesh according to the particle positions, rotations, colors, textures, etc.
+        *  This method calls `updateParticle()` for each particle of the SPS.
+        *  For an animated SPS, it is usually called within the render loop.
+        * @param start The particle index in the particle array where to start to compute the particle property values _(default 0)_
+        * @param end The particle index in the particle array where to stop to compute the particle property values _(default nbParticle - 1)_
+        * @param update If the mesh must be finally updated on this call after all the particle computations _(default true)_
+        */
+        setParticles(start?: number, end?: number, update?: boolean): void;
+        private _quaternionRotationYPR();
+        private _quaternionToRotationMatrix();
+        /**
+        * Disposes the SPS
+        */
+        dispose(): void;
+        /**
+        * Visibilty helper : Recomputes the visible size according to the mesh bounding box
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+        refreshVisibleSize(): void;
+        /**
+        * Visibility helper : Sets the size of a visibility box, this sets the underlying mesh bounding box.
+        * @param size the size (float) of the visibility box
+        * note : this doesn't lock the SPS mesh bounding box.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+<<<<<<< HEAD
         createOrUpdateSubmeshesOctree(maxCapacity?: number, maxDepth?: number): Octree<SubMesh>;
         _collideForSubMesh(subMesh: SubMesh, transformMatrix: Matrix, collider: Collider): void;
         _processCollisionsForSubMeshes(collider: Collider, transformMatrix: Matrix): void;
@@ -11127,20 +11993,716 @@ declare module BABYLON {
         constructor(name: string, scene: Scene);
         subdivisions: number;
         optimize(chunksCount: number, octreeBlocksSize?: number): void;
+=======
+        setVisibilityBox(size: number): void;
+>>>>>>> vr_room_scale_camera
+        /**
+        * Sets the SPS as always visible or not
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+        isAlwaysVisible: boolean;
+        /**
+        * Sets the SPS visibility box as locked or not. This enables/disables the underlying mesh bounding box updates.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+        isVisibilityBoxLocked: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle rotations or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle rotations aren't stored values, so setting `computeParticleRotation` to false will prevents the particle to rotate.
+        */
+        computeParticleRotation: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle colors or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle colors are stored values, so setting `computeParticleColor` to false will keep yet the last colors set.
+        */
+        computeParticleColor: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle textures or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle textures are stored values, so setting `computeParticleTexture` to false will keep yet the last colors set.
+        */
+        computeParticleTexture: boolean;
+        /**
+        * Tells to `setParticles()` to call the vertex function for each vertex of each particle, or not.
+        * Default value : false. The SPS is faster when it's set to false.
+        * Note : the particle custom vertex positions aren't stored values.
+        */
+        computeParticleVertex: boolean;
+        /**
+        * Tells to `setParticles()` to compute or not the mesh bounding box when computing the particle positions.
+        */
+        computeBoundingBox: boolean;
+        /**
+        * This function does nothing. It may be overwritten to set all the particle first values.
+        * The SPS doesn't call this function, you may have to call it by your own.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        */
+        initParticles(): void;
+        /**
+        * This function does nothing. It may be overwritten to recycle a particle.
+        * The SPS doesn't call this function, you may have to call it by your own.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        */
+        recycleParticle(particle: SolidParticle): SolidParticle;
+        /**
+        * Updates a particle : this function should  be overwritten by the user.
+        * It is called on each particle by `setParticles()`. This is the place to code each particle behavior.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        * ex : just set a particle position or velocity and recycle conditions
+        */
+        updateParticle(particle: SolidParticle): SolidParticle;
+        /**
+        * Updates a vertex of a particle : it can be overwritten by the user.
+        * This will be called on each vertex particle by `setParticles()` if `computeParticleVertex` is set to true only.
+        * @param particle the current particle
+        * @param vertex the current index of the current particle
+        * @param pt the index of the current vertex in the particle shape
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#update-each-particle-shape
+        * ex : just set a vertex particle position
+        */
+        updateParticleVertex(particle: SolidParticle, vertex: Vector3, pt: number): Vector3;
+        /**
+        * This will be called before any other treatment by `setParticles()` and will be passed three parameters.
+        * This does nothing and may be overwritten by the user.
+        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param update the boolean update value actually passed to setParticles()
+        */
+        beforeUpdateParticles(start?: number, stop?: number, update?: boolean): void;
+        /**
+        * This will be called  by `setParticles()` after all the other treatments and just before the actual mesh update.
+        * This will be passed three parameters.
+        * This does nothing and may be overwritten by the user.
+        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param update the boolean update value actually passed to setParticles()
+        */
+        afterUpdateParticles(start?: number, stop?: number, update?: boolean): void;
+    }
+}
+
+declare module BABYLON {
+    class ReflectionProbe {
+        name: string;
+        private _scene;
+        private _renderTargetTexture;
+        private _projectionMatrix;
+        private _viewMatrix;
+        private _target;
+        private _add;
+        private _attachedMesh;
+        invertYAxis: boolean;
+        position: Vector3;
+        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
+        refreshRate: number;
+        getScene(): Scene;
+        cubeTexture: RenderTargetTexture;
+        renderList: AbstractMesh[];
+        attachToMesh(mesh: AbstractMesh): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class AbstractMesh extends Node implements IDisposable {
+        private static _BILLBOARDMODE_NONE;
+        private static _BILLBOARDMODE_X;
+        private static _BILLBOARDMODE_Y;
+        private static _BILLBOARDMODE_Z;
+        private static _BILLBOARDMODE_ALL;
+        static BILLBOARDMODE_NONE: number;
+        static BILLBOARDMODE_X: number;
+        static BILLBOARDMODE_Y: number;
+        static BILLBOARDMODE_Z: number;
+        static BILLBOARDMODE_ALL: number;
+        /**
+        * An event triggered when the mesh is disposed.
+        * @type {BABYLON.Observable}
+        */
+        onDisposeObservable: Observable<AbstractMesh>;
+        private _onDisposeObserver;
+        onDispose: () => void;
+        /**
+        * An event triggered when this mesh collides with another one
+        * @type {BABYLON.Observable}
+        */
+        onCollideObservable: Observable<AbstractMesh>;
+        private _onCollideObserver;
+        onCollide: () => void;
+        /**
+        * An event triggered when the collision's position changes
+        * @type {BABYLON.Observable}
+        */
+        onCollisionPositionChangeObservable: Observable<Vector3>;
+        private _onCollisionPositionChangeObserver;
+        onCollisionPositionChange: () => void;
+        /**
+        * An event triggered after the world matrix is updated
+        * @type {BABYLON.Observable}
+        */
+        onAfterWorldMatrixUpdateObservable: Observable<AbstractMesh>;
+        definedFacingForward: boolean;
+        position: Vector3;
+        private _rotation;
+        _rotationQuaternion: Quaternion;
+        private _scaling;
+        billboardMode: number;
+        visibility: number;
+        alphaIndex: number;
+        infiniteDistance: boolean;
+        isVisible: boolean;
+        isPickable: boolean;
+        showBoundingBox: boolean;
+        showSubMeshesBoundingBox: boolean;
+        isBlocker: boolean;
+        renderingGroupId: number;
+        material: Material;
+        receiveShadows: boolean;
+        renderOutline: boolean;
+        outlineColor: Color3;
+        outlineWidth: number;
+        renderOverlay: boolean;
+        overlayColor: Color3;
+        overlayAlpha: number;
+        hasVertexAlpha: boolean;
+        useVertexColors: boolean;
+        applyFog: boolean;
+        computeBonesUsingShaders: boolean;
+        scalingDeterminant: number;
+        numBoneInfluencers: number;
+        useOctreeForRenderingSelection: boolean;
+        useOctreeForPicking: boolean;
+        useOctreeForCollisions: boolean;
+        layerMask: number;
+        alwaysSelectAsActiveMesh: boolean;
+        /**
+         * This scene's action manager
+         * @type {BABYLON.ActionManager}
+        */
+        actionManager: ActionManager;
+        physicsImpostor: BABYLON.PhysicsImpostor;
+        onPhysicsCollide: (collidedMesh: AbstractMesh, contact: any) => void;
+        private _checkCollisions;
+        ellipsoid: Vector3;
+        ellipsoidOffset: Vector3;
+        private _collider;
+        private _oldPositionForCollisions;
+        private _diffPositionForCollisions;
+        private _newPositionForCollisions;
+        private _meshToBoneReferal;
+        edgesWidth: number;
+        edgesColor: Color4;
+        _edgesRenderer: EdgesRenderer;
+        private _localWorld;
+        _worldMatrix: Matrix;
+        private _rotateYByPI;
+        private _absolutePosition;
+        private _collisionsTransformMatrix;
+        private _collisionsScalingMatrix;
+        _positions: Vector3[];
+        private _isDirty;
+        _masterMesh: AbstractMesh;
+        _materialDefines: MaterialDefines;
+        _boundingInfo: BoundingInfo;
+        private _pivotMatrix;
+        _isDisposed: boolean;
+        _renderId: number;
+        subMeshes: SubMesh[];
+        _submeshesOctree: Octree<SubMesh>;
+        _intersectionsInProgress: AbstractMesh[];
+        private _isWorldMatrixFrozen;
+        _unIndexed: boolean;
+        _poseMatrix: Matrix;
+        _waitingActions: any;
+        _waitingFreezeWorldMatrix: boolean;
+        private _skeleton;
+        _bonesTransformMatrices: Float32Array;
+        skeleton: Skeleton;
+        constructor(name: string, scene: Scene);
+        /**
+         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
+         */
+        toString(fullDetails?: boolean): string;
+        /**
+         * Getting the rotation object.
+         * If rotation quaternion is set, this vector will (almost always) be the Zero vector!
+         */
+        rotation: Vector3;
+        scaling: Vector3;
+        rotationQuaternion: Quaternion;
+        updatePoseMatrix(matrix: Matrix): void;
+        getPoseMatrix(): Matrix;
+        disableEdgesRendering(): void;
+        enableEdgesRendering(epsilon?: number, checkVerticesInsteadOfIndices?: boolean): void;
+        isBlocked: boolean;
+        getLOD(camera: Camera): AbstractMesh;
+        getTotalVertices(): number;
+        getIndices(): number[] | Int32Array;
+        getVerticesData(kind: string): number[] | Float32Array;
+        isVerticesDataPresent(kind: string): boolean;
+        getBoundingInfo(): BoundingInfo;
+        useBones: boolean;
+        _preActivate(): void;
+        _preActivateForIntermediateRendering(renderId: number): void;
+        _activate(renderId: number): void;
+        getWorldMatrix(): Matrix;
+        worldMatrixFromCache: Matrix;
+        absolutePosition: Vector3;
+        freezeWorldMatrix(): void;
+        unfreezeWorldMatrix(): void;
+        isWorldMatrixFrozen: boolean;
+        rotate(axis: Vector3, amount: number, space?: Space): void;
+        translate(axis: Vector3, distance: number, space?: Space): void;
+        getAbsolutePosition(): Vector3;
+        setAbsolutePosition(absolutePosition: Vector3): void;
+        /**
+         * Perform relative position change from the point of view of behind the front of the mesh.
+         * This is performed taking into account the meshes current rotation, so you do not have to care.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} amountRight
+         * @param {number} amountUp
+         * @param {number} amountForward
+         */
+        movePOV(amountRight: number, amountUp: number, amountForward: number): void;
+        /**
+         * Calculate relative position change from the point of view of behind the front of the mesh.
+         * This is performed taking into account the meshes current rotation, so you do not have to care.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} amountRight
+         * @param {number} amountUp
+         * @param {number} amountForward
+         */
+        calcMovePOV(amountRight: number, amountUp: number, amountForward: number): Vector3;
+        /**
+         * Perform relative rotation change from the point of view of behind the front of the mesh.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} flipBack
+         * @param {number} twirlClockwise
+         * @param {number} tiltRight
+         */
+        rotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): void;
+        /**
+         * Calculate relative rotation change from the point of view of behind the front of the mesh.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} flipBack
+         * @param {number} twirlClockwise
+         * @param {number} tiltRight
+         */
+        calcRotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): Vector3;
+        setPivotMatrix(matrix: Matrix): void;
+        getPivotMatrix(): Matrix;
+        _isSynchronized(): boolean;
+        _initCache(): void;
+        markAsDirty(property: string): void;
+        _updateBoundingInfo(): void;
+        _updateSubMeshesBoundingInfo(matrix: Matrix): void;
+        computeWorldMatrix(force?: boolean): Matrix;
+        /**
+        * If you'd like to be callbacked after the mesh position, rotation or scaling has been updated
+        * @param func: callback function to add
+        */
+        registerAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
+        unregisterAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
+        setPositionWithLocalVector(vector3: Vector3): void;
+        getPositionExpressedInLocalSpace(): Vector3;
+        locallyTranslate(vector3: Vector3): void;
+        lookAt(targetPoint: Vector3, yawCor: number, pitchCor: number, rollCor: number): void;
+        attachToBone(bone: Bone, affectedMesh: AbstractMesh): void;
+        detachFromBone(): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        isCompletelyInFrustum(camera?: Camera): boolean;
+        intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
+        intersectsPoint(point: Vector3): boolean;
+        /**
+         *  @Deprecated. Use new PhysicsImpostor instead.
+         * */
+        setPhysicsState(impostor?: any, options?: PhysicsImpostorParameters): any;
+        getPhysicsImpostor(): PhysicsImpostor;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("mass");
+         */
+        getPhysicsMass(): number;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("friction");
+         */
+        getPhysicsFriction(): number;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("restitution");
+         */
+        getPhysicsRestitution(): number;
+        getPositionInCameraSpace(camera?: Camera): Vector3;
+        getDistanceToCamera(camera?: Camera): number;
+        applyImpulse(force: Vector3, contactPoint: Vector3): void;
+        setPhysicsLinkWith(otherMesh: Mesh, pivot1: Vector3, pivot2: Vector3, options?: any): void;
+        /**
+         * @Deprecated
+         */
+        updatePhysicsBodyPosition(): void;
+        /**
+         * @Deprecated
+         * Calling this function is not needed anymore.
+         * The physics engine takes care of transofmration automatically.
+         */
+        updatePhysicsBody(): void;
+        checkCollisions: boolean;
+        moveWithCollisions(velocity: Vector3): void;
+        private _onCollisionPositionChange;
+        /**
+        * This function will create an octree to help select the right submeshes for rendering, picking and collisions
+        * Please note that you must have a decent number of submeshes to get performance improvements when using octree
+        */
+        createOrUpdateSubmeshesOctree(maxCapacity?: number, maxDepth?: number): Octree<SubMesh>;
+        _collideForSubMesh(subMesh: SubMesh, transformMatrix: Matrix, collider: Collider): void;
+        _processCollisionsForSubMeshes(collider: Collider, transformMatrix: Matrix): void;
+        _checkCollision(collider: Collider): void;
+        _generatePointsArray(): boolean;
+        intersects(ray: Ray, fastCheck?: boolean): PickingInfo;
+        clone(name: string, newParent: Node, doNotCloneChildren?: boolean): AbstractMesh;
+        releaseSubMeshes(): void;
+        dispose(doNotRecurse?: boolean): void;
+    }
+}
+
+declare module BABYLON {
+    class Buffer {
+        private _engine;
+        private _buffer;
+        private _data;
+        private _updatable;
+        private _strideSize;
+        private _instanced;
+        constructor(engine: any, data: number[] | Float32Array, updatable: boolean, stride: number, postponeInternalCreation?: boolean, instanced?: boolean);
+        createVertexBuffer(kind: string, offset: number, size: number, stride?: number): VertexBuffer;
+        isUpdatable(): boolean;
+        getData(): number[] | Float32Array;
+        getBuffer(): WebGLBuffer;
+        getStrideSize(): number;
+        getIsInstanced(): boolean;
+        create(data?: number[] | Float32Array): void;
+        update(data: number[] | Float32Array): void;
+        updateDirectly(data: Float32Array, offset: number, vertexCount?: number): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class CSG {
+        private polygons;
+        matrix: Matrix;
+        position: Vector3;
+        rotation: Vector3;
+        rotationQuaternion: Quaternion;
+        scaling: Vector3;
+        static FromMesh(mesh: Mesh): CSG;
+        private static FromPolygons(polygons);
+        clone(): CSG;
+        private toPolygons();
+        union(csg: CSG): CSG;
+        unionInPlace(csg: CSG): void;
+        subtract(csg: CSG): CSG;
+        subtractInPlace(csg: CSG): void;
+        intersect(csg: CSG): CSG;
+        intersectInPlace(csg: CSG): void;
+        inverse(): CSG;
+        inverseInPlace(): void;
+        copyTransformAttributes(csg: CSG): CSG;
+        buildMeshGeometry(name: string, scene: Scene, keepSubMeshes: boolean): Mesh;
+        toMesh(name: string, material: Material, scene: Scene, keepSubMeshes: boolean): Mesh;
+    }
+}
+
+declare module BABYLON {
+    class Geometry implements IGetSetVerticesData {
+        id: string;
+        delayLoadState: number;
+        delayLoadingFile: string;
+        onGeometryUpdated: (geometry: Geometry, kind?: string) => void;
+        private _scene;
+        private _engine;
+        private _meshes;
+        private _totalVertices;
+        private _indices;
+        private _vertexBuffers;
+        private _isDisposed;
+        private _extend;
+        private _boundingBias;
+        _delayInfo: any;
+        private _indexBuffer;
+        _boundingInfo: BoundingInfo;
+        _delayLoadingFunction: (any: any, geometry: Geometry) => void;
+        _softwareSkinningRenderId: number;
+        /**
+         *  The Bias Vector to apply on the bounding elements (box/sphere), the max extend is computed as v += v * bias.x + bias.y, the min is computed as v -= v * bias.x + bias.y
+         * @returns The Bias Vector
+         */
+        boundingBias: Vector2;
+        constructor(id: string, scene: Scene, vertexData?: VertexData, updatable?: boolean, mesh?: Mesh);
+        extend: {
+            minimum: Vector3;
+            maximum: Vector3;
+        };
+        getScene(): Scene;
+        getEngine(): Engine;
+        isReady(): boolean;
+        setAllVerticesData(vertexData: VertexData, updatable?: boolean): void;
+        setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean, stride?: number): void;
+        setVerticesBuffer(buffer: VertexBuffer): void;
+<<<<<<< HEAD
+        /**
+         * Updates the existing vertex data of the mesh geometry for the requested `kind`.
+         * If the mesh has no geometry, it is simply returned as it is.
+         * The `data` are either a numeric array either a Float32Array.
+         * No new underlying VertexBuffer object is created.
+         * If the `kind` is the `PositionKind` and if `updateExtends` is true, the mesh BoundingInfo is renewed, so the bounding box and sphere, and the mesh World Matrix is recomputed.
+         * If the parameter `makeItUnique` is true, a new global geometry is created from this positions and is set to the mesh.
+         *
+         * Possible `kind` values :
+         * - BABYLON.VertexBuffer.PositionKind
+         * - BABYLON.VertexBuffer.UVKind
+         * - BABYLON.VertexBuffer.UV2Kind
+         * - BABYLON.VertexBuffer.UV3Kind
+         * - BABYLON.VertexBuffer.UV4Kind
+         * - BABYLON.VertexBuffer.UV5Kind
+         * - BABYLON.VertexBuffer.UV6Kind
+         * - BABYLON.VertexBuffer.ColorKind
+         * - BABYLON.VertexBuffer.MatricesIndicesKind
+         * - BABYLON.VertexBuffer.MatricesIndicesExtraKind
+         * - BABYLON.VertexBuffer.MatricesWeightsKind
+         * - BABYLON.VertexBuffer.MatricesWeightsExtraKind
+         */
+        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
+        /**
+         * Deprecated since BabylonJS v2.3
+         */
+        updateVerticesDataDirectly(kind: string, data: Float32Array, offset?: number, makeItUnique?: boolean): void;
+        /**
+         * This method updates the vertex positions of an updatable mesh according to the `positionFunction` returned values.
+         * tuto : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#other-shapes-updatemeshpositions
+         * The parameter `positionFunction` is a simple JS function what is passed the mesh `positions` array. It doesn't need to return anything.
+         * The parameter `computeNormals` is a boolean (default true) to enable/disable the mesh normal recomputation after the vertex position update.
+         */
+        updateMeshPositions(positionFunction: any, computeNormals?: boolean): void;
+        makeGeometryUnique(): void;
+        /**
+         * Sets the mesh indices.
+         * Expects an array populated with integers or a Int32Array.
+         * If the mesh has no geometry, a new Geometry object is created and set to the mesh.
+         * This method creates a new index buffer each call.
+         */
+=======
+        updateVerticesDataDirectly(kind: string, data: Float32Array, offset: number): void;
+        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean): void;
+        private updateBoundingInfo(updateExtends, data);
+        getTotalVertices(): number;
+        getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Float32Array;
+        getVertexBuffer(kind: string): VertexBuffer;
+        getVertexBuffers(): {
+            [key: string]: VertexBuffer;
+        };
+        isVerticesDataPresent(kind: string): boolean;
+        getVerticesDataKinds(): string[];
+>>>>>>> vr_room_scale_camera
+        setIndices(indices: number[] | Int32Array, totalVertices?: number): void;
+        getTotalIndices(): number;
+        getIndices(copyWhenShared?: boolean): number[] | Int32Array;
+        getIndexBuffer(): WebGLBuffer;
+        releaseForMesh(mesh: Mesh, shouldDispose?: boolean): void;
+        applyToMesh(mesh: Mesh): void;
+        private updateExtend(data?, stride?);
+        private _applyToMesh(mesh);
+        private notifyUpdate(kind?);
+        load(scene: Scene, onLoaded?: () => void): void;
+        /**
+         * Invert the geometry to move from a right handed system to a left handed one.
+         */
+        toLeftHanded(): void;
+        isDisposed(): boolean;
+        dispose(): void;
+        copy(id: string): Geometry;
+        serialize(): any;
+        serializeVerticeData(): any;
+        static ExtractFromMesh(mesh: Mesh, id: string): Geometry;
+        static RandomId(): string;
+        static ImportGeometry(parsedGeometry: any, mesh: Mesh): void;
+        static Parse(parsedVertexData: any, scene: Scene, rootUrl: string): Geometry;
+    }
+    module Geometry.Primitives {
+        class _Primitive extends Geometry {
+            private _canBeRegenerated;
+            private _beingRegenerated;
+            constructor(id: string, scene: Scene, _canBeRegenerated?: boolean, mesh?: Mesh);
+            canBeRegenerated(): boolean;
+            regenerate(): void;
+            asNewGeometry(id: string): Geometry;
+            setAllVerticesData(vertexData: VertexData, updatable?: boolean): void;
+            setVerticesData(kind: string, data: number[] | Int32Array | Float32Array, updatable?: boolean): void;
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+        }
+        class Ribbon extends _Primitive {
+            pathArray: Vector3[][];
+            closeArray: boolean;
+            closePath: boolean;
+            offset: number;
+            side: number;
+            constructor(id: string, scene: Scene, pathArray: Vector3[][], closeArray: boolean, closePath: boolean, offset: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+        }
+        class Box extends _Primitive {
+            size: number;
+            side: number;
+            constructor(id: string, scene: Scene, size: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedBox: any, scene: Scene): Box;
+        }
+        class Sphere extends _Primitive {
+            segments: number;
+            diameter: number;
+            side: number;
+            constructor(id: string, scene: Scene, segments: number, diameter: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedSphere: any, scene: Scene): Geometry.Primitives.Sphere;
+        }
+        class Disc extends _Primitive {
+            radius: number;
+            tessellation: number;
+            side: number;
+            constructor(id: string, scene: Scene, radius: number, tessellation: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+        }
+        class Cylinder extends _Primitive {
+            height: number;
+            diameterTop: number;
+            diameterBottom: number;
+            tessellation: number;
+            subdivisions: number;
+            side: number;
+            constructor(id: string, scene: Scene, height: number, diameterTop: number, diameterBottom: number, tessellation: number, subdivisions?: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedCylinder: any, scene: Scene): Geometry.Primitives.Cylinder;
+        }
+        class Torus extends _Primitive {
+            diameter: number;
+            thickness: number;
+            tessellation: number;
+            side: number;
+            constructor(id: string, scene: Scene, diameter: number, thickness: number, tessellation: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedTorus: any, scene: Scene): Geometry.Primitives.Torus;
+        }
+        class Ground extends _Primitive {
+            width: number;
+            height: number;
+            subdivisions: number;
+            constructor(id: string, scene: Scene, width: number, height: number, subdivisions: number, canBeRegenerated?: boolean, mesh?: Mesh);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedGround: any, scene: Scene): Geometry.Primitives.Ground;
+        }
+        class TiledGround extends _Primitive {
+            xmin: number;
+            zmin: number;
+            xmax: number;
+            zmax: number;
+            subdivisions: {
+                w: number;
+                h: number;
+            };
+            precision: {
+                w: number;
+                h: number;
+            };
+            constructor(id: string, scene: Scene, xmin: number, zmin: number, xmax: number, zmax: number, subdivisions: {
+                w: number;
+                h: number;
+            }, precision: {
+                w: number;
+                h: number;
+            }, canBeRegenerated?: boolean, mesh?: Mesh);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+        }
+        class Plane extends _Primitive {
+            size: number;
+            side: number;
+            constructor(id: string, scene: Scene, size: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedPlane: any, scene: Scene): Geometry.Primitives.Plane;
+        }
+        class TorusKnot extends _Primitive {
+            radius: number;
+            tube: number;
+            radialSegments: number;
+            tubularSegments: number;
+            p: number;
+            q: number;
+            side: number;
+            constructor(id: string, scene: Scene, radius: number, tube: number, radialSegments: number, tubularSegments: number, p: number, q: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
+            _regenerateVertexData(): VertexData;
+            copy(id: string): Geometry;
+            serialize(): any;
+            static Parse(parsedTorusKnot: any, scene: Scene): Geometry.Primitives.TorusKnot;
+        }
+    }
+}
+
+declare module BABYLON {
+    class GroundMesh extends Mesh {
+        generateOctree: boolean;
+        private _worldInverse;
+        private _heightQuads;
+        _subdivisions: number;
+        _width: number;
+        _height: number;
+        _minX: number;
+        _maxX: number;
+        _minZ: number;
+        _maxZ: number;
+        constructor(name: string, scene: Scene);
+        subdivisions: number;
+        optimize(chunksCount: number, octreeBlocksSize?: number): void;
         /**
          * Returns a height (y) value in the Worl system :
          * the ground altitude at the coordinates (x, z) expressed in the World system.
          * Returns the ground y position if (x, z) are outside the ground surface.
          * Not pertinent if the ground is rotated.
          */
+<<<<<<< HEAD
+        unregisterAfterRender(func: (mesh: AbstractMesh) => void): void;
+        _getInstancesRenderList(subMeshId: number): _InstancesBatch;
+        _renderWithInstances(subMesh: SubMesh, fillMode: number, batch: _InstancesBatch, effect: Effect, engine: Engine): void;
+        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix, effectiveMaterial?: Material) => void, effectiveMaterial?: Material): void;
+=======
         getHeightAtCoordinates(x: number, z: number): number;
+>>>>>>> vr_room_scale_camera
         /**
          * Returns a normalized vector (Vector3) orthogonal to the ground
          * at the ground coordinates (x, z) expressed in the World system.
          * Returns Vector3(0, 1, 0) if (x, z) are outside the ground surface.
          * Not pertinent if the ground is rotated.
          */
+<<<<<<< HEAD
+        render(subMesh: SubMesh, enableAlphaMode: boolean): void;
+        private _onBeforeDraw(isInstance, world, effectiveMaterial);
+=======
         getNormalAtCoordinates(x: number, z: number): Vector3;
+>>>>>>> vr_room_scale_camera
         /**
          * Updates the Vector3 passed a reference with a normalized vector orthogonal to the ground
          * at the ground coordinates (x, z) expressed in the World system.
@@ -11149,6 +12711,13 @@ declare module BABYLON {
          */
         getNormalAtCoordinatesToRef(x: number, z: number, ref: Vector3): void;
         /**
+<<<<<<< HEAD
+         * Returns an array populated with ParticleSystem objects whose the mesh or its children are the emitter.
+         */
+        getHierarchyEmittedParticleSystems(): ParticleSystem[];
+        _checkDelayState(): void;
+        private _queueLoad(mesh, scene);
+=======
         * Force the heights to be recomputed for getHeightAtCoordinates() or getNormalAtCoordinates()
         * if the ground has been updated.
         * This can be used in the render loop
@@ -11195,6 +12764,7 @@ declare module BABYLON {
         color: Color3;
         alpha: number;
         private _positionBuffer;
+>>>>>>> vr_room_scale_camera
         /**
          * The intersection Threshold is the margin applied when intersection a segment of the LinesMesh with a Ray.
          * This margin is expressed in world space coordinates, so its value may vary.
@@ -11244,7 +12814,16 @@ declare module BABYLON {
          */
         static BACKSIDE: number;
         /**
+<<<<<<< HEAD
+         * Returns a new Mesh object generated from the current mesh properties.
+         * This method must not get confused with createInstance().
+         * The parameter `name` is a string, the name given to the new mesh.
+         * The optional parameter `newParent` can be any Node object (default `null`).
+         * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
+         * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any.
+=======
          * Mesh side orientation : both internal and external or front and back surfaces
+>>>>>>> vr_room_scale_camera
          */
         static DOUBLESIDE: number;
         /**
@@ -11441,7 +13020,20 @@ declare module BABYLON {
         getIndices(copyWhenShared?: boolean): number[] | Int32Array;
         isBlocked: boolean;
         /**
+<<<<<<< HEAD
+         * Creates lathe mesh.
+         * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
+         * Please consider using the same method from the MeshBuilder class instead.
+         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
+         * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
+         * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
+         * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+=======
          * Boolean : true once the mesh is ready after all the delayed process (loading, etc) are complete.
+>>>>>>> vr_room_scale_camera
          */
         isReady(): boolean;
         /**
@@ -11465,12 +13057,50 @@ declare module BABYLON {
          */
         freezeNormals(): void;
         /**
+<<<<<<< HEAD
+         * Creates a tube mesh.
+         * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         * Please consider using the same method from the MeshBuilder class instead.
+         * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
+         * The parameter `radius` (positive float, default 1) sets the tube radius size.
+         * The parameter `tessellation` (positive float, default 64) is the number of sides on the tubular surface.
+         * The parameter `radiusFunction` (javascript function, default null) is a vanilla javascript function. If it is not null, it overwrittes the parameter `radius`.
+         * This function is called on each point of the tube path and is passed the index `i` of the i-th point and the distance of this point from the first point of the path.
+         * It must return a radius value (positive float) :
+         * ```javascript
+         * var radiusFunction = function(i, distance) {
+         *     // do things
+         *     return radius; }
+         * ```
+         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
+         * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+=======
          * This function affects parametric shapes on vertex position update only : ribbons, tubes, etc.
          * It has no effect at all on other shapes.
          * It reactivates the mesh normals computation if it was previously frozen.
+>>>>>>> vr_room_scale_camera
          */
         unfreezeNormals(): void;
         /**
+<<<<<<< HEAD
+         * Creates a polyhedron mesh.
+         * Please consider using the same method from the MeshBuilder class instead.
+         * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
+         *  to choose the wanted type.
+         * The parameter `size` (positive float, default 1) sets the polygon size.
+         * You can overwrite the `size` on each dimension bu using the parameters `sizeX`, `sizeY` or `sizeZ` (positive floats, default to `size` value).
+         * You can build other polyhedron types than the 15 embbeded ones by setting the parameter `custom` (`polyhedronObject`, default null). If you set the parameter `custom`, this overwrittes the parameter `type`.
+         * A `polyhedronObject` is a formatted javascript object. You'll find a full file with pre-set polyhedra here : https://github.com/BabylonJS/Extensions/tree/master/Polyhedron
+         * You can set the color and the UV of each side of the polyhedron with the parameters `faceColors` (Color4, default `(1, 1, 1, 1)`) and faceUV (Vector4, default `(0, 0, 1, 1)`).
+         * To understand how to set `faceUV` or `faceColors`, please read this by considering the right number of faces of your polyhedron, instead of only 6 for the box : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
+         * The parameter `flat` (boolean, default true). If set to false, it gives the polyhedron a single global face, so less vertices and shared normals. In this case, `faceColors` and `faceUV` are ignored.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+=======
          * Overrides instance count. Only applicable when custom instanced InterleavedVertexBuffer are used rather than InstancedMeshs
          */
         overridenInstanceCount: number;
@@ -11506,6 +13136,7 @@ declare module BABYLON {
          * - BABYLON.VertexBuffer.MatricesIndicesExtraKind
          * - BABYLON.VertexBuffer.MatricesWeightsKind
          * - BABYLON.VertexBuffer.MatricesWeightsExtraKind
+>>>>>>> vr_room_scale_camera
          */
         setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean, stride?: number): void;
         setVerticesBuffer(buffer: VertexBuffer): void;
@@ -11533,7 +13164,17 @@ declare module BABYLON {
          */
         updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
         /**
+<<<<<<< HEAD
+         * Creates a decal mesh.
+         * Please consider using the same method from the MeshBuilder class instead.
+         * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
+         * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
+         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.
+         * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
+         * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
+=======
          * Deprecated since BabylonJS v2.3
+>>>>>>> vr_room_scale_camera
          */
         updateVerticesDataDirectly(kind: string, data: Float32Array, offset?: number, makeItUnique?: boolean): void;
         /**
@@ -11547,7 +13188,7 @@ declare module BABYLON {
         /**
          * Sets the mesh indices.
          * Expects an array populated with integers or a Int32Array.
-         * If the mesh has no geometry, a new Geometry object is created and set to the mesh.
+         * If the mesh has no geometry, a new `Geometry` object is created and set to the mesh.
          * This method creates a new index buffer each call.
          */
         setIndices(indices: number[] | Int32Array, totalVertices?: number): void;
@@ -11558,20 +13199,201 @@ declare module BABYLON {
         _bind(subMesh: SubMesh, effect: Effect, fillMode: number): void;
         _draw(subMesh: SubMesh, fillMode: number, instancesCount?: number): void;
         /**
+<<<<<<< HEAD
+         * Returns an object `{min:` Vector3`, max:` Vector3`}`
+         * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
+=======
          * Registers for this mesh a javascript function called just before the rendering process.
          * This function is passed the current mesh and doesn't return anything.
+>>>>>>> vr_room_scale_camera
          */
         registerBeforeRender(func: (mesh: AbstractMesh) => void): void;
         /**
+<<<<<<< HEAD
+         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
+=======
          * Disposes a previously registered javascript function called before the rendering.
          * This function is passed the current mesh and doesn't return anything.
+>>>>>>> vr_room_scale_camera
          */
         unregisterBeforeRender(func: (mesh: AbstractMesh) => void): void;
         /**
          * Registers for this mesh a javascript function called just after the rendering is complete.
          * This function is passed the current mesh and doesn't return anything.
          */
+<<<<<<< HEAD
+        static MergeMeshes(meshes: Array<Mesh>, disposeSource?: boolean, allow32BitsIndices?: boolean, meshSubclass?: Mesh): Mesh;
+    }
+}
+
+declare module BABYLON {
+    interface IGetSetVerticesData {
+        isVerticesDataPresent(kind: string): boolean;
+        getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Int32Array | Float32Array;
+        getIndices(copyWhenShared?: boolean): number[] | Int32Array;
+        setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean): void;
+        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
+        setIndices(indices: number[] | Int32Array): void;
+    }
+    class VertexData {
+        positions: number[] | Float32Array;
+        normals: number[] | Float32Array;
+        uvs: number[] | Float32Array;
+        uvs2: number[] | Float32Array;
+        uvs3: number[] | Float32Array;
+        uvs4: number[] | Float32Array;
+        uvs5: number[] | Float32Array;
+        uvs6: number[] | Float32Array;
+        colors: number[] | Float32Array;
+        matricesIndices: number[] | Float32Array;
+        matricesWeights: number[] | Float32Array;
+        matricesIndicesExtra: number[] | Float32Array;
+        matricesWeightsExtra: number[] | Float32Array;
+        indices: number[] | Int32Array;
+        set(data: number[] | Float32Array, kind: string): void;
+        applyToMesh(mesh: Mesh, updatable?: boolean): void;
+        applyToGeometry(geometry: Geometry, updatable?: boolean): void;
+        updateMesh(mesh: Mesh, updateExtends?: boolean, makeItUnique?: boolean): void;
+        updateGeometry(geometry: Geometry, updateExtends?: boolean, makeItUnique?: boolean): void;
+        private _applyTo(meshOrGeometry, updatable?);
+        private _update(meshOrGeometry, updateExtends?, makeItUnique?);
+        transform(matrix: Matrix): void;
+        merge(other: VertexData): void;
+        private _mergeElement(source, other);
+        serialize(): any;
+        static ExtractFromMesh(mesh: Mesh, copyWhenShared?: boolean): VertexData;
+        static ExtractFromGeometry(geometry: Geometry, copyWhenShared?: boolean): VertexData;
+        private static _ExtractFrom(meshOrGeometry, copyWhenShared?);
+        static CreateRibbon(options: {
+            pathArray: Vector3[][];
+            closeArray?: boolean;
+            closePath?: boolean;
+            offset?: number;
+            sideOrientation?: number;
+            invertUV?: boolean;
+        }): VertexData;
+        static CreateBox(options: {
+            size?: number;
+            width?: number;
+            height?: number;
+            depth?: number;
+            faceUV?: Vector4[];
+            faceColors?: Color4[];
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateSphere(options: {
+            segments?: number;
+            diameter?: number;
+            diameterX?: number;
+            diameterY?: number;
+            diameterZ?: number;
+            arc?: number;
+            slice?: number;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateCylinder(options: {
+            height?: number;
+            diameterTop?: number;
+            diameterBottom?: number;
+            diameter?: number;
+            tessellation?: number;
+            subdivisions?: number;
+            arc?: number;
+            faceColors?: Color4[];
+            faceUV?: Vector4[];
+            hasRings?: boolean;
+            enclose?: boolean;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateTorus(options: {
+            diameter?: number;
+            thickness?: number;
+            tessellation?: number;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateLineSystem(options: {
+            lines: Vector3[][];
+        }): VertexData;
+        static CreateDashedLines(options: {
+            points: Vector3[];
+            dashSize?: number;
+            gapSize?: number;
+            dashNb?: number;
+        }): VertexData;
+        static CreateGround(options: {
+            width?: number;
+            height?: number;
+            subdivisions?: number;
+        }): VertexData;
+        static CreateTiledGround(options: {
+            xmin: number;
+            zmin: number;
+            xmax: number;
+            zmax: number;
+            subdivisions?: {
+                w: number;
+                h: number;
+            };
+            precision?: {
+                w: number;
+                h: number;
+            };
+        }): VertexData;
+        static CreateGroundFromHeightMap(options: {
+            width: number;
+            height: number;
+            subdivisions: number;
+            minHeight: number;
+            maxHeight: number;
+            buffer: Uint8Array;
+            bufferWidth: number;
+            bufferHeight: number;
+        }): VertexData;
+        static CreatePlane(options: {
+            size?: number;
+            width?: number;
+            height?: number;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateDisc(options: {
+            radius?: number;
+            tessellation?: number;
+            arc?: number;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateIcoSphere(options: {
+            radius?: number;
+            radiusX?: number;
+            radiusY?: number;
+            radiusZ?: number;
+            flat?: boolean;
+            subdivisions?: number;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreatePolyhedron(options: {
+            type?: number;
+            size?: number;
+            sizeX?: number;
+            sizeY?: number;
+            sizeZ?: number;
+            custom?: any;
+            faceUV?: Vector4[];
+            faceColors?: Color4[];
+            flat?: boolean;
+            sideOrientation?: number;
+        }): VertexData;
+        static CreateTorusKnot(options: {
+            radius?: number;
+            tube?: number;
+            radialSegments?: number;
+            tubularSegments?: number;
+            p?: number;
+            q?: number;
+            sideOrientation?: number;
+        }): VertexData;
+=======
         registerAfterRender(func: (mesh: AbstractMesh) => void): void;
+>>>>>>> vr_room_scale_camera
         /**
          * Disposes a previously registered javascript function called after the rendering.
          * This function is passed the current mesh and doesn't return anything.
@@ -11579,13 +13401,12 @@ declare module BABYLON {
         unregisterAfterRender(func: (mesh: AbstractMesh) => void): void;
         _getInstancesRenderList(subMeshId: number): _InstancesBatch;
         _renderWithInstances(subMesh: SubMesh, fillMode: number, batch: _InstancesBatch, effect: Effect, engine: Engine): void;
-        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix, effectiveMaterial?: Material) => void, effectiveMaterial?: Material): void;
+        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix) => void): void;
         /**
          * Triggers the draw call for the mesh.
          * Usually, you don't need to call this method by your own because the mesh rendering is handled by the scene rendering manager.
          */
         render(subMesh: SubMesh, enableAlphaMode: boolean): void;
-        private _onBeforeDraw(isInstance, world, effectiveMaterial);
         /**
          * Returns an array populated with ParticleSystem objects whose the mesh is the emitter.
          */
@@ -11595,17 +13416,44 @@ declare module BABYLON {
          */
         getHierarchyEmittedParticleSystems(): ParticleSystem[];
         _checkDelayState(): void;
-        private _queueLoad(mesh, scene);
         /**
          * Boolean, true is the mesh in the frustum defined by the Plane objects from the `frustumPlanes` array parameter.
          */
         isInFrustum(frustumPlanes: Plane[]): boolean;
         /**
+<<<<<<< HEAD
+         * Creates a ribbon mesh.
+         * The ribbon is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         *
+         * Please read this full tutorial to understand how to design a ribbon : http://doc.babylonjs.com/tutorials/Ribbon_Tutorial
+         * The parameter `pathArray` is a required array of paths, what are each an array of successive Vector3. The pathArray parameter depicts the ribbon geometry.
+         * The parameter `closeArray` (boolean, default false) creates a seam between the first and the last paths of the path array.
+         * The parameter `closePath` (boolean, default false) creates a seam between the first and the last points of each path of the path array.
+         * The parameter `offset` (positive integer, default : rounded half size of the pathArray length), is taken in account only if the `pathArray` is containing a single path.
+         * It's the offset to join the points from the same path. Ex : offset = 10 means the point 1 is joined to the point 11.
+         * The optional parameter `instance` is an instance of an existing Ribbon object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#ribbon
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateRibbon(name: string, options: {
+            pathArray: Vector3[][];
+            closeArray?: boolean;
+            closePath?: boolean;
+            offset?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+            invertUV?: boolean;
+        }, scene?: Scene): Mesh;
+=======
          * Sets the mesh material by the material or multiMaterial `id` property.
          * The material `id` is a string identifying the material or the multiMaterial.
          * This method returns nothing.
          */
         setMaterialByID(id: string): void;
+>>>>>>> vr_room_scale_camera
         /**
          * Returns as a new array populated with the mesh material and/or skeleton, if any.
          */
@@ -11632,7 +13480,7 @@ declare module BABYLON {
          * Returns a new Mesh object generated from the current mesh properties.
          * This method must not get confused with createInstance().
          * The parameter `name` is a string, the name given to the new mesh.
-         * The optional parameter `newParent` can be any Node object (default `null`).
+         * The optional parameter `newParent` can be any `Node` object (default `null`).
          * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
          * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any.
          */
@@ -11847,9 +13695,24 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
+<<<<<<< HEAD
+        static ExtrudeShape(name: string, options: {
+            shape: Vector3[];
+            path: Vector3[];
+            scale?: number;
+            rotation?: number;
+            cap?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+            invertUV?: boolean;
+        }, scene: Scene): Mesh;
+=======
         static ExtrudeShape(name: string, shape: Vector3[], path: Vector3[], scale: number, rotation: number, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
+>>>>>>> vr_room_scale_camera
         /**
          * Creates an custom extruded shape mesh.
          * The custom extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
@@ -11882,22 +13745,55 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
+<<<<<<< HEAD
+        static ExtrudeShapeCustom(name: string, options: {
+            shape: Vector3[];
+            path: Vector3[];
+            scaleFunction?: any;
+            rotationFunction?: any;
+            ribbonCloseArray?: boolean;
+            ribbonClosePath?: boolean;
+            cap?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+            invertUV?: boolean;
+        }, scene: Scene): Mesh;
+=======
         static ExtrudeShapeCustom(name: string, shape: Vector3[], path: Vector3[], scaleFunction: Function, rotationFunction: Function, ribbonCloseArray: boolean, ribbonClosePath: boolean, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
+>>>>>>> vr_room_scale_camera
         /**
          * Creates lathe mesh.
          * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
          * Please consider using the same method from the MeshBuilder class instead.
+         *
          * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
          * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
          * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
          * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
+<<<<<<< HEAD
+        static CreateLathe(name: string, options: {
+            shape: Vector3[];
+            radius?: number;
+            tessellation?: number;
+            arc?: number;
+            closed?: boolean;
+            updatable?: boolean;
+            sideOrientation?: number;
+            cap?: number;
+            invertUV?: boolean;
+        }, scene: Scene): Mesh;
+=======
         static CreateLathe(name: string, shape: Vector3[], radius: number, tessellation: number, scene: Scene, updatable?: boolean, sideOrientation?: number): Mesh;
+>>>>>>> vr_room_scale_camera
         /**
          * Creates a plane mesh.
          * Please consider using the same method from the MeshBuilder class instead.
@@ -11954,6 +13850,7 @@ declare module BABYLON {
         /**
          * Creates a tube mesh.
          * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
          * The parameter `radius` (positive float, default 1) sets the tube radius size.
@@ -11970,13 +13867,32 @@ declare module BABYLON {
          * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
+<<<<<<< HEAD
+        static CreateTube(name: string, options: {
+            path: Vector3[];
+            radius?: number;
+            tessellation?: number;
+            radiusFunction?: {
+                (i: number, distance: number): number;
+            };
+            cap?: number;
+            arc?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+            invertUV?: boolean;
+        }, scene: Scene): Mesh;
+=======
         static CreateTube(name: string, path: Vector3[], radius: number, tessellation: number, radiusFunction: {
             (i: number, distance: number): number;
         }, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
+>>>>>>> vr_room_scale_camera
         /**
          * Creates a polyhedron mesh.
+         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
          *  to choose the wanted type.
@@ -12026,10 +13942,27 @@ declare module BABYLON {
          * Please consider using the same method from the MeshBuilder class instead.
          * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
          * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
-         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.
+         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.
          * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
          * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
          */
+<<<<<<< HEAD
+        static CreateDecal(name: string, sourceMesh: AbstractMesh, options: {
+            position?: Vector3;
+            normal?: Vector3;
+            size?: Vector3;
+            angle?: number;
+        }): Mesh;
+        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance, invertUV);
+    }
+}
+
+declare module BABYLON.Internals {
+    class MeshLODLevel {
+        distance: number;
+        mesh: Mesh;
+        constructor(distance: number, mesh: Mesh);
+=======
         static CreateDecal(name: string, sourceMesh: AbstractMesh, position: Vector3, normal: Vector3, size: Vector3, angle: number): Mesh;
         /**
          * @returns original positions used for CPU skinning.  Useful for integrating Morphing with skeletons in same mesh.
@@ -12045,7 +13978,7 @@ declare module BABYLON {
          */
         applySkeleton(skeleton: Skeleton): Mesh;
         /**
-         * Returns an object `{min:` Vector3`, max:` Vector3`}`
+         * Returns an object `{min: Vector3, max: Vector3}`
          * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
          */
         static MinMax(meshes: AbstractMesh[]): {
@@ -12053,7 +13986,7 @@ declare module BABYLON {
             max: Vector3;
         };
         /**
-         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
+         * Returns a `Vector3`, the center of the `{min: Vector3, max: Vector3}` or the center of MinMax vector3 computed from a mesh array.
          */
         static Center(meshesOrMinMaxVector: any): Vector3;
         /**
@@ -12064,6 +13997,7 @@ declare module BABYLON {
          * @param {Mesh} meshSubclass - When set, vertices inserted into this Mesh.  Meshes can then be merged into a Mesh sub-class.
          */
         static MergeMeshes(meshes: Array<Mesh>, disposeSource?: boolean, allow32BitsIndices?: boolean, meshSubclass?: Mesh): Mesh;
+>>>>>>> vr_room_scale_camera
     }
 }
 
@@ -12076,6 +14010,68 @@ declare module BABYLON {
         updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
         setIndices(indices: number[] | Int32Array): void;
     }
+<<<<<<< HEAD
+    class Reference {
+        vertexId: number;
+        triangleId: number;
+        constructor(vertexId: number, triangleId: number);
+    }
+    /**
+     * An implementation of the Quadratic Error simplification algorithm.
+     * Original paper : http://www1.cs.columbia.edu/~cs4162/html05s/garland97.pdf
+     * Ported mostly from QSlim and http://voxels.blogspot.de/2014/05/quadric-mesh-simplification-with-source.html to babylon JS
+     * @author RaananW
+     */
+    class QuadraticErrorSimplification implements ISimplifier {
+        private _mesh;
+        private triangles;
+        private vertices;
+        private references;
+        private initialized;
+        private _reconstructedMesh;
+        syncIterations: number;
+        aggressiveness: number;
+        decimationIterations: number;
+        boundingBoxEpsilon: number;
+        constructor(_mesh: Mesh);
+        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMesh: Mesh) => void): void;
+        private isTriangleOnBoundingBox(triangle);
+        private runDecimation(settings, submeshIndex, successCallback);
+        private initWithMesh(submeshIndex, callback, optimizeMesh?);
+        private init(callback);
+        private reconstructMesh(submeshIndex);
+        private initDecimatedMesh();
+        private isFlipped(vertex1, vertex2, point, deletedArray, borderFactor, delTr);
+        private updateTriangles(origVertex, vertex, deletedArray, deletedTriangles);
+        private identifyBorder();
+        private updateMesh(identifyBorders?);
+        private vertexError(q, point);
+        private calculateError(vertex1, vertex2, pointResult?, normalResult?, uvResult?, colorResult?);
+    }
+}
+
+declare module BABYLON {
+    class Polygon {
+        static Rectangle(xmin: number, ymin: number, xmax: number, ymax: number): Vector2[];
+        static Circle(radius: number, cx?: number, cy?: number, numberOfSides?: number): Vector2[];
+        static Parse(input: string): Vector2[];
+        static StartingAt(x: number, y: number): Path2;
+    }
+    class PolygonMeshBuilder {
+        private _points;
+        private _outlinepoints;
+        private _holes;
+        private _name;
+        private _scene;
+        private _epoints;
+        private _eholes;
+        private _addToepoint(points);
+        constructor(name: string, contours: Path2, scene: Scene);
+        constructor(name: string, contours: Vector2[], scene: Scene);
+        addHole(hole: Vector2[]): PolygonMeshBuilder;
+        build(updatable?: boolean, depth?: number): Mesh;
+        private addSide(positions, normals, uvs, indices, bounds, points, depth, flip);
+=======
     class VertexData {
         positions: number[] | Float32Array;
         normals: number[] | Float32Array;
@@ -12111,7 +14107,6 @@ declare module BABYLON {
             closePath?: boolean;
             offset?: number;
             sideOrientation?: number;
-            invertUV?: boolean;
         }): VertexData;
         static CreateBox(options: {
             size?: number;
@@ -12240,680 +14235,12 @@ declare module BABYLON {
         static ComputeNormals(positions: any, indices: any, normals: any): void;
         private static _ComputeSides(sideOrientation, positions, indices, normals, uvs);
         static ImportVertexData(parsedVertexData: any, geometry: Geometry): void;
+>>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
-    class MeshBuilder {
-        /**
-         * Creates a box mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#box
-         * The parameter `size` sets the size (float) of each box side (default 1).
-         * You can set some different box dimensions by using the parameters `width`, `height` and `depth` (all by default have the same value than `size`).
-         * You can set different colors and different images to each box side by using the parameters `faceColors` (an array of 6 Color3 elements) and `faceUV` (an array of 6 Vector4 elements).
-         * Please read this tutorial : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateBox(name: string, options: {
-            size?: number;
-            width?: number;
-            height?: number;
-            depth?: number;
-            faceUV?: Vector4[];
-            faceColors?: Color4[];
-            sideOrientation?: number;
-            updatable?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a sphere mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#sphere
-         * The parameter `diameter` sets the diameter size (float) of the sphere (default 1).
-         * You can set some different sphere dimensions, for instance to build an ellipsoid, by using the parameters `diameterX`, `diameterY` and `diameterZ` (all by default have the same value than `diameter`).
-         * The parameter `segments` sets the sphere number of horizontal stripes (positive integer, default 32).
-         * You can create an unclosed sphere with the parameter `arc` (positive float, default 1), valued between 0 and 1, what is the ratio of the circumference (latitude) : 2 x PI x ratio
-         * You can create an unclosed sphere on its height with the parameter `slice` (positive float, default1), valued between 0 and 1, what is the height ratio (longitude).
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateSphere(name: string, options: {
-            segments?: number;
-            diameter?: number;
-            diameterX?: number;
-            diameterY?: number;
-            diameterZ?: number;
-            arc?: number;
-            slice?: number;
-            sideOrientation?: number;
-            updatable?: boolean;
-        }, scene: any): Mesh;
-        /**
-         * Creates a plane polygonal mesh.  By default, this is a disc.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#disc
-         * The parameter `radius` sets the radius size (float) of the polygon (default 0.5).
-         * The parameter `tessellation` sets the number of polygon sides (positive integer, default 64). So a tessellation valued to 3 will build a triangle, to 4 a square, etc.
-         * You can create an unclosed polygon with the parameter `arc` (positive float, default 1), valued between 0 and 1, what is the ratio of the circumference : 2 x PI x ratio
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateDisc(name: string, options: {
-            radius?: number;
-            tessellation?: number;
-            arc?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a sphere based upon an icosahedron with 20 triangular faces which can be subdivided.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#icosphere
-         * The parameter `radius` sets the radius size (float) of the icosphere (default 1).
-         * You can set some different icosphere dimensions, for instance to build an ellipsoid, by using the parameters `radiusX`, `radiusY` and `radiusZ` (all by default have the same value than `radius`).
-         * The parameter `subdivisions` sets the number of subdivisions (postive integer, default 4). The more subdivisions, the more faces on the icosphere whatever its size.
-         * The parameter `flat` (boolean, default true) gives each side its own normals. Set it to false to get a smooth continuous light reflection on the surface.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateIcoSphere(name: string, options: {
-            radius?: number;
-            radiusX?: number;
-            radiusY?: number;
-            radiusZ?: number;
-            flat?: boolean;
-            subdivisions?: number;
-            sideOrientation?: number;
-            updatable?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a ribbon mesh.
-         * The ribbon is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         *
-         * Please read this full tutorial to understand how to design a ribbon : http://doc.babylonjs.com/tutorials/Ribbon_Tutorial
-         * The parameter `pathArray` is a required array of paths, what are each an array of successive Vector3. The pathArray parameter depicts the ribbon geometry.
-         * The parameter `closeArray` (boolean, default false) creates a seam between the first and the last paths of the path array.
-         * The parameter `closePath` (boolean, default false) creates a seam between the first and the last points of each path of the path array.
-         * The parameter `offset` (positive integer, default : rounded half size of the pathArray length), is taken in account only if the `pathArray` is containing a single path.
-         * It's the offset to join the points from the same path. Ex : offset = 10 means the point 1 is joined to the point 11.
-         * The optional parameter `instance` is an instance of an existing Ribbon object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#ribbon
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateRibbon(name: string, options: {
-            pathArray: Vector3[][];
-            closeArray?: boolean;
-            closePath?: boolean;
-            offset?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene?: Scene): Mesh;
-        /**
-         * Creates a cylinder or a cone mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#cylinder-or-cone
-         * The parameter `height` sets the height size (float) of the cylinder/cone (float, default 2).
-         * The parameter `diameter` sets the diameter of the top and bottom cap at once (float, default 1).
-         * The parameters `diameterTop` and `diameterBottom` overwrite the parameter `diameter` and set respectively the top cap and bottom cap diameter (floats, default 1). The parameter "diameterBottom" can't be zero.
-         * The parameter `tessellation` sets the number of cylinder sides (positive integer, default 24). Set it to 3 to get a prism for instance.
-         * The parameter `subdivisions` sets the number of rings along the cylinder height (positive integer, default 1).
-         * The parameter `hasRings` (boolean, default false) makes the subdivisions independent from each other, so they become different faces.
-         * The parameter `enclose`  (boolean, default false) adds two extra faces per subdivision to a sliced cylinder to close it around its height axis.
-         * The parameter `arc` (float, default 1) is the ratio (max 1) to apply to the circumference to slice the cylinder.
-         * You can set different colors and different images to each box side by using the parameters `faceColors` (an array of n Color3 elements) and `faceUV` (an array of n Vector4 elements).
-         * The value of n is the number of cylinder faces. If the cylinder has only 1 subdivisions, n equals : top face + cylinder surface + bottom face = 3
-         * Now, if the cylinder has 5 independent subdivisions (hasRings = true), n equals : top face + 5 stripe surfaces + bottom face = 2 + 5 = 7
-         * Finally, if the cylinder has 5 independent subdivisions and is enclose, n equals : top face + 5 x (stripe surface + 2 closing faces) + bottom face = 2 + 5 * 3 = 17
-         * Each array (color or UVs) is always ordered the same way : the first element is the bottom cap, the last element is the top cap. The other elements are each a ring surface.
-         * If `enclose` is false, a ring surface is one element.
-         * If `enclose` is true, a ring surface is 3 successive elements in the array : the tubular surface, then the two closing faces.
-         * Example how to set colors and textures on a sliced cylinder : http://www.html5gamedevs.com/topic/17945-creating-a-closed-slice-of-a-cylinder/#comment-106379
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateCylinder(name: string, options: {
-            height?: number;
-            diameterTop?: number;
-            diameterBottom?: number;
-            diameter?: number;
-            tessellation?: number;
-            subdivisions?: number;
-            arc?: number;
-            faceColors?: Color4[];
-            faceUV?: Vector4[];
-            updatable?: boolean;
-            hasRings?: boolean;
-            enclose?: boolean;
-            sideOrientation?: number;
-        }, scene: any): Mesh;
-        /**
-         * Creates a torus mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#torus
-         * The parameter `diameter` sets the diameter size (float) of the torus (default 1).
-         * The parameter `thickness` sets the diameter size of the tube of the torus (float, default 0.5).
-         * The parameter `tessellation` sets the number of torus sides (postive integer, default 16).
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateTorus(name: string, options: {
-            diameter?: number;
-            thickness?: number;
-            tessellation?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-        }, scene: any): Mesh;
-        /**
-         * Creates a torus knot mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#torus-knot
-         * The parameter `radius` sets the global radius size (float) of the torus knot (default 2).
-         * The parameter `radialSegments` sets the number of sides on each tube segments (positive integer, default 32).
-         * The parameter `tubularSegments` sets the number of tubes to decompose the knot into (positive integer, default 32).
-         * The parameters `p` and `q` are the number of windings on each axis (positive integers, default 2 and 3).
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateTorusKnot(name: string, options: {
-            radius?: number;
-            tube?: number;
-            radialSegments?: number;
-            tubularSegments?: number;
-            p?: number;
-            q?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-        }, scene: any): Mesh;
-        /**
-         * Creates a line system mesh.
-         * A line system is a pool of many lines gathered in a single mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#linesystem
-         * A line system mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of lines as an input parameter.
-         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineSystem to this static function.
-         * The parameter `lines` is an array of lines, each line being an array of successive Vector3.
-         * The optional parameter `instance` is an instance of an existing LineSystem object to be updated with the passed `lines` parameter. The way to update it is the same than for
-         * updating a simple Line mesh, you just need to update every line in the `lines` array : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
-         * When updating an instance, remember that only line point positions can change, not the number of points, neither the number of lines.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateLineSystem(name: string, options: {
-            lines: Vector3[][];
-            updatable: boolean;
-            instance?: LinesMesh;
-        }, scene: Scene): LinesMesh;
-        /**
-         * Creates a line mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#lines
-         * A line mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of points as an input parameter.
-         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineMesh to this static function.
-         * The parameter `points` is an array successive Vector3.
-         * The optional parameter `instance` is an instance of an existing LineMesh object to be updated with the passed `points` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
-         * When updating an instance, remember that only point positions can change, not the number of points.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateLines(name: string, options: {
-            points: Vector3[];
-            updatable?: boolean;
-            instance?: LinesMesh;
-        }, scene: Scene): LinesMesh;
-        /**
-         * Creates a dashed line mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#dashed-lines
-         * A dashed line mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of points as an input parameter.
-         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineMesh to this static function.
-         * The parameter `points` is an array successive Vector3.
-         * The parameter `dashNb` is the intended total number of dashes (positive integer, default 200).
-         * The parameter `dashSize` is the size of the dashes relatively the dash number (positive float, default 3).
-         * The parameter `gapSize` is the size of the gap between two successive dashes relatively the dash number (positive float, default 1).
-         * The optional parameter `instance` is an instance of an existing LineMesh object to be updated with the passed `points` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
-         * When updating an instance, remember that only point positions can change, not the number of points.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateDashedLines(name: string, options: {
-            points: Vector3[];
-            dashSize?: number;
-            gapSize?: number;
-            dashNb?: number;
-            updatable?: boolean;
-            instance?: LinesMesh;
-        }, scene: Scene): LinesMesh;
-        /**
-         * Creates an extruded shape mesh.
-         * The extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#extruded-shapes
-         *
-         * Please read this full tutorial to understand how to design an extruded shape : http://doc.babylonjs.com/tutorials/Parametric_Shapes#extrusion
-         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be extruded in its local space : the shape must be designed in the xOy plane and will be
-         * extruded along the Z axis.
-         * The parameter `path` is a required array of successive Vector3. This is the axis curve the shape is extruded along.
-         * The parameter `rotation` (float, default 0 radians) is the angle value to rotate the shape each step (each path point), from the former step (so rotation added each step) along the curve.
-         * The parameter `scale` (float, default 1) is the value to scale the shape.
-         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
-         * The optional parameter `instance` is an instance of an existing ExtrudedShape object to be updated with the passed `shape`, `path`, `scale` or `rotation` parameters : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#extruded-shape
-         * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static ExtrudeShape(name: string, options: {
-            shape: Vector3[];
-            path: Vector3[];
-            scale?: number;
-            rotation?: number;
-            cap?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates an custom extruded shape mesh.
-         * The custom extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         * tuto :http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#custom-extruded-shapes
-         *
-         * Please read this full tutorial to understand how to design a custom extruded shape : http://doc.babylonjs.com/tutorials/Parametric_Shapes#extrusion
-         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be extruded in its local space : the shape must be designed in the xOy plane and will be
-         * extruded along the Z axis.
-         * The parameter `path` is a required array of successive Vector3. This is the axis curve the shape is extruded along.
-         * The parameter `rotationFunction` (JS function) is a custom Javascript function called on each path point. This function is passed the position i of the point in the path
-         * and the distance of this point from the begining of the path :
-         * ```javascript
-         * var rotationFunction = function(i, distance) {
-         *     // do things
-         *     return rotationValue; }
-         * ```
-         * It must returns a float value that will be the rotation in radians applied to the shape on each path point.
-         * The parameter `scaleFunction` (JS function) is a custom Javascript function called on each path point. This function is passed the position i of the point in the path
-         * and the distance of this point from the begining of the path :
-         * ```javascript
-         * var scaleFunction = function(i, distance) {
-         *     // do things
-         *     return scaleValue;}
-         * ```
-         * It must returns a float value that will be the scale value applied to the shape on each path point.
-         * The parameter `ribbonClosePath` (boolean, default false) forces the extrusion underlying ribbon to close all the paths in its `pathArray`.
-         * The parameter `ribbonCloseArray` (boolean, default false) forces the extrusion underlying ribbon to close its `pathArray`.
-         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
-         * The optional parameter `instance` is an instance of an existing ExtrudedShape object to be updated with the passed `shape`, `path`, `scale` or `rotation` parameters : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#extruded-shape
-         * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static ExtrudeShapeCustom(name: string, options: {
-            shape: Vector3[];
-            path: Vector3[];
-            scaleFunction?: any;
-            rotationFunction?: any;
-            ribbonCloseArray?: boolean;
-            ribbonClosePath?: boolean;
-            cap?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates lathe mesh.
-         * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#lathe
-         *
-         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
-         * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
-         * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
-         * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
-         * The parameter `arc` (positive float, default 1) is the ratio of the lathe. 0.5 builds for instance half a lathe, so an opened shape.
-         * The parameter `closed` (boolean, default true) opens/closes the lathe circumference. This should be set to false when used with the parameter "arc".
-         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateLathe(name: string, options: {
-            shape: Vector3[];
-            radius?: number;
-            tessellation?: number;
-            arc?: number;
-            closed?: boolean;
-            updatable?: boolean;
-            sideOrientation?: number;
-            cap?: number;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a plane mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#plane
-         * The parameter `size` sets the size (float) of both sides of the plane at once (default 1).
-         * You can set some different plane dimensions by using the parameters `width` and `height` (both by default have the same value than `size`).
-         * The parameter `sourcePlane` is a Plane instance. It builds a mesh plane from a Math plane.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreatePlane(name: string, options: {
-            size?: number;
-            width?: number;
-            height?: number;
-            sideOrientation?: number;
-            updatable?: boolean;
-            sourcePlane?: Plane;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a ground mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#plane
-         * The parameters `width` and `height` (floats, default 1) set the width and height sizes of the ground.
-         * The parameter `subdivisions` (positive integer) sets the number of subdivisions per side.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateGround(name: string, options: {
-            width?: number;
-            height?: number;
-            subdivisions?: number;
-            updatable?: boolean;
-        }, scene: any): Mesh;
-        /**
-         * Creates a tiled ground mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#tiled-ground
-         * The parameters `xmin` and `xmax` (floats, default -1 and 1) set the ground minimum and maximum X coordinates.
-         * The parameters `zmin` and `zmax` (floats, default -1 and 1) set the ground minimum and maximum Z coordinates.
-         * The parameter `subdivisions` is a javascript object `{w: positive integer, h: positive integer}` (default `{w: 6, h: 6}`). `w` and `h` are the
-         * numbers of subdivisions on the ground width and height. Each subdivision is called a tile.
-         * The parameter `precision` is a javascript object `{w: positive integer, h: positive integer}` (default `{w: 2, h: 2}`). `w` and `h` are the
-         * numbers of subdivisions on the ground width and height of each tile.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateTiledGround(name: string, options: {
-            xmin: number;
-            zmin: number;
-            xmax: number;
-            zmax: number;
-            subdivisions?: {
-                w: number;
-                h: number;
-            };
-            precision?: {
-                w: number;
-                h: number;
-            };
-            updatable?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a ground mesh from a height map.
-         * tuto : http://doc.babylonjs.com/tutorials/14._Height_Map
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#ground-from-a-height-map
-         * The parameter `url` sets the URL of the height map image resource.
-         * The parameters `width` and `height` (positive floats, default 10) set the ground width and height sizes.
-         * The parameter `subdivisions` (positive integer, default 1) sets the number of subdivision per side.
-         * The parameter `minHeight` (float, default 0) is the minimum altitude on the ground.
-         * The parameter `maxHeight` (float, default 1) is the maximum altitude on the ground.
-         * The parameter `onReady` is a javascript callback function that will be called  once the mesh is just built (the height map download can last some time).
-         * This function is passed the newly built mesh :
-         * ```javascript
-         * function(mesh) { // do things
-         *     return; }
-         * ```
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateGroundFromHeightMap(name: string, url: string, options: {
-            width?: number;
-            height?: number;
-            subdivisions?: number;
-            minHeight?: number;
-            maxHeight?: number;
-            updatable?: boolean;
-            onReady?: (mesh: GroundMesh) => void;
-        }, scene: Scene): GroundMesh;
-        /**
-         * Creates a tube mesh.
-         * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         *
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#tube
-         * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
-         * The parameter `radius` (positive float, default 1) sets the tube radius size.
-         * The parameter `tessellation` (positive float, default 64) is the number of sides on the tubular surface.
-         * The parameter `radiusFunction` (javascript function, default null) is a vanilla javascript function. If it is not null, it overwrittes the parameter `radius`.
-         * This function is called on each point of the tube path and is passed the index `i` of the i-th point and the distance of this point from the first point of the path.
-         * It must return a radius value (positive float) :
-         * ```javascript
-         * var radiusFunction = function(i, distance) {
-         *     // do things
-         *     return radius; }
-         * ```
-         * The parameter `arc` (positive float, maximum 1, default 1) is the ratio to apply to the tube circumference : 2 x PI x arc.
-         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
-         * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateTube(name: string, options: {
-            path: Vector3[];
-            radius?: number;
-            tessellation?: number;
-            radiusFunction?: {
-                (i: number, distance: number): number;
-            };
-            cap?: number;
-            arc?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a polyhedron mesh.
-         *
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#polyhedron
-         * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
-         *  to choose the wanted type.
-         * The parameter `size` (positive float, default 1) sets the polygon size.
-         * You can overwrite the `size` on each dimension bu using the parameters `sizeX`, `sizeY` or `sizeZ` (positive floats, default to `size` value).
-         * You can build other polyhedron types than the 15 embbeded ones by setting the parameter `custom` (`polyhedronObject`, default null). If you set the parameter `custom`, this overwrittes the parameter `type`.
-         * A `polyhedronObject` is a formatted javascript object. You'll find a full file with pre-set polyhedra here : https://github.com/BabylonJS/Extensions/tree/master/Polyhedron
-         * You can set the color and the UV of each side of the polyhedron with the parameters `faceColors` (Color4, default `(1, 1, 1, 1)`) and faceUV (Vector4, default `(0, 0, 1, 1)`).
-         * To understand how to set `faceUV` or `faceColors`, please read this by considering the right number of faces of your polyhedron, instead of only 6 for the box : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
-         * The parameter `flat` (boolean, default true). If set to false, it gives the polyhedron a single global face, so less vertices and shared normals. In this case, `faceColors` and `faceUV` are ignored.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreatePolyhedron(name: string, options: {
-            type?: number;
-            size?: number;
-            sizeX?: number;
-            sizeY?: number;
-            sizeZ?: number;
-            custom?: any;
-            faceUV?: Vector4[];
-            faceColors?: Color4[];
-            flat?: boolean;
-            updatable?: boolean;
-            sideOrientation?: number;
-        }, scene: Scene): Mesh;
-        /**
-         * Creates a decal mesh.
-         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#decals
-         * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
-         * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
-         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.
-         * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
-         * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
-         */
-        static CreateDecal(name: string, sourceMesh: AbstractMesh, options: {
-            position?: Vector3;
-            normal?: Vector3;
-            size?: Vector3;
-            angle?: number;
-        }): Mesh;
-        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance, invertUV);
-    }
-}
-
-declare module BABYLON.Internals {
-    class MeshLODLevel {
-        distance: number;
-        mesh: Mesh;
-        constructor(distance: number, mesh: Mesh);
-    }
-}
-
-declare module BABYLON {
-    /**
-     * A simplifier interface for future simplification implementations.
-     */
-    interface ISimplifier {
-        /**
-         * Simplification of a given mesh according to the given settings.
-         * Since this requires computation, it is assumed that the function runs async.
-         * @param settings The settings of the simplification, including quality and distance
-         * @param successCallback A callback that will be called after the mesh was simplified.
-         * @param errorCallback in case of an error, this callback will be called. optional.
-         */
-        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMeshes: Mesh) => void, errorCallback?: () => void): void;
-    }
-    /**
-     * Expected simplification settings.
-     * Quality should be between 0 and 1 (1 being 100%, 0 being 0%);
-     */
-    interface ISimplificationSettings {
-        quality: number;
-        distance: number;
-        optimizeMesh?: boolean;
-    }
-    class SimplificationSettings implements ISimplificationSettings {
-        quality: number;
-        distance: number;
-        optimizeMesh: boolean;
-        constructor(quality: number, distance: number, optimizeMesh?: boolean);
-    }
-    interface ISimplificationTask {
-        settings: Array<ISimplificationSettings>;
-        simplificationType: SimplificationType;
-        mesh: Mesh;
-        successCallback?: () => void;
-        parallelProcessing: boolean;
-    }
-    class SimplificationQueue {
-        private _simplificationArray;
-        running: any;
-        constructor();
-        addTask(task: ISimplificationTask): void;
-        executeNext(): void;
-        runSimplification(task: ISimplificationTask): void;
-        private getSimplifier(task);
-    }
-    /**
-     * The implemented types of simplification.
-     * At the moment only Quadratic Error Decimation is implemented.
-     */
-    enum SimplificationType {
-        QUADRATIC = 0,
-    }
-    class DecimationTriangle {
-        vertices: Array<DecimationVertex>;
-        normal: Vector3;
-        error: Array<number>;
-        deleted: boolean;
-        isDirty: boolean;
-        borderFactor: number;
-        deletePending: boolean;
-        originalOffset: number;
-        constructor(vertices: Array<DecimationVertex>);
-    }
-    class DecimationVertex {
-        position: Vector3;
-        id: any;
-        q: QuadraticMatrix;
-        isBorder: boolean;
-        triangleStart: number;
-        triangleCount: number;
-        originalOffsets: Array<number>;
-        constructor(position: Vector3, id: any);
-        updatePosition(newPosition: Vector3): void;
-    }
-    class QuadraticMatrix {
-        data: Array<number>;
-        constructor(data?: Array<number>);
-        det(a11: any, a12: any, a13: any, a21: any, a22: any, a23: any, a31: any, a32: any, a33: any): number;
-        addInPlace(matrix: QuadraticMatrix): void;
-        addArrayInPlace(data: Array<number>): void;
-        add(matrix: QuadraticMatrix): QuadraticMatrix;
-        static FromData(a: number, b: number, c: number, d: number): QuadraticMatrix;
-        static DataFromNumbers(a: number, b: number, c: number, d: number): number[];
-    }
-    class Reference {
-        vertexId: number;
-        triangleId: number;
-        constructor(vertexId: number, triangleId: number);
-    }
-    /**
-     * An implementation of the Quadratic Error simplification algorithm.
-     * Original paper : http://www1.cs.columbia.edu/~cs4162/html05s/garland97.pdf
-     * Ported mostly from QSlim and http://voxels.blogspot.de/2014/05/quadric-mesh-simplification-with-source.html to babylon JS
-     * @author RaananW
-     */
-    class QuadraticErrorSimplification implements ISimplifier {
-        private _mesh;
-        private triangles;
-        private vertices;
-        private references;
-        private initialized;
-        private _reconstructedMesh;
-        syncIterations: number;
-        aggressiveness: number;
-        decimationIterations: number;
-        boundingBoxEpsilon: number;
-        constructor(_mesh: Mesh);
-        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMesh: Mesh) => void): void;
-        private isTriangleOnBoundingBox(triangle);
-        private runDecimation(settings, submeshIndex, successCallback);
-        private initWithMesh(submeshIndex, callback, optimizeMesh?);
-        private init(callback);
-        private reconstructMesh(submeshIndex);
-        private initDecimatedMesh();
-        private isFlipped(vertex1, vertex2, point, deletedArray, borderFactor, delTr);
-        private updateTriangles(origVertex, vertex, deletedArray, deletedTriangles);
-        private identifyBorder();
-        private updateMesh(identifyBorders?);
-        private vertexError(q, point);
-        private calculateError(vertex1, vertex2, pointResult?, normalResult?, uvResult?, colorResult?);
-    }
-}
-
-declare module BABYLON {
-    class Polygon {
-        static Rectangle(xmin: number, ymin: number, xmax: number, ymax: number): Vector2[];
-        static Circle(radius: number, cx?: number, cy?: number, numberOfSides?: number): Vector2[];
-        static Parse(input: string): Vector2[];
-        static StartingAt(x: number, y: number): Path2;
-    }
-    class PolygonMeshBuilder {
-        private _points;
-        private _outlinepoints;
-        private _holes;
-        private _name;
-        private _scene;
-        private _epoints;
-        private _eholes;
-        private _addToepoint(points);
-        constructor(name: string, contours: Path2, scene: Scene);
-        constructor(name: string, contours: Vector2[], scene: Scene);
-        addHole(hole: Vector2[]): PolygonMeshBuilder;
-        build(updatable?: boolean, depth?: number): Mesh;
-        private addSide(positions, normals, uvs, indices, bounds, points, depth, flip);
-    }
-}
-
-declare module BABYLON {
+<<<<<<< HEAD
     class SubMesh implements ICullable {
         materialIndex: number;
         verticesStart: number;
@@ -13575,267 +14902,751 @@ declare module BABYLON {
         getImpostorWithPhysicsBody(body: any): PhysicsImpostor;
     }
 =======
+=======
+    class MeshBuilder {
+>>>>>>> vr_room_scale_camera
         /**
-        *  The SPS array of Solid Particle objects. Just access each particle as with any classic array.
-        *  Example : var p = SPS.particles[i];
-        */
-        particles: SolidParticle[];
-        /**
-        * The SPS total number of particles. Read only. Use SPS.counter instead if you need to set your own value.
-        */
-        nbParticles: number;
-        /**
-        * If the particles must ever face the camera (default false). Useful for planar particles.
-        */
-        billboard: boolean;
-        /**
-        * This a counter ofr your own usage. It's not set by any SPS functions.
-        */
-        counter: number;
-        /**
-        * The SPS name. This name is also given to the underlying mesh.
-        */
-        name: string;
-        /**
-        * The SPS mesh. It's a standard BJS Mesh, so all the methods from the Mesh class are avalaible.
-        */
-        mesh: Mesh;
-        /**
-        * This empty object is intended to store some SPS specific or temporary values in order to lower the Garbage Collector activity.
-        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#garbage-collector-concerns
-        */
-        vars: any;
-        /**
-        * This array is populated when the SPS is set as 'pickable'.
-        * Each key of this array is a `faceId` value that you can get from a pickResult object.
-        * Each element of this array is an object `{idx: int, faceId: int}`.
-        * `idx` is the picked particle index in the `SPS.particles` array
-        * `faceId` is the picked face index counted within this particle.
-        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#pickable-particles
-        */
-        pickedParticles: {
-            idx: number;
-            faceId: number;
-        }[];
-        private _scene;
-        private _positions;
-        private _indices;
-        private _normals;
-        private _colors;
-        private _uvs;
-        private _positions32;
-        private _normals32;
-        private _fixedNormal32;
-        private _colors32;
-        private _uvs32;
-        private _index;
-        private _updatable;
-        private _pickable;
-        private _isVisibilityBoxLocked;
-        private _alwaysVisible;
-        private _shapeCounter;
-        private _copy;
-        private _shape;
-        private _shapeUV;
-        private _color;
-        private _computeParticleColor;
-        private _computeParticleTexture;
-        private _computeParticleRotation;
-        private _computeParticleVertex;
-        private _computeBoundingBox;
-        private _cam_axisZ;
-        private _cam_axisY;
-        private _cam_axisX;
-        private _axisX;
-        private _axisY;
-        private _axisZ;
-        private _camera;
-        private _particle;
-        private _fakeCamPos;
-        private _rotMatrix;
-        private _invertMatrix;
-        private _rotated;
-        private _quaternion;
-        private _vertex;
-        private _normal;
-        private _yaw;
-        private _pitch;
-        private _roll;
-        private _halfroll;
-        private _halfpitch;
-        private _halfyaw;
-        private _sinRoll;
-        private _cosRoll;
-        private _sinPitch;
-        private _cosPitch;
-        private _sinYaw;
-        private _cosYaw;
-        private _w;
-        private _minimum;
-        private _maximum;
-        /**
-        * Creates a SPS (Solid Particle System) object.
-        * `name` (String) is the SPS name, this will be the underlying mesh name.
-        * `scene` (Scene) is the scene in which the SPS is added.
-        * `updatable` (default true) : if the SPS must be updatable or immutable.
-        * `isPickable` (default false) : if the solid particles must be pickable.
-        */
-        constructor(name: string, scene: Scene, options?: {
+         * Creates a box mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#box
+         * The parameter `size` sets the size (float) of each box side (default 1).
+         * You can set some different box dimensions by using the parameters `width`, `height` and `depth` (all by default have the same value than `size`).
+         * You can set different colors and different images to each box side by using the parameters `faceColors` (an array of 6 Color3 elements) and `faceUV` (an array of 6 Vector4 elements).
+         * Please read this tutorial : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateBox(name: string, options: {
+            size?: number;
+            width?: number;
+            height?: number;
+            depth?: number;
+            faceUV?: Vector4[];
+            faceColors?: Color4[];
+            sideOrientation?: number;
             updatable?: boolean;
-            isPickable?: boolean;
-        });
+        }, scene: Scene): Mesh;
         /**
-        * Builds the SPS underlying mesh. Returns a standard Mesh.
-        * If no model shape was added to the SPS, the returned mesh is just a single triangular plane.
-        */
-        buildMesh(): Mesh;
+         * Creates a sphere mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#sphere
+         * The parameter `diameter` sets the diameter size (float) of the sphere (default 1).
+         * You can set some different sphere dimensions, for instance to build an ellipsoid, by using the parameters `diameterX`, `diameterY` and `diameterZ` (all by default have the same value than `diameter`).
+         * The parameter `segments` sets the sphere number of horizontal stripes (positive integer, default 32).
+         * You can create an unclosed sphere with the parameter `arc` (positive float, default 1), valued between 0 and 1, what is the ratio of the circumference (latitude) : 2 x PI x ratio
+         * You can create an unclosed sphere on its height with the parameter `slice` (positive float, default1), valued between 0 and 1, what is the height ratio (longitude).
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateSphere(name: string, options: {
+            segments?: number;
+            diameter?: number;
+            diameterX?: number;
+            diameterY?: number;
+            diameterZ?: number;
+            arc?: number;
+            slice?: number;
+            sideOrientation?: number;
+            updatable?: boolean;
+        }, scene: any): Mesh;
         /**
-        * Digests the mesh and generates as many solid particles in the system as wanted. Returns the SPS.
-        * These particles will have the same geometry than the mesh parts and will be positioned at the same localisation than the mesh original places.
-        * Thus the particles generated from `digest()` have their property `position` set yet.
-        * `mesh` ( Mesh ) is the mesh to be digested
-        * `facetNb` (optional integer, default 1) is the number of mesh facets per particle, this parameter is overriden by the parameter `number` if any
-        * `delta` (optional integer, default 0) is the random extra number of facets per particle , each particle will have between `facetNb` and `facetNb + delta` facets
-        * `number` (optional positive integer) is the wanted number of particles : each particle is built with `mesh_total_facets / number` facets
-        */
-        digest(mesh: Mesh, options?: {
-            facetNb?: number;
-            number?: number;
-            delta?: number;
-        }): SolidParticleSystem;
-        private _resetCopy();
-        private _meshBuilder(p, shape, positions, meshInd, indices, meshUV, uvs, meshCol, colors, idx, idxInShape, options);
-        private _posToShape(positions);
-        private _uvsToShapeUV(uvs);
-        private _addParticle(idx, idxpos, model, shapeId, idxInShape);
+         * Creates a plane polygonal mesh.  By default, this is a disc.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#disc
+         * The parameter `radius` sets the radius size (float) of the polygon (default 0.5).
+         * The parameter `tessellation` sets the number of polygon sides (positive integer, default 64). So a tessellation valued to 3 will build a triangle, to 4 a square, etc.
+         * You can create an unclosed polygon with the parameter `arc` (positive float, default 1), valued between 0 and 1, what is the ratio of the circumference : 2 x PI x ratio
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateDisc(name: string, options: {
+            radius?: number;
+            tessellation?: number;
+            arc?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+        }, scene: Scene): Mesh;
         /**
-        * Adds some particles to the SPS from the model shape. Returns the shape id.
-        * Please read the doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#create-an-immutable-sps
-        * `mesh` is any Mesh object that will be used as a model for the solid particles.
-        * `nb` (positive integer) the number of particles to be created from this model
-        * `positionFunction` is an optional javascript function to called for each particle on SPS creation.
-        * `vertexFunction` is an optional javascript function to called for each vertex of each particle on SPS creation
-        */
-        addShape(mesh: Mesh, nb: number, options?: {
-            positionFunction?: any;
-            vertexFunction?: any;
-        }): number;
-        private _rebuildParticle(particle);
+         * Creates a sphere based upon an icosahedron with 20 triangular faces which can be subdivided.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#icosphere
+         * The parameter `radius` sets the radius size (float) of the icosphere (default 1).
+         * You can set some different icosphere dimensions, for instance to build an ellipsoid, by using the parameters `radiusX`, `radiusY` and `radiusZ` (all by default have the same value than `radius`).
+         * The parameter `subdivisions` sets the number of subdivisions (postive integer, default 4). The more subdivisions, the more faces on the icosphere whatever its size.
+         * The parameter `flat` (boolean, default true) gives each side its own normals. Set it to false to get a smooth continuous light reflection on the surface.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateIcoSphere(name: string, options: {
+            radius?: number;
+            radiusX?: number;
+            radiusY?: number;
+            radiusZ?: number;
+            flat?: boolean;
+            subdivisions?: number;
+            sideOrientation?: number;
+            updatable?: boolean;
+        }, scene: Scene): Mesh;
         /**
-        * Rebuilds the whole mesh and updates the VBO : custom positions and vertices are recomputed if needed.
-        */
-        rebuildMesh(): void;
+         * Creates a ribbon mesh.
+         * The ribbon is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         *
+         * Please read this full tutorial to understand how to design a ribbon : http://doc.babylonjs.com/tutorials/Ribbon_Tutorial
+         * The parameter `pathArray` is a required array of paths, what are each an array of successive Vector3. The pathArray parameter depicts the ribbon geometry.
+         * The parameter `closeArray` (boolean, default false) creates a seam between the first and the last paths of the path array.
+         * The parameter `closePath` (boolean, default false) creates a seam between the first and the last points of each path of the path array.
+         * The parameter `offset` (positive integer, default : rounded half size of the pathArray length), is taken in account only if the `pathArray` is containing a single path.
+         * It's the offset to join the points from the same path. Ex : offset = 10 means the point 1 is joined to the point 11.
+         * The optional parameter `instance` is an instance of an existing Ribbon object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#ribbon
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateRibbon(name: string, options: {
+            pathArray: Vector3[][];
+            closeArray?: boolean;
+            closePath?: boolean;
+            offset?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+        }, scene?: Scene): Mesh;
         /**
-        *  Sets all the particles : this method actually really updates the mesh according to the particle positions, rotations, colors, textures, etc.
-        *  This method calls `updateParticle()` for each particle of the SPS.
-        *  For an animated SPS, it is usually called within the render loop.
-        * @param start The particle index in the particle array where to start to compute the particle property values _(default 0)_
-        * @param end The particle index in the particle array where to stop to compute the particle property values _(default nbParticle - 1)_
-        * @param update If the mesh must be finally updated on this call after all the particle computations _(default true)_
-        */
-        setParticles(start?: number, end?: number, update?: boolean): void;
-        private _quaternionRotationYPR();
-        private _quaternionToRotationMatrix();
+         * Creates a cylinder or a cone mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#cylinder-or-cone
+         * The parameter `height` sets the height size (float) of the cylinder/cone (float, default 2).
+         * The parameter `diameter` sets the diameter of the top and bottom cap at once (float, default 1).
+         * The parameters `diameterTop` and `diameterBottom` overwrite the parameter `diameter` and set respectively the top cap and bottom cap diameter (floats, default 1). The parameter "diameterBottom" can't be zero.
+         * The parameter `tessellation` sets the number of cylinder sides (positive integer, default 24). Set it to 3 to get a prism for instance.
+         * The parameter `subdivisions` sets the number of rings along the cylinder height (positive integer, default 1).
+         * The parameter `hasRings` (boolean, default false) makes the subdivisions independent from each other, so they become different faces.
+         * The parameter `enclose`  (boolean, default false) adds two extra faces per subdivision to a sliced cylinder to close it around its height axis.
+         * The parameter `arc` (float, default 1) is the ratio (max 1) to apply to the circumference to slice the cylinder.
+         * You can set different colors and different images to each box side by using the parameters `faceColors` (an array of n Color3 elements) and `faceUV` (an array of n Vector4 elements).
+         * The value of n is the number of cylinder faces. If the cylinder has only 1 subdivisions, n equals : top face + cylinder surface + bottom face = 3
+         * Now, if the cylinder has 5 independent subdivisions (hasRings = true), n equals : top face + 5 stripe surfaces + bottom face = 2 + 5 = 7
+         * Finally, if the cylinder has 5 independent subdivisions and is enclose, n equals : top face + 5 x (stripe surface + 2 closing faces) + bottom face = 2 + 5 * 3 = 17
+         * Each array (color or UVs) is always ordered the same way : the first element is the bottom cap, the last element is the top cap. The other elements are each a ring surface.
+         * If `enclose` is false, a ring surface is one element.
+         * If `enclose` is true, a ring surface is 3 successive elements in the array : the tubular surface, then the two closing faces.
+         * Example how to set colors and textures on a sliced cylinder : http://www.html5gamedevs.com/topic/17945-creating-a-closed-slice-of-a-cylinder/#comment-106379
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateCylinder(name: string, options: {
+            height?: number;
+            diameterTop?: number;
+            diameterBottom?: number;
+            diameter?: number;
+            tessellation?: number;
+            subdivisions?: number;
+            arc?: number;
+            faceColors?: Color4[];
+            faceUV?: Vector4[];
+            updatable?: boolean;
+            hasRings?: boolean;
+            enclose?: boolean;
+            sideOrientation?: number;
+        }, scene: any): Mesh;
         /**
-        * Disposes the SPS
-        */
+         * Creates a torus mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#torus
+         * The parameter `diameter` sets the diameter size (float) of the torus (default 1).
+         * The parameter `thickness` sets the diameter size of the tube of the torus (float, default 0.5).
+         * The parameter `tessellation` sets the number of torus sides (postive integer, default 16).
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateTorus(name: string, options: {
+            diameter?: number;
+            thickness?: number;
+            tessellation?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+        }, scene: any): Mesh;
+        /**
+         * Creates a torus knot mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#torus-knot
+         * The parameter `radius` sets the global radius size (float) of the torus knot (default 2).
+         * The parameter `radialSegments` sets the number of sides on each tube segments (positive integer, default 32).
+         * The parameter `tubularSegments` sets the number of tubes to decompose the knot into (positive integer, default 32).
+         * The parameters `p` and `q` are the number of windings on each axis (positive integers, default 2 and 3).
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateTorusKnot(name: string, options: {
+            radius?: number;
+            tube?: number;
+            radialSegments?: number;
+            tubularSegments?: number;
+            p?: number;
+            q?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+        }, scene: any): Mesh;
+        /**
+         * Creates a line system mesh.
+         * A line system is a pool of many lines gathered in a single mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#linesystem
+         * A line system mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of lines as an input parameter.
+         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineSystem to this static function.
+         * The parameter `lines` is an array of lines, each line being an array of successive Vector3.
+         * The optional parameter `instance` is an instance of an existing LineSystem object to be updated with the passed `lines` parameter. The way to update it is the same than for
+         * updating a simple Line mesh, you just need to update every line in the `lines` array : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
+         * When updating an instance, remember that only line point positions can change, not the number of points, neither the number of lines.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateLineSystem(name: string, options: {
+            lines: Vector3[][];
+            updatable: boolean;
+            instance?: LinesMesh;
+        }, scene: Scene): LinesMesh;
+        /**
+         * Creates a line mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#lines
+         * A line mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of points as an input parameter.
+         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineMesh to this static function.
+         * The parameter `points` is an array successive Vector3.
+         * The optional parameter `instance` is an instance of an existing LineMesh object to be updated with the passed `points` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
+         * When updating an instance, remember that only point positions can change, not the number of points.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateLines(name: string, options: {
+            points: Vector3[];
+            updatable?: boolean;
+            instance?: LinesMesh;
+        }, scene: Scene): LinesMesh;
+        /**
+         * Creates a dashed line mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#dashed-lines
+         * A dashed line mesh is considered as a parametric shape since it has no predefined original shape. Its shape is determined by the passed array of points as an input parameter.
+         * Like every other parametric shape, it is dynamically updatable by passing an existing instance of LineMesh to this static function.
+         * The parameter `points` is an array successive Vector3.
+         * The parameter `dashNb` is the intended total number of dashes (positive integer, default 200).
+         * The parameter `dashSize` is the size of the dashes relatively the dash number (positive float, default 3).
+         * The parameter `gapSize` is the size of the gap between two successive dashes relatively the dash number (positive float, default 1).
+         * The optional parameter `instance` is an instance of an existing LineMesh object to be updated with the passed `points` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#lines-and-dashedlines
+         * When updating an instance, remember that only point positions can change, not the number of points.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateDashedLines(name: string, options: {
+            points: Vector3[];
+            dashSize?: number;
+            gapSize?: number;
+            dashNb?: number;
+            updatable?: boolean;
+            instance?: LinesMesh;
+        }, scene: Scene): LinesMesh;
+        /**
+         * Creates an extruded shape mesh.
+         * The extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#extruded-shapes
+         *
+         * Please read this full tutorial to understand how to design an extruded shape : http://doc.babylonjs.com/tutorials/Parametric_Shapes#extrusion
+         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be extruded in its local space : the shape must be designed in the xOy plane and will be
+         * extruded along the Z axis.
+         * The parameter `path` is a required array of successive Vector3. This is the axis curve the shape is extruded along.
+         * The parameter `rotation` (float, default 0 radians) is the angle value to rotate the shape each step (each path point), from the former step (so rotation added each step) along the curve.
+         * The parameter `scale` (float, default 1) is the value to scale the shape.
+         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
+         * The optional parameter `instance` is an instance of an existing ExtrudedShape object to be updated with the passed `shape`, `path`, `scale` or `rotation` parameters : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#extruded-shape
+         * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static ExtrudeShape(name: string, options: {
+            shape: Vector3[];
+            path: Vector3[];
+            scale?: number;
+            rotation?: number;
+            cap?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates an custom extruded shape mesh.
+         * The custom extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         * tuto :http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#custom-extruded-shapes
+         *
+         * Please read this full tutorial to understand how to design a custom extruded shape : http://doc.babylonjs.com/tutorials/Parametric_Shapes#extrusion
+         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be extruded in its local space : the shape must be designed in the xOy plane and will be
+         * extruded along the Z axis.
+         * The parameter `path` is a required array of successive Vector3. This is the axis curve the shape is extruded along.
+         * The parameter `rotationFunction` (JS function) is a custom Javascript function called on each path point. This function is passed the position i of the point in the path
+         * and the distance of this point from the begining of the path :
+         * ```javascript
+         * var rotationFunction = function(i, distance) {
+         *     // do things
+         *     return rotationValue; }
+         * ```
+         * It must returns a float value that will be the rotation in radians applied to the shape on each path point.
+         * The parameter `scaleFunction` (JS function) is a custom Javascript function called on each path point. This function is passed the position i of the point in the path
+         * and the distance of this point from the begining of the path :
+         * ```javascript
+         * var scaleFunction = function(i, distance) {
+         *     // do things
+         *     return scaleValue;}
+         * ```
+         * It must returns a float value that will be the scale value applied to the shape on each path point.
+         * The parameter `ribbonClosePath` (boolean, default false) forces the extrusion underlying ribbon to close all the paths in its `pathArray`.
+         * The parameter `ribbonCloseArray` (boolean, default false) forces the extrusion underlying ribbon to close its `pathArray`.
+         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
+         * The optional parameter `instance` is an instance of an existing ExtrudedShape object to be updated with the passed `shape`, `path`, `scale` or `rotation` parameters : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#extruded-shape
+         * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static ExtrudeShapeCustom(name: string, options: {
+            shape: Vector3[];
+            path: Vector3[];
+            scaleFunction?: any;
+            rotationFunction?: any;
+            ribbonCloseArray?: boolean;
+            ribbonClosePath?: boolean;
+            cap?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates lathe mesh.
+         * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#lathe
+         *
+         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
+         * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
+         * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
+         * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
+         * The parameter `arc` (positive float, default 1) is the ratio of the lathe. 0.5 builds for instance half a lathe, so an opened shape.
+         * The parameter `closed` (boolean, default true) opens/closes the lathe circumference. This should be set to false when used with the parameter "arc".
+         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateLathe(name: string, options: {
+            shape: Vector3[];
+            radius?: number;
+            tessellation?: number;
+            arc?: number;
+            closed?: boolean;
+            updatable?: boolean;
+            sideOrientation?: number;
+            cap?: number;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates a plane mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#plane
+         * The parameter `size` sets the size (float) of both sides of the plane at once (default 1).
+         * You can set some different plane dimensions by using the parameters `width` and `height` (both by default have the same value than `size`).
+         * The parameter `sourcePlane` is a Plane instance. It builds a mesh plane from a Math plane.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreatePlane(name: string, options: {
+            size?: number;
+            width?: number;
+            height?: number;
+            sideOrientation?: number;
+            updatable?: boolean;
+            sourcePlane?: Plane;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates a ground mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#plane
+         * The parameters `width` and `height` (floats, default 1) set the width and height sizes of the ground.
+         * The parameter `subdivisions` (positive integer) sets the number of subdivisions per side.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateGround(name: string, options: {
+            width?: number;
+            height?: number;
+            subdivisions?: number;
+            updatable?: boolean;
+        }, scene: any): Mesh;
+        /**
+         * Creates a tiled ground mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#tiled-ground
+         * The parameters `xmin` and `xmax` (floats, default -1 and 1) set the ground minimum and maximum X coordinates.
+         * The parameters `zmin` and `zmax` (floats, default -1 and 1) set the ground minimum and maximum Z coordinates.
+         * The parameter `subdivisions` is a javascript object `{w: positive integer, h: positive integer}` (default `{w: 6, h: 6}`). `w` and `h` are the
+         * numbers of subdivisions on the ground width and height. Each subdivision is called a tile.
+         * The parameter `precision` is a javascript object `{w: positive integer, h: positive integer}` (default `{w: 2, h: 2}`). `w` and `h` are the
+         * numbers of subdivisions on the ground width and height of each tile.
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateTiledGround(name: string, options: {
+            xmin: number;
+            zmin: number;
+            xmax: number;
+            zmax: number;
+            subdivisions?: {
+                w: number;
+                h: number;
+            };
+            precision?: {
+                w: number;
+                h: number;
+            };
+            updatable?: boolean;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates a ground mesh from a height map.
+         * tuto : http://doc.babylonjs.com/tutorials/14._Height_Map
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#ground-from-a-height-map
+         * The parameter `url` sets the URL of the height map image resource.
+         * The parameters `width` and `height` (positive floats, default 10) set the ground width and height sizes.
+         * The parameter `subdivisions` (positive integer, default 1) sets the number of subdivision per side.
+         * The parameter `minHeight` (float, default 0) is the minimum altitude on the ground.
+         * The parameter `maxHeight` (float, default 1) is the maximum altitude on the ground.
+         * The parameter `onReady` is a javascript callback function that will be called  once the mesh is just built (the height map download can last some time).
+         * This function is passed the newly built mesh :
+         * ```javascript
+         * function(mesh) { // do things
+         *     return; }
+         * ```
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateGroundFromHeightMap(name: string, url: string, options: {
+            width?: number;
+            height?: number;
+            subdivisions?: number;
+            minHeight?: number;
+            maxHeight?: number;
+            updatable?: boolean;
+            onReady?: (mesh: GroundMesh) => void;
+        }, scene: Scene): GroundMesh;
+        /**
+         * Creates a tube mesh.
+         * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
+         *
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#tube
+         * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
+         * The parameter `radius` (positive float, default 1) sets the tube radius size.
+         * The parameter `tessellation` (positive float, default 64) is the number of sides on the tubular surface.
+         * The parameter `radiusFunction` (javascript function, default null) is a vanilla javascript function. If it is not null, it overwrittes the parameter `radius`.
+         * This function is called on each point of the tube path and is passed the index `i` of the i-th point and the distance of this point from the first point of the path.
+         * It must return a radius value (positive float) :
+         * ```javascript
+         * var radiusFunction = function(i, distance) {
+         *     // do things
+         *     return radius; }
+         * ```
+         * The parameter `arc` (positive float, maximum 1, default 1) is the ratio to apply to the tube circumference : 2 x PI x arc.
+         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
+         * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreateTube(name: string, options: {
+            path: Vector3[];
+            radius?: number;
+            tessellation?: number;
+            radiusFunction?: {
+                (i: number, distance: number): number;
+            };
+            cap?: number;
+            arc?: number;
+            updatable?: boolean;
+            sideOrientation?: number;
+            instance?: Mesh;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates a polyhedron mesh.
+         *
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#polyhedron
+         * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
+         *  to choose the wanted type.
+         * The parameter `size` (positive float, default 1) sets the polygon size.
+         * You can overwrite the `size` on each dimension bu using the parameters `sizeX`, `sizeY` or `sizeZ` (positive floats, default to `size` value).
+         * You can build other polyhedron types than the 15 embbeded ones by setting the parameter `custom` (`polyhedronObject`, default null). If you set the parameter `custom`, this overwrittes the parameter `type`.
+         * A `polyhedronObject` is a formatted javascript object. You'll find a full file with pre-set polyhedra here : https://github.com/BabylonJS/Extensions/tree/master/Polyhedron
+         * You can set the color and the UV of each side of the polyhedron with the parameters `faceColors` (Color4, default `(1, 1, 1, 1)`) and faceUV (Vector4, default `(0, 0, 1, 1)`).
+         * To understand how to set `faceUV` or `faceColors`, please read this by considering the right number of faces of your polyhedron, instead of only 6 for the box : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
+         * The parameter `flat` (boolean, default true). If set to false, it gives the polyhedron a single global face, so less vertices and shared normals. In this case, `faceColors` and `faceUV` are ignored.
+         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
+         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
+         */
+        static CreatePolyhedron(name: string, options: {
+            type?: number;
+            size?: number;
+            sizeX?: number;
+            sizeY?: number;
+            sizeZ?: number;
+            custom?: any;
+            faceUV?: Vector4[];
+            faceColors?: Color4[];
+            flat?: boolean;
+            updatable?: boolean;
+            sideOrientation?: number;
+        }, scene: Scene): Mesh;
+        /**
+         * Creates a decal mesh.
+         * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#decals
+         * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
+         * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
+         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.
+         * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
+         * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
+         */
+        static CreateDecal(name: string, sourceMesh: AbstractMesh, options: {
+            position?: Vector3;
+            normal?: Vector3;
+            size?: Vector3;
+            angle?: number;
+        }): Mesh;
+        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance);
+    }
+}
+
+declare module BABYLON.Internals {
+    class MeshLODLevel {
+        distance: number;
+        mesh: Mesh;
+        constructor(distance: number, mesh: Mesh);
+    }
+}
+
+declare module BABYLON {
+    /**
+     * A simplifier interface for future simplification implementations.
+     */
+    interface ISimplifier {
+        /**
+         * Simplification of a given mesh according to the given settings.
+         * Since this requires computation, it is assumed that the function runs async.
+         * @param settings The settings of the simplification, including quality and distance
+         * @param successCallback A callback that will be called after the mesh was simplified.
+         * @param errorCallback in case of an error, this callback will be called. optional.
+         */
+        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMeshes: Mesh) => void, errorCallback?: () => void): void;
+    }
+    /**
+     * Expected simplification settings.
+     * Quality should be between 0 and 1 (1 being 100%, 0 being 0%);
+     */
+    interface ISimplificationSettings {
+        quality: number;
+        distance: number;
+        optimizeMesh?: boolean;
+    }
+    class SimplificationSettings implements ISimplificationSettings {
+        quality: number;
+        distance: number;
+        optimizeMesh: boolean;
+        constructor(quality: number, distance: number, optimizeMesh?: boolean);
+    }
+    interface ISimplificationTask {
+        settings: Array<ISimplificationSettings>;
+        simplificationType: SimplificationType;
+        mesh: Mesh;
+        successCallback?: () => void;
+        parallelProcessing: boolean;
+    }
+    class SimplificationQueue {
+        private _simplificationArray;
+        running: any;
+        constructor();
+        addTask(task: ISimplificationTask): void;
+        executeNext(): void;
+        runSimplification(task: ISimplificationTask): void;
+        private getSimplifier(task);
+    }
+    /**
+     * The implemented types of simplification.
+     * At the moment only Quadratic Error Decimation is implemented.
+     */
+    enum SimplificationType {
+        QUADRATIC = 0,
+    }
+    class DecimationTriangle {
+        vertices: Array<DecimationVertex>;
+        normal: Vector3;
+        error: Array<number>;
+        deleted: boolean;
+        isDirty: boolean;
+        borderFactor: number;
+        deletePending: boolean;
+        originalOffset: number;
+        constructor(vertices: Array<DecimationVertex>);
+    }
+    class DecimationVertex {
+        position: Vector3;
+        id: any;
+        q: QuadraticMatrix;
+        isBorder: boolean;
+        triangleStart: number;
+        triangleCount: number;
+        originalOffsets: Array<number>;
+        constructor(position: Vector3, id: any);
+        updatePosition(newPosition: Vector3): void;
+    }
+    class QuadraticMatrix {
+        data: Array<number>;
+        constructor(data?: Array<number>);
+        det(a11: any, a12: any, a13: any, a21: any, a22: any, a23: any, a31: any, a32: any, a33: any): number;
+        addInPlace(matrix: QuadraticMatrix): void;
+        addArrayInPlace(data: Array<number>): void;
+        add(matrix: QuadraticMatrix): QuadraticMatrix;
+        static FromData(a: number, b: number, c: number, d: number): QuadraticMatrix;
+        static DataFromNumbers(a: number, b: number, c: number, d: number): number[];
+    }
+    class Reference {
+        vertexId: number;
+        triangleId: number;
+        constructor(vertexId: number, triangleId: number);
+    }
+    /**
+     * An implementation of the Quadratic Error simplification algorithm.
+     * Original paper : http://www1.cs.columbia.edu/~cs4162/html05s/garland97.pdf
+     * Ported mostly from QSlim and http://voxels.blogspot.de/2014/05/quadric-mesh-simplification-with-source.html to babylon JS
+     * @author RaananW
+     */
+    class QuadraticErrorSimplification implements ISimplifier {
+        private _mesh;
+        private triangles;
+        private vertices;
+        private references;
+        private initialized;
+        private _reconstructedMesh;
+        syncIterations: number;
+        aggressiveness: number;
+        decimationIterations: number;
+        boundingBoxEpsilon: number;
+        constructor(_mesh: Mesh);
+        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMesh: Mesh) => void): void;
+        private isTriangleOnBoundingBox(triangle);
+        private runDecimation(settings, submeshIndex, successCallback);
+        private initWithMesh(submeshIndex, callback, optimizeMesh?);
+        private init(callback);
+        private reconstructMesh(submeshIndex);
+        private initDecimatedMesh();
+        private isFlipped(vertex1, vertex2, point, deletedArray, borderFactor, delTr);
+        private updateTriangles(origVertex, vertex, deletedArray, deletedTriangles);
+        private identifyBorder();
+        private updateMesh(identifyBorders?);
+        private vertexError(q, point);
+        private calculateError(vertex1, vertex2, pointResult?, normalResult?, uvResult?, colorResult?);
+    }
+}
+
+declare module BABYLON {
+    class Polygon {
+        static Rectangle(xmin: number, ymin: number, xmax: number, ymax: number): Vector2[];
+        static Circle(radius: number, cx?: number, cy?: number, numberOfSides?: number): Vector2[];
+        static Parse(input: string): Vector2[];
+        static StartingAt(x: number, y: number): Path2;
+    }
+    class PolygonMeshBuilder {
+        private _swctx;
+        private _points;
+        private _outlinepoints;
+        private _holes;
+        private _name;
+        private _scene;
+        constructor(name: string, contours: Path2, scene: Scene);
+        constructor(name: string, contours: Vector2[], scene: Scene);
+        addHole(hole: Vector2[]): PolygonMeshBuilder;
+        build(updatable?: boolean, depth?: number): Mesh;
+        private addSide(positions, normals, uvs, indices, bounds, points, depth, flip);
+    }
+}
+
+declare module BABYLON {
+    class SubMesh {
+        materialIndex: number;
+        verticesStart: number;
+        verticesCount: number;
+        indexStart: any;
+        indexCount: number;
+        linesIndexCount: number;
+        private _mesh;
+        private _renderingMesh;
+        private _boundingInfo;
+        private _linesIndexBuffer;
+        _lastColliderWorldVertices: Vector3[];
+        _trianglePlanes: Plane[];
+        _lastColliderTransformMatrix: Matrix;
+        _renderId: number;
+        _alphaIndex: number;
+        _distanceToCamera: number;
+        _id: number;
+        constructor(materialIndex: number, verticesStart: number, verticesCount: number, indexStart: any, indexCount: number, mesh: AbstractMesh, renderingMesh?: Mesh, createBoundingBox?: boolean);
+        IsGlobal: boolean;
+        getBoundingInfo(): BoundingInfo;
+        getMesh(): AbstractMesh;
+        getRenderingMesh(): Mesh;
+        getMaterial(): Material;
+        refreshBoundingInfo(): void;
+        _checkCollision(collider: Collider): boolean;
+        updateBoundingInfo(world: Matrix): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        render(enableAlphaMode: boolean): void;
+        getLinesIndexBuffer(indices: number[] | Int32Array, engine: any): WebGLBuffer;
+        canIntersects(ray: Ray): boolean;
+        intersects(ray: Ray, positions: Vector3[], indices: number[] | Int32Array, fastCheck?: boolean): IntersectionInfo;
+        clone(newMesh: AbstractMesh, newRenderingMesh?: Mesh): SubMesh;
         dispose(): void;
-        /**
-        * Visibilty helper : Recomputes the visible size according to the mesh bounding box
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        refreshVisibleSize(): void;
-        /**
-        * Visibility helper : Sets the size of a visibility box, this sets the underlying mesh bounding box.
-        * @param size the size (float) of the visibility box
-        * note : this doesn't lock the SPS mesh bounding box.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        setVisibilityBox(size: number): void;
-        /**
-        * Sets the SPS as always visible or not
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isAlwaysVisible: boolean;
-        /**
-        * Sets the SPS visibility box as locked or not. This enables/disables the underlying mesh bounding box updates.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isVisibilityBoxLocked: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle rotations or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle rotations aren't stored values, so setting `computeParticleRotation` to false will prevents the particle to rotate.
-        */
-        computeParticleRotation: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle colors or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle colors are stored values, so setting `computeParticleColor` to false will keep yet the last colors set.
-        */
-        computeParticleColor: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle textures or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle textures are stored values, so setting `computeParticleTexture` to false will keep yet the last colors set.
-        */
-        computeParticleTexture: boolean;
-        /**
-        * Tells to `setParticles()` to call the vertex function for each vertex of each particle, or not.
-        * Default value : false. The SPS is faster when it's set to false.
-        * Note : the particle custom vertex positions aren't stored values.
-        */
-        computeParticleVertex: boolean;
-        /**
-        * Tells to `setParticles()` to compute or not the mesh bounding box when computing the particle positions.
-        */
-        computeBoundingBox: boolean;
-        /**
-        * This function does nothing. It may be overwritten to set all the particle first values.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        initParticles(): void;
-        /**
-        * This function does nothing. It may be overwritten to recycle a particle.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        recycleParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a particle : this function should  be overwritten by the user.
-        * It is called on each particle by `setParticles()`. This is the place to code each particle behavior.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        * ex : just set a particle position or velocity and recycle conditions
-        */
-        updateParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a vertex of a particle : it can be overwritten by the user.
-        * This will be called on each vertex particle by `setParticles()` if `computeParticleVertex` is set to true only.
-        * @param particle the current particle
-        * @param vertex the current index of the current particle
-        * @param pt the index of the current vertex in the particle shape
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#update-each-particle-shape
-        * ex : just set a vertex particle position
-        */
-        updateParticleVertex(particle: SolidParticle, vertex: Vector3, pt: number): Vector3;
-        /**
-        * This will be called before any other treatment by `setParticles()` and will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        beforeUpdateParticles(start?: number, stop?: number, update?: boolean): void;
-        /**
-        * This will be called  by `setParticles()` after all the other treatments and just before the actual mesh update.
-        * This will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        afterUpdateParticles(start?: number, stop?: number, update?: boolean): void;
+        static CreateFromIndices(materialIndex: number, startIndex: number, indexCount: number, mesh: AbstractMesh, renderingMesh?: Mesh): SubMesh;
+    }
+}
+
+declare module BABYLON {
+    class VertexBuffer {
+        private _buffer;
+        private _kind;
+        private _offset;
+        private _size;
+        private _stride;
+        private _ownsBuffer;
+        constructor(engine: any, data: number[] | Float32Array | Buffer, kind: string, updatable: boolean, postponeInternalCreation?: boolean, stride?: number, instanced?: boolean, offset?: number, size?: number);
+        getKind(): string;
+        isUpdatable(): boolean;
+        getData(): number[] | Float32Array;
+        getBuffer(): WebGLBuffer;
+        getStrideSize(): number;
+        getOffset(): number;
+        getSize(): number;
+        getIsInstanced(): boolean;
+        create(data?: number[] | Float32Array): void;
+        update(data: number[] | Float32Array): void;
+        updateDirectly(data: Float32Array, offset: number): void;
+        dispose(): void;
+        private static _PositionKind;
+        private static _NormalKind;
+        private static _UVKind;
+        private static _UV2Kind;
+        private static _UV3Kind;
+        private static _UV4Kind;
+        private static _UV5Kind;
+        private static _UV6Kind;
+        private static _ColorKind;
+        private static _MatricesIndicesKind;
+        private static _MatricesWeightsKind;
+        private static _MatricesIndicesExtraKind;
+        private static _MatricesWeightsExtraKind;
+        static PositionKind: string;
+        static NormalKind: string;
+        static UVKind: string;
+        static UV2Kind: string;
+        static UV3Kind: string;
+        static UV4Kind: string;
+        static UV5Kind: string;
+        static UV6Kind: string;
+        static ColorKind: string;
+        static MatricesIndicesKind: string;
+        static MatricesWeightsKind: string;
+        static MatricesIndicesExtraKind: string;
+        static MatricesWeightsExtraKind: string;
     }
 }
 
@@ -15197,6 +17008,7 @@ declare module BABYLON {
 
 declare module BABYLON {
 <<<<<<< HEAD
+<<<<<<< HEAD
     class ReflectionProbe {
         name: string;
         private _scene;
@@ -15219,6 +17031,8 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+=======
+>>>>>>> vr_room_scale_camera
     class BoundingBoxRenderer {
         frontColor: Color3;
         backColor: Color3;
@@ -16507,6 +18321,7 @@ declare module BABYLON {
 
 declare module BABYLON {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     interface IOctreeContainer<T> {
         blocks: Array<OctreeBlock<T>>;
@@ -16555,6 +18370,8 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+=======
+>>>>>>> vr_room_scale_camera
     class VRCameraMetrics {
         hResolution: number;
         vResolution: number;
@@ -16590,6 +18407,71 @@ declare module BABYLON {
     }
 }
 
+<<<<<<< HEAD
+=======
+declare module BABYLON {
+    class VRRoomScaleCamera extends FreeCamera {
+        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean);
+        private _vrDisplay;
+        private _vrEnabled;
+        _myViewMatrix: Matrix;
+        private _consoleTimer;
+        private _hmdOrigin;
+        _updatePosition2(): void;
+        onAnimationFrame(): void;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
+        _checkInputs(): void;
+        detachControl(element: HTMLElement): void;
+        createRigCamera(name: string, cameraIndex: number): Camera;
+        _updateRigCameras(): void;
+        _getViewMatrix(): Matrix;
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class VRRoomScaleMetrics {
+        hResolution: number;
+        vResolution: number;
+        hScreenSize: number;
+        vScreenSize: number;
+        vScreenCenter: number;
+        eyeToScreenDistance: number;
+        lensSeparationDistance: number;
+        interpupillaryDistance: number;
+        distortionK: number[];
+        chromaAbCorrection: number[];
+        postProcessScaleFactor: number;
+        lensCenterOffset: number;
+        compensateDistortion: boolean;
+        leftEyeFOVdownDegrees: number;
+        leftEyeFOVleftDegrees: number;
+        leftEyeFOVrightDegrees: number;
+        leftEyeFOVupDegrees: number;
+        rightEyeFOVdownDegrees: number;
+        rightEyeFOVleftDegrees: number;
+        rightEyeFOVrightDegrees: number;
+        rightEyeFOVupDegrees: number;
+        leftEyeOffset: Float32Array;
+        rightEyeOffset: Float32Array;
+        leftEyeRenderHeight: number;
+        leftEyeRenderWidth: number;
+        rightEyeRenderHeight: number;
+        rightEyeRenderWidth: number;
+        constructor(leftEye: any, rightEye: any);
+        getRightEyeFOV(out: Matrix): Matrix;
+        getLeftEyeFOV(out: Matrix): Matrix;
+        perspectiveFromFieldOfView(out: Matrix, upDegrees: number, downDegrees: number, leftDegrees: number, rightDegrees: number): Matrix;
+        leftHMatrix: Matrix;
+        rightHMatrix: Matrix;
+        leftPreViewMatrix: Matrix;
+        rightPreViewMatrix: Matrix;
+        renderingHeight: number;
+        renderingWidth: number;
+    }
+}
+
+>>>>>>> vr_room_scale_camera
 declare var HMDVRDevice: any;
 declare var PositionSensorVRDevice: any;
 declare module BABYLON {
@@ -16609,7 +18491,10 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
 >>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
+=======
+>>>>>>> vr_room_scale_camera
     class ArcRotateCameraGamepadInput implements ICameraInput<ArcRotateCamera> {
         camera: ArcRotateCamera;
         gamepad: Gamepad;
@@ -16849,6 +18734,7 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+<<<<<<< HEAD
     class VRCameraMetrics {
         hResolution: number;
         vResolution: number;
@@ -16968,6 +18854,8 @@ declare module BABYLON.Internals {
 }
 
 declare module BABYLON {
+=======
+>>>>>>> vr_room_scale_camera
     interface IOctreeContainer<T> {
         blocks: Array<OctreeBlock<T>>;
     }
@@ -17071,6 +18959,9 @@ declare module BABYLON {
         serialize(): any;
         static Parse(parsedShadowGenerator: any, scene: Scene): ShadowGenerator;
     }
+}
+
+declare module BABYLON.Internals {
 }
 
 declare module BABYLON {
@@ -17620,9 +19511,6 @@ declare module BABYLON {
         private _createTexture();
         update(): boolean;
     }
-}
-
-declare module BABYLON.Internals {
 }
 
 declare module BABYLON {
