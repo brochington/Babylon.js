@@ -9,6 +9,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var BABYLON;
 (function (BABYLON) {
     var TargetCamera = (function (_super) {
@@ -44,7 +47,6 @@ var BABYLON;
             }
             return this.lockedTarget.position || this.lockedTarget;
         };
-        // Cache
         TargetCamera.prototype._initCache = function () {
             _super.prototype._initCache.call(this);
             this._cache.lockedTarget = new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
@@ -71,7 +73,6 @@ var BABYLON;
             if (this.rotationQuaternion)
                 this._cache.rotationQuaternion.copyFrom(this.rotationQuaternion);
         };
-        // Synchronized
         TargetCamera.prototype._isSynchronizedViewMatrix = function () {
             if (!_super.prototype._isSynchronizedViewMatrix.call(this)) {
                 return false;
@@ -80,12 +81,10 @@ var BABYLON;
             return (this._cache.lockedTarget ? this._cache.lockedTarget.equals(lockedTargetPosition) : !lockedTargetPosition)
                 && (this.rotationQuaternion ? this.rotationQuaternion.equals(this._cache.rotationQuaternion) : this._cache.rotation.equals(this.rotation));
         };
-        // Methods
         TargetCamera.prototype._computeLocalCameraSpeed = function () {
             var engine = this.getEngine();
             return this.speed * Math.sqrt((engine.getDeltaTime() / (engine.getFps() * 100.0)));
         };
-        // Target
         TargetCamera.prototype.setTarget = function (target) {
             this.upVector.normalize();
             BABYLON.Matrix.LookAtLHToRef(this.position, target, this._defaultUpVector, this._camMatrix);
@@ -124,11 +123,9 @@ var BABYLON;
         TargetCamera.prototype._checkInputs = function () {
             var needToMove = this._decideIfNeedsToMove();
             var needToRotate = Math.abs(this.cameraRotation.x) > 0 || Math.abs(this.cameraRotation.y) > 0;
-            // Move
             if (needToMove) {
                 this._updatePosition();
             }
-            // Rotate
             if (needToRotate) {
                 this.rotation.x += this.cameraRotation.x;
                 this.rotation.y += this.cameraRotation.y;
@@ -140,7 +137,6 @@ var BABYLON;
                         this.rotation.x = -limit;
                 }
             }
-            // Inertia
             if (needToMove) {
                 if (Math.abs(this.cameraDirection.x) < BABYLON.Epsilon) {
                     this.cameraDirection.x = 0;
@@ -167,7 +163,6 @@ var BABYLON;
         TargetCamera.prototype._updateCameraRotationMatrix = function () {
             if (this.rotationQuaternion) {
                 this.rotationQuaternion.toRotationMatrix(this._cameraRotationMatrix);
-                //update the up vector!
                 BABYLON.Vector3.TransformNormalToRef(this._defaultUpVector, this._cameraRotationMatrix, this.upVector);
             }
             else {
@@ -176,10 +171,8 @@ var BABYLON;
         };
         TargetCamera.prototype._getViewMatrix = function () {
             if (!this.lockedTarget) {
-                // Compute
                 this._updateCameraRotationMatrix();
                 BABYLON.Vector3.TransformCoordinatesToRef(this._referencePoint, this._cameraRotationMatrix, this._transformedReferencePoint);
-                // Computing target and final matrix
                 this.position.addToRef(this._transformedReferencePoint, this._currentTarget);
             }
             else {
@@ -188,14 +181,10 @@ var BABYLON;
             BABYLON.Matrix.LookAtLHToRef(this.position, this._currentTarget, this.upVector, this._viewMatrix);
             return this._viewMatrix;
         };
-        /**
-         * @override
-         * Override Camera.createRigCamera
-         */
         TargetCamera.prototype.createRigCamera = function (name, cameraIndex) {
-            if (this.cameraRigMode !== BABYLON.Camera.RIG_MODE_NONE) {
+            if (this.cameraRigMode !== Camera.RIG_MODE_NONE) {
                 var rigCamera = new TargetCamera(name, this.position.clone(), this.getScene());
-                if (this.cameraRigMode === BABYLON.Camera.RIG_MODE_VR) {
+                if (this.cameraRigMode === Camera.RIG_MODE_VR) {
                     if (!this.rotationQuaternion) {
                         this.rotationQuaternion = new BABYLON.Quaternion();
                     }
@@ -206,35 +195,28 @@ var BABYLON;
             }
             return null;
         };
-        /**
-         * @override
-         * Override Camera._updateRigCameras
-         */
         TargetCamera.prototype._updateRigCameras = function () {
-            // console.log("_updateRigCameras!");
             var camLeft = this._rigCameras[0];
             var camRight = this._rigCameras[1];
             switch (this.cameraRigMode) {
-                case BABYLON.Camera.RIG_MODE_STEREOSCOPIC_ANAGLYPH:
-                case BABYLON.Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL:
-                case BABYLON.Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED:
-                case BABYLON.Camera.RIG_MODE_STEREOSCOPIC_OVERUNDER:
-                    //provisionnaly using _cameraRigParams.stereoHalfAngle instead of calculations based on _cameraRigParams.interaxialDistance:
-                    var leftSign = (this.cameraRigMode === BABYLON.Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED) ? 1 : -1;
-                    var rightSign = (this.cameraRigMode === BABYLON.Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED) ? -1 : 1;
+                case Camera.RIG_MODE_STEREOSCOPIC_ANAGLYPH:
+                case Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL:
+                case Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED:
+                case Camera.RIG_MODE_STEREOSCOPIC_OVERUNDER:
+                    var leftSign = (this.cameraRigMode === Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED) ? 1 : -1;
+                    var rightSign = (this.cameraRigMode === Camera.RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED) ? -1 : 1;
                     this._getRigCamPosition(this._cameraRigParams.stereoHalfAngle * leftSign, camLeft.position);
                     this._getRigCamPosition(this._cameraRigParams.stereoHalfAngle * rightSign, camRight.position);
                     camLeft.setTarget(this.getTarget());
                     camRight.setTarget(this.getTarget());
                     break;
-                case BABYLON.Camera.RIG_MODE_VR:
+                case Camera.RIG_MODE_VR:
                     camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camLeft.position.copyFrom(this.position);
                     camRight.position.copyFrom(this.position);
                     break;
-                // might be able to condense this.
-                case BABYLON.Camera.RIG_MODE_VIVE:
+                case Camera.RIG_MODE_VIVE:
                     camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
                     camLeft.position.copyFrom(this.position);
@@ -256,15 +238,18 @@ var BABYLON;
             return "TargetCamera";
         };
         __decorate([
-            BABYLON.serializeAsVector3()
+            BABYLON.serializeAsVector3(), 
+            __metadata('design:type', Object)
         ], TargetCamera.prototype, "rotation", void 0);
         __decorate([
-            BABYLON.serialize()
+            BABYLON.serialize(), 
+            __metadata('design:type', Object)
         ], TargetCamera.prototype, "speed", void 0);
         __decorate([
-            BABYLON.serializeAsMeshReference("lockedTargetId")
+            BABYLON.serializeAsMeshReference("lockedTargetId"), 
+            __metadata('design:type', Object)
         ], TargetCamera.prototype, "lockedTarget", void 0);
         return TargetCamera;
-    })(BABYLON.Camera);
+    }(Camera));
     BABYLON.TargetCamera = TargetCamera;
 })(BABYLON || (BABYLON = {}));

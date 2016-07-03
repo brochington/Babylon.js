@@ -305,19 +305,11 @@
             return this;
         }
 
-<<<<<<< HEAD
         /**
           * Multipy an RGBA Color4 value by another and return a new Color4 object
           * @param color The Color4 (RGBA) value to multiply by
           * @returns A new Color4.
           */
-=======
-       /**
-         * Multipy an RGBA Color4 value by another and return a new Color4 object
-         * @param color The Color4 (RGBA) value to multiply by
-         * @returns A new Color4.
-         */
->>>>>>> vr_room_scale_camera
         public multiply(color: Color4): Color4 {
             return new Color4(this.r * color.r, this.g * color.g, this.b * color.b, this.a * color.a);
         }

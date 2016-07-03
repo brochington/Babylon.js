@@ -272,6 +272,14 @@ declare module BABYLON {
         getUniforms(shaderProgram: WebGLProgram, uniformsNames: string[]): WebGLUniformLocation[];
         getAttributes(shaderProgram: WebGLProgram, attributesNames: string[]): number[];
         enableEffect(effect: Effect): void;
+        setIntArray(uniform: WebGLUniformLocation, array: Int32Array): void;
+        setIntArray2(uniform: WebGLUniformLocation, array: Int32Array): void;
+        setIntArray3(uniform: WebGLUniformLocation, array: Int32Array): void;
+        setIntArray4(uniform: WebGLUniformLocation, array: Int32Array): void;
+        setFloatArray(uniform: WebGLUniformLocation, array: Float32Array): void;
+        setFloatArray2(uniform: WebGLUniformLocation, array: Float32Array): void;
+        setFloatArray3(uniform: WebGLUniformLocation, array: Float32Array): void;
+        setFloatArray4(uniform: WebGLUniformLocation, array: Float32Array): void;
         setArray(uniform: WebGLUniformLocation, array: number[]): void;
         setArray2(uniform: WebGLUniformLocation, array: number[]): void;
         setArray3(uniform: WebGLUniformLocation, array: number[]): void;
@@ -359,6 +367,8 @@ declare module BABYLON {
         loadingScreen: ILoadingScreen;
         loadingUIText: string;
         loadingUIBackgroundColor: string;
+        attachContextLostEvent(callback: ((event: WebGLContextEvent) => void)): void;
+        attachContextRestoredEvent(callback: ((event: WebGLContextEvent) => void)): void;
         getFps(): number;
         getDeltaTime(): number;
         private _measureFps();
@@ -1195,41 +1205,162 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class Analyser {
-        SMOOTHING: number;
-        FFT_SIZE: number;
-        BARGRAPHAMPLITUDE: number;
-        DEBUGCANVASPOS: {
-            x: number;
-            y: number;
+    class Action {
+        triggerOptions: any;
+        trigger: number;
+        _actionManager: ActionManager;
+        private _nextActiveAction;
+        private _child;
+        private _condition;
+        private _triggerParameter;
+        constructor(triggerOptions: any, condition?: Condition);
+        _prepare(): void;
+        getTriggerParameter(): any;
+        _executeCurrent(evt: ActionEvent): void;
+        execute(evt: ActionEvent): void;
+        skipToNextActiveAction(): void;
+        then(action: Action): Action;
+        _getProperty(propertyPath: string): string;
+        _getEffectiveTarget(target: any, propertyPath: string): any;
+        serialize(parent: any): any;
+        protected _serialize(serializedAction: any, parent?: any): any;
+        static _SerializeValueAsString: (value: any) => string;
+        static _GetTargetProperty: (target: Scene | Node) => {
+            name: string;
+            targetType: string;
+            value: string;
         };
-        DEBUGCANVASSIZE: {
-            width: number;
-            height: number;
-        };
-        private _byteFreqs;
-        private _byteTime;
-        private _floatFreqs;
-        private _webAudioAnalyser;
-        private _debugCanvas;
-        private _debugCanvasContext;
-        private _scene;
-        private _registerFunc;
-        private _audioEngine;
-        constructor(scene: Scene);
-        getFrequencyBinCount(): number;
-        getByteFrequencyData(): Uint8Array;
-        getByteTimeDomainData(): Uint8Array;
-        getFloatFrequencyData(): Uint8Array;
-        drawDebugCanvas(): void;
-        stopDebugCanvas(): void;
-        connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
-        dispose(): void;
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
+    /**
+     * ActionEvent is the event beint sent when an action is triggered.
+     */
+    class ActionEvent {
+        source: any;
+        pointerX: number;
+        pointerY: number;
+        meshUnderPointer: AbstractMesh;
+        sourceEvent: any;
+        additionalData: any;
+        /**
+         * @constructor
+         * @param source The mesh or sprite that triggered the action.
+         * @param pointerX The X mouse cursor position at the time of the event
+         * @param pointerY The Y mouse cursor position at the time of the event
+         * @param meshUnderPointer The mesh that is currently pointed at (can be null)
+         * @param sourceEvent the original (browser) event that triggered the ActionEvent
+         */
+        constructor(source: any, pointerX: number, pointerY: number, meshUnderPointer: AbstractMesh, sourceEvent?: any, additionalData?: any);
+        /**
+         * Helper function to auto-create an ActionEvent from a source mesh.
+         * @param source The source mesh that triggered the event
+         * @param evt {Event} The original (browser) event
+         */
+        static CreateNew(source: AbstractMesh, evt?: Event, additionalData?: any): ActionEvent;
+        /**
+         * Helper function to auto-create an ActionEvent from a source mesh.
+         * @param source The source sprite that triggered the event
+         * @param scene Scene associated with the sprite
+         * @param evt {Event} The original (browser) event
+         */
+        static CreateNewFromSprite(source: Sprite, scene: Scene, evt?: Event, additionalData?: any): ActionEvent;
+        /**
+         * Helper function to auto-create an ActionEvent from a scene. If triggered by a mesh use ActionEvent.CreateNew
+         * @param scene the scene where the event occurred
+         * @param evt {Event} The original (browser) event
+         */
+        static CreateNewFromScene(scene: Scene, evt: Event): ActionEvent;
+        static CreateNewFromPrimitive(prim: any, pointerPos: Vector2, evt?: Event, additionalData?: any): ActionEvent;
+    }
+    /**
+     * Action Manager manages all events to be triggered on a given mesh or the global scene.
+     * A single scene can have many Action Managers to handle predefined actions on specific meshes.
+     */
+    class ActionManager {
+        private static _NothingTrigger;
+        private static _OnPickTrigger;
+        private static _OnLeftPickTrigger;
+        private static _OnRightPickTrigger;
+        private static _OnCenterPickTrigger;
+        private static _OnPickDownTrigger;
+        private static _OnPickUpTrigger;
+        private static _OnLongPressTrigger;
+        private static _OnPointerOverTrigger;
+        private static _OnPointerOutTrigger;
+        private static _OnEveryFrameTrigger;
+        private static _OnIntersectionEnterTrigger;
+        private static _OnIntersectionExitTrigger;
+        private static _OnKeyDownTrigger;
+        private static _OnKeyUpTrigger;
+        private static _OnPickOutTrigger;
+        static NothingTrigger: number;
+        static OnPickTrigger: number;
+        static OnLeftPickTrigger: number;
+        static OnRightPickTrigger: number;
+        static OnCenterPickTrigger: number;
+        static OnPickDownTrigger: number;
+        static OnPickUpTrigger: number;
+        static OnPickOutTrigger: number;
+        static OnLongPressTrigger: number;
+        static OnPointerOverTrigger: number;
+        static OnPointerOutTrigger: number;
+        static OnEveryFrameTrigger: number;
+        static OnIntersectionEnterTrigger: number;
+        static OnIntersectionExitTrigger: number;
+        static OnKeyDownTrigger: number;
+        static OnKeyUpTrigger: number;
+        static DragMovementThreshold: number;
+        static LongPressDelay: number;
+        actions: Action[];
+        private _scene;
+        constructor(scene: Scene);
+        dispose(): void;
+        getScene(): Scene;
+        /**
+         * Does this action manager handles actions of any of the given triggers
+         * @param {number[]} triggers - the triggers to be tested
+         * @return {boolean} whether one (or more) of the triggers is handeled
+         */
+        hasSpecificTriggers(triggers: number[]): boolean;
+        /**
+         * Does this action manager handles actions of a given trigger
+         * @param {number} trigger - the trigger to be tested
+         * @return {boolean} whether the trigger is handeled
+         */
+        hasSpecificTrigger(trigger: number): boolean;
+        /**
+         * Does this action manager has pointer triggers
+         * @return {boolean} whether or not it has pointer triggers
+         */
+        hasPointerTriggers: boolean;
+        /**
+         * Does this action manager has pick triggers
+         * @return {boolean} whether or not it has pick triggers
+         */
+        hasPickTriggers: boolean;
+        /**
+         * Registers an action to this action manager
+         * @param {BABYLON.Action} action - the action to be registered
+         * @return {BABYLON.Action} the action amended (prepared) after registration
+         */
+        registerAction(action: Action): Action;
+        /**
+         * Process a specific trigger
+         * @param {number} trigger - the trigger to process
+         * @param evt {BABYLON.ActionEvent} the event details to be processed
+         */
+        processTrigger(trigger: number, evt: ActionEvent): void;
+        _getEffectiveTarget(target: any, propertyPath: string): any;
+        _getProperty(propertyPath: string): string;
+        serialize(name: string): any;
+        static Parse(parsedActions: any, object: AbstractMesh, scene: Scene): void;
+        static GetTriggerName(trigger: number): string;
+    }
+}
+
+declare module BABYLON {
     class Condition {
         _actionManager: ActionManager;
         _evaluationId: number;
@@ -1275,30 +1406,10 @@ declare module BABYLON {
         constructor(actionManager: ActionManager, target: any, value: string);
         isValid(): boolean;
         serialize(): any;
-=======
-    class AudioEngine {
-        private _audioContext;
-        private _audioContextInitialized;
-        canUseWebAudio: boolean;
-        masterGain: GainNode;
-        private _connectedAnalyser;
-        WarnedWebAudioUnsupported: boolean;
-        unlocked: boolean;
-        onAudioUnlocked: () => any;
-        audioContext: AudioContext;
-        constructor();
-        private _unlockiOSaudio();
-        private _initializeAudioContext();
-        dispose(): void;
-        getGlobalVolume(): number;
-        setGlobalVolume(newVolume: number): void;
-        connectToAnalyser(analyser: Analyser): void;
->>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
     class SwitchBooleanAction extends Action {
         propertyPath: string;
         private _target;
@@ -1393,105 +1504,10 @@ declare module BABYLON {
         _prepare(): void;
         execute(): void;
         serialize(parent: any): any;
-=======
-    class Sound {
-        name: string;
-        autoplay: boolean;
-        loop: boolean;
-        useCustomAttenuation: boolean;
-        soundTrackId: number;
-        spatialSound: boolean;
-        refDistance: number;
-        rolloffFactor: number;
-        maxDistance: number;
-        distanceModel: string;
-        private _panningModel;
-        onended: () => any;
-        private _playbackRate;
-        private _streaming;
-        private _startTime;
-        private _startOffset;
-        private _position;
-        private _localDirection;
-        private _volume;
-        private _isLoaded;
-        private _isReadyToPlay;
-        isPlaying: boolean;
-        isPaused: boolean;
-        private _isDirectional;
-        private _readyToPlayCallback;
-        private _audioBuffer;
-        private _soundSource;
-        private _streamingSource;
-        private _soundPanner;
-        private _soundGain;
-        private _inputAudioNode;
-        private _ouputAudioNode;
-        private _coneInnerAngle;
-        private _coneOuterAngle;
-        private _coneOuterGain;
-        private _scene;
-        private _connectedMesh;
-        private _customAttenuationFunction;
-        private _registerFunc;
-        private _isOutputConnected;
-        private _htmlAudioElement;
-        /**
-        * Create a sound and attach it to a scene
-        * @param name Name of your sound
-        * @param urlOrArrayBuffer Url to the sound to load async or ArrayBuffer
-        * @param readyToPlayCallback Provide a callback function if you'd like to load your code once the sound is ready to be played
-        * @param options Objects to provide with the current available options: autoplay, loop, volume, spatialSound, maxDistance, rolloffFactor, refDistance, distanceModel, panningModel, streaming
-        */
-        constructor(name: string, urlOrArrayBuffer: any, scene: Scene, readyToPlayCallback?: () => void, options?: any);
-        dispose(): void;
-        private _soundLoaded(audioData);
-        setAudioBuffer(audioBuffer: AudioBuffer): void;
-        updateOptions(options: any): void;
-        private _createSpatialParameters();
-        private _updateSpatialParameters();
-        switchPanningModelToHRTF(): void;
-        switchPanningModelToEqualPower(): void;
-        private _switchPanningModel();
-        connectToSoundTrackAudioNode(soundTrackAudioNode: AudioNode): void;
-        /**
-        * Transform this sound into a directional source
-        * @param coneInnerAngle Size of the inner cone in degree
-        * @param coneOuterAngle Size of the outer cone in degree
-        * @param coneOuterGain Volume of the sound outside the outer cone (between 0.0 and 1.0)
-        */
-        setDirectionalCone(coneInnerAngle: number, coneOuterAngle: number, coneOuterGain: number): void;
-        setPosition(newPosition: Vector3): void;
-        setLocalDirectionToMesh(newLocalDirection: Vector3): void;
-        private _updateDirection();
-        updateDistanceFromListener(): void;
-        setAttenuationFunction(callback: (currentVolume: number, currentDistance: number, maxDistance: number, refDistance: number, rolloffFactor: number) => number): void;
-        /**
-        * Play the sound
-        * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
-        */
-        play(time?: number): void;
-        private _onended();
-        /**
-        * Stop the sound
-        * @param time (optional) Stop the sound after X seconds. Stop immediately (0) by default.
-        */
-        stop(time?: number): void;
-        pause(): void;
-        setVolume(newVolume: number, time?: number): void;
-        setPlaybackRate(newPlaybackRate: number): void;
-        getVolume(): number;
-        attachToMesh(meshToConnectTo: AbstractMesh): void;
-        private _onRegisterAfterWorldMatrixUpdate(connectedMesh);
-        clone(): Sound;
-        getAudioBuffer(): AudioBuffer;
-        static Parse(parsedSound: any, scene: Scene, rootUrl: string, sourceSound?: Sound): Sound;
->>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
     class InterpolateValueAction extends Action {
         propertyPath: string;
         value: any;
@@ -1505,28 +1521,6 @@ declare module BABYLON {
         _prepare(): void;
         execute(): void;
         serialize(parent: any): any;
-=======
-    class SoundTrack {
-        private _outputAudioNode;
-        private _inputAudioNode;
-        private _trackConvolver;
-        private _scene;
-        id: number;
-        soundCollection: Array<Sound>;
-        private _isMainTrack;
-        private _connectedAnalyser;
-        private _options;
-        private _isInitialized;
-        constructor(scene: Scene, options?: any);
-        private _initializeSoundTrackAudioGraph();
-        dispose(): void;
-        AddSound(sound: Sound): void;
-        RemoveSound(sound: Sound): void;
-        setVolume(newVolume: number): void;
-        switchPanningModelToHRTF(): void;
-        switchPanningModelToEqualPower(): void;
-        connectToAnalyser(analyser: Analyser): void;
->>>>>>> vr_room_scale_camera
     }
 }
 
@@ -1758,7 +1752,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
     class Analyser {
         SMOOTHING: number;
         FFT_SIZE: number;
@@ -1789,38 +1782,10 @@ declare module BABYLON {
         stopDebugCanvas(): void;
         connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
         dispose(): void;
-=======
-    class Action {
-        triggerOptions: any;
-        trigger: number;
-        _actionManager: ActionManager;
-        private _nextActiveAction;
-        private _child;
-        private _condition;
-        private _triggerParameter;
-        constructor(triggerOptions: any, condition?: Condition);
-        _prepare(): void;
-        getTriggerParameter(): any;
-        _executeCurrent(evt: ActionEvent): void;
-        execute(evt: ActionEvent): void;
-        skipToNextActiveAction(): void;
-        then(action: Action): Action;
-        _getProperty(propertyPath: string): string;
-        _getEffectiveTarget(target: any, propertyPath: string): any;
-        serialize(parent: any): any;
-        protected _serialize(serializedAction: any, parent?: any): any;
-        static _SerializeValueAsString: (value: any) => string;
-        static _GetTargetProperty: (target: Scene | Node) => {
-            name: string;
-            targetType: string;
-            value: string;
-        };
->>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
     class AudioEngine {
         private _audioContext;
         private _audioContextInitialized;
@@ -2013,427 +1978,6 @@ declare module BABYLON {
         getScene(): Scene;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-=======
-    /**
-     * ActionEvent is the event beint sent when an action is triggered.
-     */
-    class ActionEvent {
-        source: any;
-        pointerX: number;
-        pointerY: number;
-        meshUnderPointer: AbstractMesh;
-        sourceEvent: any;
-        additionalData: any;
-        /**
-         * @constructor
-         * @param source The mesh or sprite that triggered the action.
-         * @param pointerX The X mouse cursor position at the time of the event
-         * @param pointerY The Y mouse cursor position at the time of the event
-         * @param meshUnderPointer The mesh that is currently pointed at (can be null)
-         * @param sourceEvent the original (browser) event that triggered the ActionEvent
->>>>>>> vr_room_scale_camera
-         */
-        constructor(source: any, pointerX: number, pointerY: number, meshUnderPointer: AbstractMesh, sourceEvent?: any, additionalData?: any);
-        /**
-         * Helper function to auto-create an ActionEvent from a source mesh.
-         * @param source The source mesh that triggered the event
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNew(source: AbstractMesh, evt?: Event, additionalData?: any): ActionEvent;
-        /**
-         * Helper function to auto-create an ActionEvent from a source mesh.
-         * @param source The source sprite that triggered the event
-         * @param scene Scene associated with the sprite
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNewFromSprite(source: Sprite, scene: Scene, evt?: Event, additionalData?: any): ActionEvent;
-        /**
-         * Helper function to auto-create an ActionEvent from a scene. If triggered by a mesh use ActionEvent.CreateNew
-         * @param scene the scene where the event occurred
-         * @param evt {Event} The original (browser) event
-         */
-        static CreateNewFromScene(scene: Scene, evt: Event): ActionEvent;
-        static CreateNewFromPrimitive(prim: any, pointerPos: Vector2, evt?: Event, additionalData?: any): ActionEvent;
-    }
-<<<<<<< HEAD
-}
-
-declare module BABYLON {
-    class ArcRotateCamera extends TargetCamera {
-        alpha: number;
-        beta: number;
-        radius: number;
-        target: Vector3;
-        inertialAlphaOffset: number;
-        inertialBetaOffset: number;
-        inertialRadiusOffset: number;
-        lowerAlphaLimit: any;
-        upperAlphaLimit: any;
-        lowerBetaLimit: number;
-        upperBetaLimit: number;
-        lowerRadiusLimit: any;
-        upperRadiusLimit: any;
-        inertialPanningX: number;
-        inertialPanningY: number;
-        angularSensibilityX: number;
-        angularSensibilityY: number;
-        pinchPrecision: number;
-        panningSensibility: number;
-        keysUp: number[];
-        keysDown: number[];
-        keysLeft: number[];
-        keysRight: number[];
-        wheelPrecision: number;
-        zoomOnFactor: number;
-        targetScreenOffset: Vector2;
-        allowUpsideDown: boolean;
-        _viewMatrix: Matrix;
-        _useCtrlForPanning: boolean;
-<<<<<<< HEAD
-=======
-        _panningMouseButton: number;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        inputs: ArcRotateCameraInputsManager;
-        _reset: () => void;
-        panningAxis: Vector3;
-        private _localDirection;
-        private _transformedDirection;
-        onCollide: (collidedMesh: AbstractMesh) => void;
-        checkCollisions: boolean;
-        collisionRadius: Vector3;
-        private _collider;
-        private _previousPosition;
-        private _collisionVelocity;
-        private _newPosition;
-        private _previousAlpha;
-        private _previousBeta;
-        private _previousRadius;
-        private _collisionTriggered;
-        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene);
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        private _getTargetPosition();
-        _isSynchronizedViewMatrix(): boolean;
-<<<<<<< HEAD
-        attachControl(element: HTMLElement, noPreventDefault?: boolean, useCtrlForPanning?: boolean): void;
-=======
-        attachControl(element: HTMLElement, noPreventDefault?: boolean, useCtrlForPanning?: boolean, panningMouseButton?: number): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        detachControl(element: HTMLElement): void;
-        _checkInputs(): void;
-        private _checkLimits();
-        rebuildAnglesAndRadius(): void;
-        setPosition(position: Vector3): void;
-        setTarget(target: Vector3): void;
-        _getViewMatrix(): Matrix;
-        private _onCollisionPositionChange;
-        zoomOn(meshes?: AbstractMesh[], doNotUpdateMaxZ?: boolean): void;
-        focusOn(meshesOrMinMaxVectorAndDistance: any, doNotUpdateMaxZ?: boolean): void;
-        /**
-         * @override
-         * Override Camera.createRigCamera
-<<<<<<< HEAD
-=======
-    /**
-     * Action Manager manages all events to be triggered on a given mesh or the global scene.
-     * A single scene can have many Action Managers to handle predefined actions on specific meshes.
-     */
-    class ActionManager {
-        private static _NothingTrigger;
-        private static _OnPickTrigger;
-        private static _OnLeftPickTrigger;
-        private static _OnRightPickTrigger;
-        private static _OnCenterPickTrigger;
-        private static _OnPickDownTrigger;
-        private static _OnPickUpTrigger;
-        private static _OnLongPressTrigger;
-        private static _OnPointerOverTrigger;
-        private static _OnPointerOutTrigger;
-        private static _OnEveryFrameTrigger;
-        private static _OnIntersectionEnterTrigger;
-        private static _OnIntersectionExitTrigger;
-        private static _OnKeyDownTrigger;
-        private static _OnKeyUpTrigger;
-        private static _OnPickOutTrigger;
-        static NothingTrigger: number;
-        static OnPickTrigger: number;
-        static OnLeftPickTrigger: number;
-        static OnRightPickTrigger: number;
-        static OnCenterPickTrigger: number;
-        static OnPickDownTrigger: number;
-        static OnPickUpTrigger: number;
-        static OnPickOutTrigger: number;
-        static OnLongPressTrigger: number;
-        static OnPointerOverTrigger: number;
-        static OnPointerOutTrigger: number;
-        static OnEveryFrameTrigger: number;
-        static OnIntersectionEnterTrigger: number;
-        static OnIntersectionExitTrigger: number;
-        static OnKeyDownTrigger: number;
-        static OnKeyUpTrigger: number;
-        static DragMovementThreshold: number;
-        static LongPressDelay: number;
-        actions: Action[];
-        private _scene;
-        constructor(scene: Scene);
-        dispose(): void;
-        getScene(): Scene;
-        /**
-         * Does this action manager handles actions of any of the given triggers
-         * @param {number[]} triggers - the triggers to be tested
-         * @return {boolean} whether one (or more) of the triggers is handeled
->>>>>>> vr_room_scale_camera
-         */
-        hasSpecificTriggers(triggers: number[]): boolean;
-        /**
-         * Does this action manager handles actions of a given trigger
-         * @param {number} trigger - the trigger to be tested
-         * @return {boolean} whether the trigger is handeled
-         */
-        hasSpecificTrigger(trigger: number): boolean;
-        /**
-         * Does this action manager has pointer triggers
-         * @return {boolean} whether or not it has pointer triggers
-         */
-        hasPointerTriggers: boolean;
-        /**
-         * Does this action manager has pick triggers
-         * @return {boolean} whether or not it has pick triggers
-         */
-        hasPickTriggers: boolean;
-        /**
-         * Registers an action to this action manager
-         * @param {BABYLON.Action} action - the action to be registered
-         * @return {BABYLON.Action} the action amended (prepared) after registration
-         */
-        registerAction(action: Action): Action;
-        /**
-         * Process a specific trigger
-         * @param {number} trigger - the trigger to process
-         * @param evt {BABYLON.ActionEvent} the event details to be processed
-         */
-        processTrigger(trigger: number, evt: ActionEvent): void;
-        _getEffectiveTarget(target: any, propertyPath: string): any;
-        _getProperty(propertyPath: string): string;
-        serialize(name: string): any;
-        static Parse(parsedActions: any, object: AbstractMesh, scene: Scene): void;
-        static GetTriggerName(trigger: number): string;
-    }
-}
-
-declare module BABYLON {
-    class Condition {
-        _actionManager: ActionManager;
-        _evaluationId: number;
-        _currentResult: boolean;
-        constructor(actionManager: ActionManager);
-        isValid(): boolean;
-        _getProperty(propertyPath: string): string;
-        _getEffectiveTarget(target: any, propertyPath: string): any;
-        serialize(): any;
-        protected _serialize(serializedCondition: any): any;
-    }
-    class ValueCondition extends Condition {
-        propertyPath: string;
-        value: any;
-        operator: number;
-        private static _IsEqual;
-        private static _IsDifferent;
-        private static _IsGreater;
-        private static _IsLesser;
-        static IsEqual: number;
-        static IsDifferent: number;
-        static IsGreater: number;
-        static IsLesser: number;
-        _actionManager: ActionManager;
-        private _target;
-        private _effectiveTarget;
-        private _property;
-        constructor(actionManager: ActionManager, target: any, propertyPath: string, value: any, operator?: number);
-        isValid(): boolean;
-        serialize(): any;
-        static GetOperatorName(operator: number): string;
-    }
-    class PredicateCondition extends Condition {
-        predicate: () => boolean;
-        _actionManager: ActionManager;
-        constructor(actionManager: ActionManager, predicate: () => boolean);
-        isValid(): boolean;
-    }
-    class StateCondition extends Condition {
-        value: string;
-        _actionManager: ActionManager;
-        private _target;
-        constructor(actionManager: ActionManager, target: any, value: string);
-        isValid(): boolean;
-        serialize(): any;
-    }
-}
-
-declare module BABYLON {
-    class SwitchBooleanAction extends Action {
-        propertyPath: string;
-        private _target;
-        private _effectiveTarget;
-        private _property;
-        constructor(triggerOptions: any, target: any, propertyPath: string, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class SetStateAction extends Action {
-        value: string;
-        private _target;
-        constructor(triggerOptions: any, target: any, value: string, condition?: Condition);
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class SetValueAction extends Action {
-        propertyPath: string;
-        value: any;
-        private _target;
-        private _effectiveTarget;
-        private _property;
-        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class IncrementValueAction extends Action {
-        propertyPath: string;
-        value: any;
-        private _target;
-        private _effectiveTarget;
-        private _property;
-        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class PlayAnimationAction extends Action {
-        from: number;
-        to: number;
-        loop: boolean;
-        private _target;
-        constructor(triggerOptions: any, target: any, from: number, to: number, loop?: boolean, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class StopAnimationAction extends Action {
-        private _target;
-        constructor(triggerOptions: any, target: any, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class DoNothingAction extends Action {
-        constructor(triggerOptions?: any, condition?: Condition);
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class CombineAction extends Action {
-        children: Action[];
-        constructor(triggerOptions: any, children: Action[], condition?: Condition);
-        _prepare(): void;
-        execute(evt: ActionEvent): void;
-        serialize(parent: any): any;
-    }
-    class ExecuteCodeAction extends Action {
-        func: (evt: ActionEvent) => void;
-        constructor(triggerOptions: any, func: (evt: ActionEvent) => void, condition?: Condition);
-        execute(evt: ActionEvent): void;
-    }
-    class SetParentAction extends Action {
-        private _parent;
-        private _target;
-        constructor(triggerOptions: any, target: any, parent: any, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class PlaySoundAction extends Action {
-        private _sound;
-        constructor(triggerOptions: any, sound: Sound, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-    class StopSoundAction extends Action {
-        private _sound;
-        constructor(triggerOptions: any, sound: Sound, condition?: Condition);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-}
-
-declare module BABYLON {
-    class InterpolateValueAction extends Action {
-        propertyPath: string;
-        value: any;
-        duration: number;
-        stopOtherAnimations: boolean;
-        onInterpolationDone: () => void;
-        private _target;
-        private _effectiveTarget;
-        private _property;
-        constructor(triggerOptions: any, target: any, propertyPath: string, value: any, duration?: number, condition?: Condition, stopOtherAnimations?: boolean, onInterpolationDone?: () => void);
-        _prepare(): void;
-        execute(): void;
-        serialize(parent: any): any;
-    }
-}
-
-declare module BABYLON {
-    class Bone extends Node {
-        name: string;
-        children: Bone[];
-        animations: Animation[];
-        length: number;
-        private _skeleton;
-        _matrix: Matrix;
-        private _restPose;
-        private _baseMatrix;
-        private _worldTransform;
-        private _absoluteTransform;
-        private _invertedAbsoluteTransform;
-        private _parent;
-        constructor(name: string, skeleton: Skeleton, parentBone: Bone, matrix: Matrix, restPose?: Matrix);
-        getParent(): Bone;
-        getLocalMatrix(): Matrix;
-        getBaseMatrix(): Matrix;
-        getRestPose(): Matrix;
-        returnToRest(): void;
-        getWorldMatrix(): Matrix;
-        getInvertedAbsoluteTransform(): Matrix;
-        getAbsoluteTransform(): Matrix;
-        updateMatrix(matrix: Matrix): void;
-        _updateDifferenceMatrix(rootMatrix?: Matrix): void;
-        markAsDirty(): void;
-        copyAnimationRange(source: Bone, rangeName: string, frameOffset: number, rescaleAsRequired?: boolean): boolean;
-    }
-}
-
-declare module BABYLON {
-    class Skeleton {
-        name: string;
-        id: string;
-        bones: Bone[];
-        dimensionsAtRest: Vector3;
-        needInitialSkinMatrix: boolean;
-        private _scene;
-        private _isDirty;
-        private _transformMatrices;
-        private _meshesWithPoseMatrix;
-        private _animatables;
-        private _identity;
-        private _ranges;
-        constructor(name: string, id: string, scene: Scene);
-        getTransformMatrices(mesh: AbstractMesh): Float32Array;
-        getScene(): Scene;
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
         toString(fullDetails?: boolean): string;
         /**
@@ -2452,9 +1996,6 @@ declare module BABYLON {
         /**
          *  note: This is not for a complete retargeting, only between very similar skeleton's with only possible bone length differences
          */
-<<<<<<< HEAD
-=======
-=======
         copyAnimationRange(source: Skeleton, name: string, rescaleAsRequired?: boolean): boolean;
         returnToRest(): void;
         private _getHighestAnimationFrame();
@@ -2474,1223 +2015,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class ArcRotateCamera extends TargetCamera {
-        alpha: number;
-        beta: number;
-        radius: number;
-        target: Vector3;
-        inertialAlphaOffset: number;
-        inertialBetaOffset: number;
-        inertialRadiusOffset: number;
-        lowerAlphaLimit: any;
-        upperAlphaLimit: any;
-        lowerBetaLimit: number;
-        upperBetaLimit: number;
-        lowerRadiusLimit: any;
-        upperRadiusLimit: any;
-        inertialPanningX: number;
-        inertialPanningY: number;
-        angularSensibilityX: number;
-        angularSensibilityY: number;
-        pinchPrecision: number;
-        panningSensibility: number;
-        keysUp: number[];
-        keysDown: number[];
-        keysLeft: number[];
-        keysRight: number[];
-        wheelPrecision: number;
-        zoomOnFactor: number;
-        targetScreenOffset: Vector2;
-        allowUpsideDown: boolean;
-        _viewMatrix: Matrix;
-        _useCtrlForPanning: boolean;
-        inputs: ArcRotateCameraInputsManager;
-        _reset: () => void;
-        panningAxis: Vector3;
-        private _localDirection;
-        private _transformedDirection;
-        onCollide: (collidedMesh: AbstractMesh) => void;
-        checkCollisions: boolean;
-        collisionRadius: Vector3;
-        private _collider;
-        private _previousPosition;
-        private _collisionVelocity;
-        private _newPosition;
-        private _previousAlpha;
-        private _previousBeta;
-        private _previousRadius;
-        private _collisionTriggered;
-        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene);
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        private _getTargetPosition();
-        _isSynchronizedViewMatrix(): boolean;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean, useCtrlForPanning?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        _checkInputs(): void;
-        private _checkLimits();
-        rebuildAnglesAndRadius(): void;
-        setPosition(position: Vector3): void;
-        setTarget(target: Vector3): void;
-        _getViewMatrix(): Matrix;
-        private _onCollisionPositionChange;
-        zoomOn(meshes?: AbstractMesh[], doNotUpdateMaxZ?: boolean): void;
-        focusOn(meshesOrMinMaxVectorAndDistance: any, doNotUpdateMaxZ?: boolean): void;
-        /**
-         * @override
-         * Override Camera.createRigCamera
->>>>>>> vr_room_scale_camera
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * @override
-         * Override Camera._updateRigCameras
-         */
-        _updateRigCameras(): void;
-        dispose(): void;
-        getTypeName(): string;
-<<<<<<< HEAD
-=======
-    }
-}
-
-declare module BABYLON {
-    class ArcRotateCameraInputsManager extends CameraInputsManager<ArcRotateCamera> {
-        constructor(camera: ArcRotateCamera);
-        addMouseWheel(): ArcRotateCameraInputsManager;
-        addPointers(): ArcRotateCameraInputsManager;
-        addKeyboard(): ArcRotateCameraInputsManager;
-        addGamepad(): ArcRotateCameraInputsManager;
-        addVRDeviceOrientation(): ArcRotateCameraInputsManager;
-    }
-}
-
-declare module BABYLON {
-    class Camera extends Node {
-        inputs: CameraInputsManager<Camera>;
-        private static _PERSPECTIVE_CAMERA;
-        private static _ORTHOGRAPHIC_CAMERA;
-        private static _FOVMODE_VERTICAL_FIXED;
-        private static _FOVMODE_HORIZONTAL_FIXED;
-        private static _RIG_MODE_NONE;
-        private static _RIG_MODE_STEREOSCOPIC_ANAGLYPH;
-        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL;
-        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED;
-        private static _RIG_MODE_STEREOSCOPIC_OVERUNDER;
-        private static _RIG_MODE_VR;
-        private static _RIG_MODE_VIVE;
-        static PERSPECTIVE_CAMERA: number;
-        static ORTHOGRAPHIC_CAMERA: number;
-        static FOVMODE_VERTICAL_FIXED: number;
-        static FOVMODE_HORIZONTAL_FIXED: number;
-        static RIG_MODE_NONE: number;
-        static RIG_MODE_STEREOSCOPIC_ANAGLYPH: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED: number;
-        static RIG_MODE_STEREOSCOPIC_OVERUNDER: number;
-        static RIG_MODE_VR: number;
-        static RIG_MODE_VIVE: number;
-        static ForceAttachControlToAlwaysPreventDefault: boolean;
-        _counter: number;
-        position: Vector3;
-        upVector: Vector3;
-        orthoLeft: any;
-        orthoRight: any;
-        orthoBottom: any;
-        orthoTop: any;
-        fov: number;
-        minZ: number;
-        maxZ: number;
-        inertia: number;
-        mode: number;
-        isIntermediate: boolean;
-        viewport: Viewport;
-        layerMask: number;
-        fovMode: number;
-        cameraRigMode: number;
-        interaxialDistance: number;
-        isStereoscopicSideBySide: boolean;
-        _cameraRigParams: any;
-        _rigCameras: Camera[];
-        _rigPostProcess: PostProcess;
-        private _computedViewMatrix;
-        _projectionMatrix: Matrix;
-        private _worldMatrix;
-        _postProcesses: PostProcess[];
-        _activeMeshes: SmartArray<Mesh>;
-        private _globalPosition;
-        constructor(name: string, position: Vector3, scene: Scene);
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
-        globalPosition: Vector3;
-        getActiveMeshes(): SmartArray<Mesh>;
-        isActiveMesh(mesh: Mesh): boolean;
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        _updateFromScene(): void;
-        _isSynchronized(): boolean;
-        _isSynchronizedViewMatrix(): boolean;
-        _isSynchronizedProjectionMatrix(): boolean;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        _update(): void;
-        _checkInputs(): void;
-        private _cascadePostProcessesToRigCams();
-        attachPostProcess(postProcess: PostProcess, insertAt?: number): number;
-        detachPostProcess(postProcess: PostProcess, atIndices?: any): number[];
-        getWorldMatrix(): Matrix;
-        _getViewMatrix(): Matrix;
-        getViewMatrix(force?: boolean): Matrix;
-        _computeViewMatrix(force?: boolean): Matrix;
-        getProjectionMatrix(force?: boolean): Matrix;
-        dispose(): void;
-        setCameraRigMode(mode: number, rigParams: any): void;
-        private _getVRProjectionMatrix();
-        private _getVRRoomScaleProjectionMatrix();
-        setCameraRigParameter(name: string, value: any): void;
-        /**
-         * needs to be overridden by children so sub has required properties to be copied
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * May need to be overridden by children
-         */
-        _updateRigCameras(): void;
-        _setupInputs(): void;
-        serialize(): any;
-        getTypeName(): string;
-        clone(name: string): Camera;
-        static GetConstructorFromName(type: string, name: string, scene: Scene, interaxial_distance?: number, isStereoscopicSideBySide?: boolean): () => Camera;
-        static Parse(parsedCamera: any, scene: Scene): Camera;
-    }
-}
-
-declare module BABYLON {
-    var CameraInputTypes: {};
-    interface ICameraInput<TCamera extends BABYLON.Camera> {
-        camera: TCamera;
-        getTypeName(): string;
-        getSimpleName(): string;
-        attachControl: (element: HTMLElement, noPreventDefault?: boolean) => void;
-        detachControl: (element: HTMLElement) => void;
-        checkInputs?: () => void;
-    }
-    interface CameraInputsMap<TCamera extends BABYLON.Camera> {
-        [name: string]: ICameraInput<TCamera>;
-        [idx: number]: ICameraInput<TCamera>;
-    }
-    class CameraInputsManager<TCamera extends BABYLON.Camera> {
-        attached: CameraInputsMap<TCamera>;
-        attachedElement: HTMLElement;
-        noPreventDefault: boolean;
-        camera: TCamera;
-        checkInputs: () => void;
-        constructor(camera: TCamera);
-        add(input: ICameraInput<TCamera>): void;
-        remove(inputToRemove: ICameraInput<TCamera>): void;
-        removeByType(inputType: string): void;
-        private _addCheckInputs(fn);
-        attachInput(input: ICameraInput<TCamera>): void;
-        attachElement(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachElement(element: HTMLElement): void;
-        rebuildInputCheck(): void;
-        clear(): void;
-        serialize(serializedCamera: any): void;
-        parse(parsedCamera: any): void;
->>>>>>> vr_room_scale_camera
-    }
-}
-
-declare module BABYLON {
-    class ArcRotateCameraInputsManager extends CameraInputsManager<ArcRotateCamera> {
-        constructor(camera: ArcRotateCamera);
-        addMouseWheel(): ArcRotateCameraInputsManager;
-        addPointers(): ArcRotateCameraInputsManager;
-        addKeyboard(): ArcRotateCameraInputsManager;
-        addGamepad(): ArcRotateCameraInputsManager;
-        addVRDeviceOrientation(): ArcRotateCameraInputsManager;
-    }
-}
-
-declare module BABYLON {
-    class Camera extends Node {
-        inputs: CameraInputsManager<Camera>;
-        private static _PERSPECTIVE_CAMERA;
-        private static _ORTHOGRAPHIC_CAMERA;
-        private static _FOVMODE_VERTICAL_FIXED;
-        private static _FOVMODE_HORIZONTAL_FIXED;
-        private static _RIG_MODE_NONE;
-        private static _RIG_MODE_STEREOSCOPIC_ANAGLYPH;
-        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL;
-        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED;
-        private static _RIG_MODE_STEREOSCOPIC_OVERUNDER;
-        private static _RIG_MODE_VR;
-        static PERSPECTIVE_CAMERA: number;
-        static ORTHOGRAPHIC_CAMERA: number;
-        static FOVMODE_VERTICAL_FIXED: number;
-        static FOVMODE_HORIZONTAL_FIXED: number;
-        static RIG_MODE_NONE: number;
-        static RIG_MODE_STEREOSCOPIC_ANAGLYPH: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED: number;
-        static RIG_MODE_STEREOSCOPIC_OVERUNDER: number;
-        static RIG_MODE_VR: number;
-        static ForceAttachControlToAlwaysPreventDefault: boolean;
-        position: Vector3;
-        upVector: Vector3;
-        orthoLeft: any;
-        orthoRight: any;
-        orthoBottom: any;
-        orthoTop: any;
-        fov: number;
-        minZ: number;
-        maxZ: number;
-        inertia: number;
-        mode: number;
-        isIntermediate: boolean;
-        viewport: Viewport;
-        layerMask: number;
-        fovMode: number;
-        cameraRigMode: number;
-        interaxialDistance: number;
-        isStereoscopicSideBySide: boolean;
-        _cameraRigParams: any;
-        _rigCameras: Camera[];
-        _rigPostProcess: PostProcess;
-        private _computedViewMatrix;
-        _projectionMatrix: Matrix;
-        private _worldMatrix;
-        _postProcesses: PostProcess[];
-        private _transformMatrix;
-        _activeMeshes: SmartArray<Mesh>;
-        private _globalPosition;
-        private _frustumPlanes;
-        private _refreshFrustumPlanes;
-        constructor(name: string, position: Vector3, scene: Scene);
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
-        globalPosition: Vector3;
-        getActiveMeshes(): SmartArray<Mesh>;
-        isActiveMesh(mesh: Mesh): boolean;
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        _updateFromScene(): void;
-        _isSynchronized(): boolean;
-        _isSynchronizedViewMatrix(): boolean;
-        _isSynchronizedProjectionMatrix(): boolean;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        _update(): void;
-        _checkInputs(): void;
-        private _cascadePostProcessesToRigCams();
-        attachPostProcess(postProcess: PostProcess, insertAt?: number): number;
-        detachPostProcess(postProcess: PostProcess, atIndices?: any): number[];
-        getWorldMatrix(): Matrix;
-        _getViewMatrix(): Matrix;
-        getViewMatrix(force?: boolean): Matrix;
-        _computeViewMatrix(force?: boolean): Matrix;
-        getProjectionMatrix(force?: boolean): Matrix;
-        getTranformationMatrix(): Matrix;
-        private updateFrustumPlanes();
-        isInFrustum(target: ICullable): boolean;
-        isCompletelyInFrustum(target: ICullable): boolean;
-        dispose(): void;
-        setCameraRigMode(mode: number, rigParams: any): void;
-        private _getVRProjectionMatrix();
-        setCameraRigParameter(name: string, value: any): void;
-        /**
-         * needs to be overridden by children so sub has required properties to be copied
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * May need to be overridden by children
-         */
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        _updateRigCameras(): void;
-        _setupInputs(): void;
-        serialize(): any;
-        getTypeName(): string;
-        clone(name: string): Camera;
-        static GetConstructorFromName(type: string, name: string, scene: Scene, interaxial_distance?: number, isStereoscopicSideBySide?: boolean): () => Camera;
-        static Parse(parsedCamera: any, scene: Scene): Camera;
-<<<<<<< HEAD
-    }
-}
-
-declare module BABYLON {
-    var CameraInputTypes: {};
-    interface ICameraInput<TCamera extends BABYLON.Camera> {
-        camera: TCamera;
-        getTypeName(): string;
-        getSimpleName(): string;
-        attachControl: (element: HTMLElement, noPreventDefault?: boolean) => void;
-        detachControl: (element: HTMLElement) => void;
-        checkInputs?: () => void;
-    }
-    interface CameraInputsMap<TCamera extends BABYLON.Camera> {
-        [name: string]: ICameraInput<TCamera>;
-        [idx: number]: ICameraInput<TCamera>;
-    }
-    class CameraInputsManager<TCamera extends BABYLON.Camera> {
-        attached: CameraInputsMap<TCamera>;
-        attachedElement: HTMLElement;
-        noPreventDefault: boolean;
-        camera: TCamera;
-        checkInputs: () => void;
-        constructor(camera: TCamera);
-        add(input: ICameraInput<TCamera>): void;
-        remove(inputToRemove: ICameraInput<TCamera>): void;
-        removeByType(inputType: string): void;
-        private _addCheckInputs(fn);
-        attachInput(input: ICameraInput<TCamera>): void;
-        attachElement(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachElement(element: HTMLElement): void;
-        rebuildInputCheck(): void;
-        clear(): void;
-        serialize(serializedCamera: any): void;
-        parse(parsedCamera: any): void;
-=======
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class DeviceOrientationCamera extends FreeCamera {
-        angularSensibility: number;
-        moveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class FollowCamera extends TargetCamera {
-        radius: number;
-        rotationOffset: number;
-        heightOffset: number;
-        cameraAcceleration: number;
-        maxCameraSpeed: number;
-        target: AbstractMesh;
-        constructor(name: string, position: Vector3, scene: Scene, target?: AbstractMesh);
-        private getRadians(degrees);
-        private follow(cameraTarget);
-        _checkInputs(): void;
-        getTypeName(): string;
-    }
-    class ArcFollowCamera extends TargetCamera {
-        alpha: number;
-        beta: number;
-        radius: number;
-        target: AbstractMesh;
-        private _cartesianCoordinates;
-        constructor(name: string, alpha: number, beta: number, radius: number, target: AbstractMesh, scene: Scene);
-        private follow();
-        _checkInputs(): void;
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class FreeCamera extends TargetCamera {
-        ellipsoid: Vector3;
-        checkCollisions: boolean;
-        applyGravity: boolean;
-        inputs: FreeCameraInputsManager;
-        angularSensibility: number;
-        keysUp: number[];
-        keysDown: number[];
-        keysLeft: number[];
-        keysRight: number[];
-        onCollide: (collidedMesh: AbstractMesh) => void;
-        private _collider;
-        private _needMoveForGravity;
-        private _oldPosition;
-        private _diffPosition;
-        private _newPosition;
-        _localDirection: Vector3;
-        _transformedDirection: Vector3;
-        constructor(name: string, position: Vector3, scene: Scene);
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        _collideWithWorld(velocity: Vector3): void;
-        private _onCollisionPositionChange;
-        _checkInputs(): void;
-        _decideIfNeedsToMove(): boolean;
-        _updatePosition(): void;
-        dispose(): void;
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class FreeCameraInputsManager extends CameraInputsManager<FreeCamera> {
-        constructor(camera: FreeCamera);
-        addKeyboard(): FreeCameraInputsManager;
-        addMouse(touchEnabled?: boolean): FreeCameraInputsManager;
-        addGamepad(): FreeCameraInputsManager;
-        addDeviceOrientation(): FreeCameraInputsManager;
-        addVRDeviceOrientation(): FreeCameraInputsManager;
-        addTouch(): FreeCameraInputsManager;
-        addVirtualJoystick(): FreeCameraInputsManager;
-        addVRDisplay(): FreeCameraInputsManager;
-    }
-}
-
-declare module BABYLON {
-    class GamepadCamera extends UniversalCamera {
-        gamepadAngularSensibility: number;
-        gamepadMoveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class AnaglyphFreeCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphGamepadCamera extends GamepadCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphUniversalCamera extends UniversalCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicFreeCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicGamepadCamera extends GamepadCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicUniversalCamera extends UniversalCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class TargetCamera extends Camera {
-        cameraDirection: Vector3;
-        cameraRotation: Vector2;
-        rotation: Vector3;
-        rotationQuaternion: Quaternion;
-        speed: number;
-        noRotationConstraint: boolean;
-        lockedTarget: any;
-        _currentTarget: Vector3;
-        _viewMatrix: Matrix;
-        _camMatrix: Matrix;
-        _cameraTransformMatrix: Matrix;
-        _cameraRotationMatrix: Matrix;
-        private _rigCamTransformMatrix;
-        _referencePoint: Vector3;
-        private _defaultUpVector;
-        _transformedReferencePoint: Vector3;
-        _lookAtTemp: Matrix;
-        _tempMatrix: Matrix;
-        _reset: () => void;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getFrontPosition(distance: number): Vector3;
-        _getLockedTargetPosition(): Vector3;
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        _isSynchronizedViewMatrix(): boolean;
-        _computeLocalCameraSpeed(): number;
-        setTarget(target: Vector3): void;
-        getTarget(): Vector3;
-        _decideIfNeedsToMove(): boolean;
-        _updatePosition(): void;
-        _checkInputs(): void;
-        private _updateCameraRotationMatrix();
-        _getViewMatrix(): Matrix;
-        _getVRViewMatrix(): Matrix;
-        /**
-         * @override
-         * Override Camera.createRigCamera
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * @override
-         * Override Camera._updateRigCameras
-         */
-        _updateRigCameras(): void;
-        private _getRigCamPosition(halfSpace, result);
-        getTypeName(): string;
-=======
-    var CameraInputTypes: {};
-    interface ICameraInput<TCamera extends BABYLON.Camera> {
-        camera: TCamera;
-        getTypeName(): string;
-        getSimpleName(): string;
-        attachControl: (element: HTMLElement, noPreventDefault?: boolean) => void;
-        detachControl: (element: HTMLElement) => void;
-        checkInputs?: () => void;
-    }
-    interface CameraInputsMap<TCamera extends BABYLON.Camera> {
-        [name: string]: ICameraInput<TCamera>;
-        [idx: number]: ICameraInput<TCamera>;
-    }
-    class CameraInputsManager<TCamera extends BABYLON.Camera> {
-        attached: CameraInputsMap<TCamera>;
-        attachedElement: HTMLElement;
-        noPreventDefault: boolean;
-        camera: TCamera;
-        checkInputs: () => void;
-        constructor(camera: TCamera);
-        add(input: ICameraInput<TCamera>): void;
-        remove(inputToRemove: ICameraInput<TCamera>): void;
-        removeByType(inputType: string): void;
-        private _addCheckInputs(fn);
-        attachInput(input: ICameraInput<TCamera>): void;
-        attachElement(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachElement(element: HTMLElement): void;
-        rebuildInputCheck(): void;
-        clear(): void;
-        serialize(serializedCamera: any): void;
-        parse(parsedCamera: any): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class TouchCamera extends FreeCamera {
-        touchAngularSensibility: number;
-        touchMoveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
-        _setupInputs(): void;
-    }
-}
-
-declare module BABYLON {
-    class UniversalCamera extends TouchCamera {
-        gamepadAngularSensibility: number;
-        gamepadMoveSensibility: number;
-=======
-    class DeviceOrientationCamera extends FreeCamera {
-        angularSensibility: number;
-        moveSensibility: number;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class VirtualJoysticksCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, scene: Scene);
-=======
-    class FollowCamera extends TargetCamera {
-        radius: number;
-        rotationOffset: number;
-        heightOffset: number;
-        cameraAcceleration: number;
-        maxCameraSpeed: number;
-        target: AbstractMesh;
-        constructor(name: string, position: Vector3, scene: Scene, target?: AbstractMesh);
-        private getRadians(degrees);
-        private follow(cameraTarget);
-        _checkInputs(): void;
-        getTypeName(): string;
-    }
-    class ArcFollowCamera extends TargetCamera {
-        alpha: number;
-        beta: number;
-        radius: number;
-        target: AbstractMesh;
-        private _cartesianCoordinates;
-        constructor(name: string, alpha: number, beta: number, radius: number, target: AbstractMesh, scene: Scene);
-        private follow();
-        _checkInputs(): void;
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class Collider {
-        radius: Vector3;
-        retry: number;
-        velocity: Vector3;
-        basePoint: Vector3;
-        epsilon: number;
-        collisionFound: boolean;
-        velocityWorldLength: number;
-        basePointWorld: Vector3;
-        velocityWorld: Vector3;
-        normalizedVelocity: Vector3;
-        initialVelocity: Vector3;
-        initialPosition: Vector3;
-        nearestDistance: number;
-        intersectionPoint: Vector3;
-        collidedMesh: AbstractMesh;
-        private _collisionPoint;
-        private _planeIntersectionPoint;
-        private _tempVector;
-        private _tempVector2;
-        private _tempVector3;
-        private _tempVector4;
-        private _edge;
-        private _baseToVertex;
-        private _destinationPoint;
-        private _slidePlaneNormal;
-        private _displacementVector;
-        _initialize(source: Vector3, dir: Vector3, e: number): void;
-        _checkPointInTriangle(point: Vector3, pa: Vector3, pb: Vector3, pc: Vector3, n: Vector3): boolean;
-        _canDoCollision(sphereCenter: Vector3, sphereRadius: number, vecMin: Vector3, vecMax: Vector3): boolean;
-        _testTriangle(faceIndex: number, trianglePlaneArray: Array<Plane>, p1: Vector3, p2: Vector3, p3: Vector3, hasMaterial: boolean): void;
-        _collide(trianglePlaneArray: Array<Plane>, pts: Vector3[], indices: number[] | Int32Array, indexStart: number, indexEnd: number, decal: number, hasMaterial: boolean): void;
-        _getResponse(pos: Vector3, vel: Vector3): void;
-=======
-    class FreeCamera extends TargetCamera {
-        ellipsoid: Vector3;
-        checkCollisions: boolean;
-        applyGravity: boolean;
-        inputs: FreeCameraInputsManager;
-        angularSensibility: number;
-        keysUp: number[];
-        keysDown: number[];
-        keysLeft: number[];
-        keysRight: number[];
-        onCollide: (collidedMesh: AbstractMesh) => void;
-        private _collider;
-        private _needMoveForGravity;
-        private _oldPosition;
-        private _diffPosition;
-        private _newPosition;
-        _localDirection: Vector3;
-        _transformedDirection: Vector3;
-        constructor(name: string, position: Vector3, scene: Scene);
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        _collideWithWorld(velocity: Vector3): void;
-        private _onCollisionPositionChange;
-        _checkInputs(): void;
-        _decideIfNeedsToMove(): boolean;
-        _updatePosition(): void;
-        dispose(): void;
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    var CollisionWorker: string;
-    interface ICollisionCoordinator {
-        getNewPosition(position: Vector3, velocity: Vector3, collider: Collider, maximumRetry: number, excludedMesh: AbstractMesh, onNewPosition: (collisionIndex: number, newPosition: Vector3, collidedMesh?: AbstractMesh) => void, collisionIndex: number): void;
-        init(scene: Scene): void;
-        destroy(): void;
-        onMeshAdded(mesh: AbstractMesh): any;
-        onMeshUpdated(mesh: AbstractMesh): any;
-        onMeshRemoved(mesh: AbstractMesh): any;
-        onGeometryAdded(geometry: Geometry): any;
-        onGeometryUpdated(geometry: Geometry): any;
-        onGeometryDeleted(geometry: Geometry): any;
-    }
-    interface SerializedMesh {
-        id: string;
-        name: string;
-        uniqueId: number;
-        geometryId: string;
-        sphereCenter: Array<number>;
-        sphereRadius: number;
-        boxMinimum: Array<number>;
-        boxMaximum: Array<number>;
-        worldMatrixFromCache: any;
-        subMeshes: Array<SerializedSubMesh>;
-        checkCollisions: boolean;
-    }
-    interface SerializedSubMesh {
-        position: number;
-        verticesStart: number;
-        verticesCount: number;
-        indexStart: number;
-        indexCount: number;
-        hasMaterial: boolean;
-        sphereCenter: Array<number>;
-        sphereRadius: number;
-        boxMinimum: Array<number>;
-        boxMaximum: Array<number>;
-    }
-    interface SerializedGeometry {
-        id: string;
-        positions: Float32Array;
-        indices: Int32Array;
-        normals: Float32Array;
-    }
-    interface BabylonMessage {
-        taskType: WorkerTaskType;
-        payload: InitPayload | CollidePayload | UpdatePayload;
-    }
-    interface SerializedColliderToWorker {
-        position: Array<number>;
-        velocity: Array<number>;
-        radius: Array<number>;
-    }
-    enum WorkerTaskType {
-        INIT = 0,
-        UPDATE = 1,
-        COLLIDE = 2,
-    }
-    interface WorkerReply {
-        error: WorkerReplyType;
-        taskType: WorkerTaskType;
-        payload?: any;
-    }
-    interface CollisionReplyPayload {
-        newPosition: Array<number>;
-        collisionId: number;
-        collidedMeshUniqueId: number;
-    }
-    interface InitPayload {
-    }
-    interface CollidePayload {
-        collisionId: number;
-        collider: SerializedColliderToWorker;
-        maximumRetry: number;
-        excludedMeshUniqueId?: number;
-    }
-    interface UpdatePayload {
-        updatedMeshes: {
-            [n: number]: SerializedMesh;
-        };
-        updatedGeometries: {
-            [s: string]: SerializedGeometry;
-        };
-        removedMeshes: Array<number>;
-        removedGeometries: Array<string>;
-    }
-    enum WorkerReplyType {
-        SUCCESS = 0,
-        UNKNOWN_ERROR = 1,
-    }
-    class CollisionCoordinatorWorker implements ICollisionCoordinator {
-        private _scene;
-        private _scaledPosition;
-        private _scaledVelocity;
-        private _collisionsCallbackArray;
-        private _init;
-        private _runningUpdated;
-        private _runningCollisionTask;
-        private _worker;
-        private _addUpdateMeshesList;
-        private _addUpdateGeometriesList;
-        private _toRemoveMeshesArray;
-        private _toRemoveGeometryArray;
-        constructor();
-        static SerializeMesh: (mesh: AbstractMesh) => SerializedMesh;
-        static SerializeGeometry: (geometry: Geometry) => SerializedGeometry;
-        getNewPosition(position: Vector3, velocity: Vector3, collider: Collider, maximumRetry: number, excludedMesh: AbstractMesh, onNewPosition: (collisionIndex: number, newPosition: Vector3, collidedMesh?: AbstractMesh) => void, collisionIndex: number): void;
-        init(scene: Scene): void;
-        destroy(): void;
-        onMeshAdded(mesh: AbstractMesh): void;
-        onMeshUpdated: (mesh: AbstractMesh) => void;
-        onMeshRemoved(mesh: AbstractMesh): void;
-        onGeometryAdded(geometry: Geometry): void;
-        onGeometryUpdated: (geometry: Geometry) => void;
-        onGeometryDeleted(geometry: Geometry): void;
-        private _afterRender;
-        private _onMessageFromWorker;
-    }
-    class CollisionCoordinatorLegacy implements ICollisionCoordinator {
-        private _scene;
-        private _scaledPosition;
-        private _scaledVelocity;
-        private _finalPosition;
-        getNewPosition(position: Vector3, velocity: Vector3, collider: Collider, maximumRetry: number, excludedMesh: AbstractMesh, onNewPosition: (collisionIndex: number, newPosition: Vector3, collidedMesh?: AbstractMesh) => void, collisionIndex: number): void;
-        init(scene: Scene): void;
-        destroy(): void;
-        onMeshAdded(mesh: AbstractMesh): void;
-        onMeshUpdated(mesh: AbstractMesh): void;
-        onMeshRemoved(mesh: AbstractMesh): void;
-        onGeometryAdded(geometry: Geometry): void;
-        onGeometryUpdated(geometry: Geometry): void;
-        onGeometryDeleted(geometry: Geometry): void;
-        private _collideWithWorld(position, velocity, collider, maximumRetry, finalPosition, excludedMesh?);
-=======
-    class FreeCameraInputsManager extends CameraInputsManager<FreeCamera> {
-        constructor(camera: FreeCamera);
-        addKeyboard(): FreeCameraInputsManager;
-        addMouse(touchEnabled?: boolean): FreeCameraInputsManager;
-        addGamepad(): FreeCameraInputsManager;
-        addDeviceOrientation(): FreeCameraInputsManager;
-        addVRDeviceOrientation(): FreeCameraInputsManager;
-        addTouch(): FreeCameraInputsManager;
-        addVirtualJoystick(): FreeCameraInputsManager;
-    }
-}
-
-declare module BABYLON {
-    class GamepadCamera extends UniversalCamera {
-        gamepadAngularSensibility: number;
-        gamepadMoveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    var WorkerIncluded: boolean;
-    class CollisionCache {
-        private _meshes;
-        private _geometries;
-        getMeshes(): {
-            [n: number]: SerializedMesh;
-        };
-        getGeometries(): {
-            [s: number]: SerializedGeometry;
-        };
-        getMesh(id: any): SerializedMesh;
-        addMesh(mesh: SerializedMesh): void;
-        removeMesh(uniqueId: number): void;
-        getGeometry(id: string): SerializedGeometry;
-        addGeometry(geometry: SerializedGeometry): void;
-        removeGeometry(id: string): void;
-    }
-    class CollideWorker {
-        collider: Collider;
-        private _collisionCache;
-        private finalPosition;
-        private collisionsScalingMatrix;
-        private collisionTranformationMatrix;
-        constructor(collider: Collider, _collisionCache: CollisionCache, finalPosition: Vector3);
-        collideWithWorld(position: Vector3, velocity: Vector3, maximumRetry: number, excludedMeshUniqueId?: number): void;
-        private checkCollision(mesh);
-        private processCollisionsForSubMeshes(transformMatrix, mesh);
-        private collideForSubMesh(subMesh, transformMatrix, meshGeometry);
-        private checkSubmeshCollision(subMesh);
-    }
-    interface ICollisionDetector {
-        onInit(payload: InitPayload): void;
-        onUpdate(payload: UpdatePayload): void;
-        onCollision(payload: CollidePayload): void;
-    }
-    class CollisionDetectorTransferable implements ICollisionDetector {
-        private _collisionCache;
-        onInit(payload: InitPayload): void;
-        onUpdate(payload: UpdatePayload): void;
-        onCollision(payload: CollidePayload): void;
-=======
-    class AnaglyphFreeCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphGamepadCamera extends GamepadCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class AnaglyphUniversalCamera extends UniversalCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicFreeCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicGamepadCamera extends GamepadCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
-    }
-    class StereoscopicUniversalCamera extends UniversalCamera {
-        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class IntersectionInfo {
-        bu: number;
-        bv: number;
-        distance: number;
-        faceId: number;
-        subMeshId: number;
-        constructor(bu: number, bv: number, distance: number);
-    }
-    class PickingInfo {
-        hit: boolean;
-        distance: number;
-        pickedPoint: Vector3;
-        pickedMesh: AbstractMesh;
-        bu: number;
-        bv: number;
-        faceId: number;
-        subMeshId: number;
-        pickedSprite: Sprite;
-        getNormal(useWorldCoordinates?: boolean, useVerticesNormals?: boolean): Vector3;
-        getTextureCoordinates(): Vector2;
-=======
-    class TargetCamera extends Camera {
-        cameraDirection: Vector3;
-        cameraRotation: Vector2;
-        rotation: Vector3;
-        rotationQuaternion: Quaternion;
-        speed: number;
-        noRotationConstraint: boolean;
-        lockedTarget: any;
-        _currentTarget: Vector3;
-        _viewMatrix: Matrix;
-        _camMatrix: Matrix;
-        _cameraTransformMatrix: Matrix;
-        _cameraRotationMatrix: Matrix;
-        private _rigCamTransformMatrix;
-        _referencePoint: Vector3;
-        private _defaultUpVector;
-        _transformedReferencePoint: Vector3;
-        _lookAtTemp: Matrix;
-        _tempMatrix: Matrix;
-        _reset: () => void;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getFrontPosition(distance: number): Vector3;
-        _getLockedTargetPosition(): Vector3;
-        _initCache(): void;
-        _updateCache(ignoreParentClass?: boolean): void;
-        _isSynchronizedViewMatrix(): boolean;
-        _computeLocalCameraSpeed(): number;
-        setTarget(target: Vector3): void;
-        getTarget(): Vector3;
-        _decideIfNeedsToMove(): boolean;
-        _updatePosition(): void;
-        _checkInputs(): void;
-        private _updateCameraRotationMatrix();
-        _getViewMatrix(): Matrix;
-        /**
-         * @override
-         * Override Camera.createRigCamera
-         */
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        /**
-         * @override
-         * Override Camera._updateRigCameras
-         */
-        _updateRigCameras(): void;
-        private _getRigCamPosition(halfSpace, result);
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    class BoundingBox {
-        minimum: Vector3;
-        maximum: Vector3;
-        vectors: Vector3[];
-        center: Vector3;
-        extendSize: Vector3;
-        directions: Vector3[];
-        vectorsWorld: Vector3[];
-        minimumWorld: Vector3;
-        maximumWorld: Vector3;
-        private _worldMatrix;
-        constructor(minimum: Vector3, maximum: Vector3);
-        getWorldMatrix(): Matrix;
-        setWorldMatrix(matrix: Matrix): BoundingBox;
-        _update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        intersectsSphere(sphere: BoundingSphere): boolean;
-        intersectsMinMax(min: Vector3, max: Vector3): boolean;
-        static Intersects(box0: BoundingBox, box1: BoundingBox): boolean;
-        static IntersectsSphere(minPoint: Vector3, maxPoint: Vector3, sphereCenter: Vector3, sphereRadius: number): boolean;
-        static IsCompletelyInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
-        static IsInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
-=======
-    class TouchCamera extends FreeCamera {
-        touchAngularSensibility: number;
-        touchMoveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
-        _setupInputs(): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class BoundingInfo {
-        minimum: Vector3;
-        maximum: Vector3;
-        boundingBox: BoundingBox;
-        boundingSphere: BoundingSphere;
-        private _isLocked;
-        constructor(minimum: Vector3, maximum: Vector3);
-        isLocked: boolean;
-        update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        _checkCollision(collider: Collider): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        intersects(boundingInfo: BoundingInfo, precise: boolean): boolean;
-=======
-    class UniversalCamera extends TouchCamera {
-        gamepadAngularSensibility: number;
-        gamepadMoveSensibility: number;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class BoundingSphere {
-        minimum: Vector3;
-        maximum: Vector3;
-        center: Vector3;
-        radius: number;
-        centerWorld: Vector3;
-        radiusWorld: number;
-        private _tempRadiusVector;
-        constructor(minimum: Vector3, maximum: Vector3);
-        _update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        static Intersects(sphere0: BoundingSphere, sphere1: BoundingSphere): boolean;
-=======
-    class VirtualJoysticksCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, scene: Scene);
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class Ray {
-        origin: Vector3;
-        direction: Vector3;
-        length: number;
-        private _edge1;
-        private _edge2;
-        private _pvec;
-        private _tvec;
-        private _qvec;
-        constructor(origin: Vector3, direction: Vector3, length?: number);
-        intersectsBoxMinMax(minimum: Vector3, maximum: Vector3): boolean;
-        intersectsBox(box: BoundingBox): boolean;
-        intersectsSphere(sphere: BoundingSphere): boolean;
-        intersectsTriangle(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3): IntersectionInfo;
-        intersectsPlane(plane: Plane): number;
-        private static smallnum;
-        private static rayl;
-        /**
-         * Intersection test between the ray and a given segment whithin a given tolerance (threshold)
-         * @param sega the first point of the segment to test the intersection against
-         * @param segb the second point of the segment to test the intersection against
-         * @param threshold the tolerance margin, if the ray doesn't intersect the segment but is close to the given threshold, the intersection is successful
-         * @return the distance from the ray origin to the intersection point if there's intersection, or -1 if there's no intersection
-         */
-        intersectionSegment(sega: Vector3, segb: Vector3, threshold: number): number;
-        static CreateNew(x: number, y: number, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Ray;
-        /**
-        * Function will create a new transformed ray starting from origin and ending at the end point. Ray's length will be set, and ray will be
-        * transformed to the given world matrix.
-        * @param origin The origin point
-        * @param end The end point
-        * @param world a matrix to transform the ray to. Default is the identity matrix.
-        */
-        static CreateNewFromTo(origin: Vector3, end: Vector3, world?: Matrix): Ray;
-        static Transform(ray: Ray, matrix: Matrix): Ray;
-    }
-}
-
-declare module BABYLON {
-=======
->>>>>>> vr_room_scale_camera
-    /**
-     * Stores 2D Bounding Information.
-     * This class handles a circle area and a bounding rectangle one.
-     */
-    class BoundingInfo2D {
-        /**
-         * The coordinate of the center of the bounding info
-         */
-        center: Vector2;
-        /**
-         * The radius of the bounding circle, from the center of the bounded object
-         */
-        radius: number;
-        /**
-         * The extent of the bounding rectangle, from the center of the bounded object.
-         * This is an absolute value in both X and Y of the vector which describe the right/top corner of the rectangle, you can easily reconstruct the whole rectangle by negating X &| Y.
-         */
-        extent: Vector2;
-        constructor();
-        static CreateFromSize(size: Size, origin?: Vector2): BoundingInfo2D;
-        static CreateFromRadius(radius: number, origin?: Vector2): BoundingInfo2D;
-        static CreateFromPoints(points: Vector2[], origin?: Vector2): BoundingInfo2D;
-        static CreateFromSizeToRef(size: Size, b: BoundingInfo2D, origin?: Vector2): void;
-        static CreateFromRadiusToRef(radius: number, b: BoundingInfo2D, origin?: Vector2): void;
-        static CreateFromPointsToRef(points: Vector2[], b: BoundingInfo2D, origin?: Vector2): void;
-        static CreateFromMinMaxToRef(xmin: number, xmax: number, ymin: number, ymax: number, b: BoundingInfo2D, origin?: Vector2): void;
-        /**
-         * Duplicate this instance and return a new one
-         * @return the duplicated instance
-         */
-        clone(): BoundingInfo2D;
-        max(): Vector2;
-        maxToRef(result: Vector2): void;
-        /**
-         * Apply a transformation matrix to this BoundingInfo2D and return a new instance containing the result
-         * @param matrix the transformation matrix to apply
-         * @return the new instance containing the result of the transformation applied on this BoundingInfo2D
-         */
-        transform(matrix: Matrix): BoundingInfo2D;
-        /**
-         * Compute the union of this BoundingInfo2D with a given one, return a new BoundingInfo2D as a result
-         * @param other the second BoundingInfo2D to compute the union with this one
-         * @return a new instance containing the result of the union
-         */
-        union(other: BoundingInfo2D): BoundingInfo2D;
-        /**
-         * Transform this BoundingInfo2D with a given matrix and store the result in an existing BoundingInfo2D instance.
-         * This is a GC friendly version, try to use it as much as possible, specially if your transformation is inside a loop, allocate the result object once for good outside of the loop and use it every time.
-         * @param matrix The matrix to use to compute the transformation
-         * @param result A VALID (i.e. allocated) BoundingInfo2D object where the result will be stored
-         */
-        transformToRef(matrix: Matrix, result: BoundingInfo2D): void;
-        /**
-         * Compute the union of this BoundingInfo2D with another one and store the result in a third valid BoundingInfo2D object
-         * This is a GC friendly version, try to use it as much as possible, specially if your transformation is inside a loop, allocate the result object once for good outside of the loop and use it every time.
-         * @param other the second object used to compute the union
-         * @param result a VALID BoundingInfo2D instance (i.e. allocated) where the result will be stored
-         */
-        unionToRef(other: BoundingInfo2D, result: BoundingInfo2D): void;
-=======
     /**
      * Stores 2D Bounding Information.
      * This class handles a circle area and a bounding rectangle one.
@@ -3802,7 +2126,6 @@ declare module BABYLON {
          * @param pickPosition the position to test
          * @return true if the point is inside, false otherwise
          */
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
         doesIntersect(pickPosition: Vector2): boolean;
     }
 }
@@ -3841,439 +2164,6 @@ declare module BABYLON {
          * @returns A string identifier that uniquely identify the instance
          */
         toString(): string;
-<<<<<<< HEAD
-    }
-    /**
-     * Base class implementing the ILocable interface.
-     * The particularity of this class is to call the protected onLock() method when the instance is about to be locked for good.
-     */
-    class LockableBase implements ILockable {
-        isLocked(): boolean;
-        private _isLocked;
-        lock(): boolean;
-        /**
-         * Protected handler that will be called when the instance is about to be locked.
-         */
-        protected onLock(): void;
-    }
-    /**
-     * This class implements a Brush that will be drawn with a uniform solid color (i.e. the same color everywhere in the content where the brush is assigned to).
-     */
-    class SolidColorBrush2D extends LockableBase implements IBrush2D {
-        constructor(color: Color4, lock?: boolean);
-        isTransparent(): boolean;
-        /**
-         * The color used by this instance to render
-         * @returns the color object. Note that it's not a clone of the actual object stored in the instance so you MUST NOT modify it, otherwise unexpected behavior might occurs.
-         */
-        color: Color4;
-        /**
-         * Return a unique identifier of the instance, which is simply the hexadecimal representation (CSS Style) of the solid color.
-         */
-        toString(): string;
-        private _color;
-    }
-    class GradientColorBrush2D extends LockableBase implements IBrush2D {
-        constructor(color1: Color4, color2: Color4, translation?: Vector2, rotation?: number, scale?: number, lock?: boolean);
-        isTransparent(): boolean;
-        color1: Color4;
-        color2: Color4;
-        translation: Vector2;
-        rotation: number;
-        scale: number;
-        toString(): string;
-        static BuildKey(color1: Color4, color2: Color4, translation: Vector2, rotation: number, scale: number): string;
-        private _color1;
-        private _color2;
-        private _translation;
-        private _rotation;
-        private _scale;
-    }
-}
-
-declare module BABYLON {
-    class Canvas2DEngineBoundData {
-        GetOrAddModelCache<TInstData>(key: string, factory: (key: string) => ModelRenderCache): ModelRenderCache;
-        private _modelCache;
-        DisposeModelRenderCache(modelRenderCache: ModelRenderCache): boolean;
-    }
-    class Canvas2D extends Group2D {
-        /**
-         * In this strategy only the direct children groups of the Canvas will be cached, their whole content (whatever the sub groups they have) into a single bitmap.
-         * This strategy doesn't allow primitives added directly as children of the Canvas.
-         * You typically want to use this strategy of a screenSpace fullscreen canvas: you don't want a bitmap cache taking the whole screen resolution but still want the main contents (say UI in the topLeft and rightBottom for instance) to be efficiently cached.
-         */
-        static CACHESTRATEGY_TOPLEVELGROUPS: number;
-        /**
-         * In this strategy each group will have its own cache bitmap (except if a given group explicitly defines the DONTCACHEOVERRIDE or CACHEINPARENTGROUP behaviors).
-         * This strategy is typically used if the canvas has some groups that are frequently animated. Unchanged ones will have a steady cache and the others will be refreshed when they change, reducing the redraw operation count to their content only.
-         * When using this strategy, group instances can rely on the DONTCACHEOVERRIDE or CACHEINPARENTGROUP behaviors to minimize the amount of cached bitmaps.
-         * Note that in this mode the Canvas itself is not cached, it only contains the sprites of its direct children group to render, there's no point to cache the whole canvas, sprites will be rendered pretty efficiently, the memory cost would be too great for the value of it.
-         */
-        static CACHESTRATEGY_ALLGROUPS: number;
-        /**
-         * In this strategy the whole canvas is cached into a single bitmap containing every primitives it owns, at the exception of the ones that are owned by a group having the DONTCACHEOVERRIDE behavior (these primitives will be directly drawn to the viewport at each render for screenSpace Canvas or be part of the Canvas cache bitmap for worldSpace Canvas).
-         */
-        static CACHESTRATEGY_CANVAS: number;
-        /**
-         * This strategy is used to recompose/redraw the canvas entirely at each viewport render.
-         * Use this strategy if memory is a concern above rendering performances and/or if the canvas is frequently animated (hence reducing the benefits of caching).
-         * Note that you can't use this strategy for WorldSpace Canvas, they need at least a top level group caching.
-         */
-        static CACHESTRATEGY_DONTCACHE: number;
-        /**
-         * Create a new 2D ScreenSpace Rendering Canvas, it is a 2D rectangle that has a size (width/height) and a position relative to the bottom/left corner of the screen.
-         * ScreenSpace Canvas will be drawn in the Viewport as a 2D Layer lying to the top of the 3D Scene. Typically used for traditional UI.
-         * All caching strategies will be available.
-         * PLEASE NOTE: the origin of a Screen Space Canvas is set to [0;0] (bottom/left) which is different than the default origin of a Primitive which is centered [0.5;0.5]
-         * @param scene the Scene that owns the Canvas
-         * Options:
-         *  - id: a text identifier, for information purpose only
-         *  - pos: the position of the canvas, relative from the bottom/left of the scene's viewport
-         *  - size: the Size of the canvas. If null two behaviors depend on the cachingStrategy: if it's CACHESTRATEGY_CACHECANVAS then it will always auto-fit the rendering device, in all the other modes it will fit the content of the Canvas
-         *  - cachingStrategy: either CACHESTRATEGY_TOPLEVELGROUPS, CACHESTRATEGY_ALLGROUPS, CACHESTRATEGY_CANVAS, CACHESTRATEGY_DONTCACHE. Please refer to their respective documentation for more information. Default is Canvas2D.CACHESTRATEGY_TOPLEVELGROUPS
-         *  - enableInteraction: if true the pointer events will be listened and rerouted to the appropriate primitives of the Canvas2D through the Prim2DBase.onPointerEventObservable observable property.
-         */
-        static CreateScreenSpace(scene: Scene, options: {
-            id?: string;
-            pos?: Vector2;
-            origin?: Vector2;
-            size?: Size;
-            cachingStrategy?: number;
-            enableInteraction?: boolean;
-        }): Canvas2D;
-        /**
-         * Create a new 2D WorldSpace Rendering Canvas, it is a 2D rectangle that has a size (width/height) and a world transformation information to place it in the world space.
-         * This kind of canvas can't have its Primitives directly drawn in the Viewport, they need to be cached in a bitmap at some point, as a consequence the DONT_CACHE strategy is unavailable. For now only CACHESTRATEGY_CANVAS is supported, but the remaining strategies will be soon.
-         * @param scene the Scene that owns the Canvas
-         * @param size the dimension of the Canvas in World Space
-         * Options:
-         *  - id: a text identifier, for information purpose only, default is null.
-         *  - position the position of the Canvas in World Space, default is [0,0,0]
-         *  - rotation the rotation of the Canvas in World Space, default is Quaternion.Identity()
-         *  - renderScaleFactor A scale factor applied to create the rendering texture that will be mapped in the Scene Rectangle. If you set 2 for instance the texture will be twice large in width and height. A greater value will allow to achieve a better rendering quality. Default value is 1.
-         * BE AWARE that the Canvas true dimension will be size*renderScaleFactor, then all coordinates and size will have to be express regarding this size.
-         * TIPS: if you want a renderScaleFactor independent reference of frame, create a child Group2D in the Canvas with position 0,0 and size set to null, then set its scale property to the same amount than the renderScaleFactor, put all your primitive inside using coordinates regarding the size property you pick for the Canvas and you'll be fine.
-         * - sideOrientation: Unexpected behavior occur if the value is different from Mesh.DEFAULTSIDE right now, so please use this one, which is the default.
-         * - cachingStrategy Must be CACHESTRATEGY_CANVAS for now, which is the default.
-         */
-        static CreateWorldSpace(scene: Scene, size: Size, options: {
-            id?: string;
-            position?: Vector3;
-            rotation?: Quaternion;
-            renderScaleFactor?: number;
-            sideOrientation?: number;
-            cachingStrategy?: number;
-            enableInteraction?: boolean;
-        }): Canvas2D;
-        protected setupCanvas(scene: Scene, name: string, size: Size, isScreenSpace: boolean, cachingstrategy: number, enableInteraction: boolean): void;
-        hierarchyLevelMaxSiblingCount: number;
-        private _setupInteraction(enable);
-        /**
-         * Internal method, you should use the Prim2DBase version instead
-         */
-        _setPointerCapture(pointerId: number, primitive: Prim2DBase): boolean;
-        /**
-         * Internal method, you should use the Prim2DBase version instead
-         */
-        _releasePointerCapture(pointerId: number, primitive: Prim2DBase): boolean;
-        /**
-         * Determine if the given pointer is captured or not
-         * @param pointerId the Id of the pointer
-         * @return true if it's captured, false otherwise
-         */
-        isPointerCaptured(pointerId: number): boolean;
-        private getCapturedPrimitive(pointerId);
-        private static _interInfo;
-        private _handlePointerEventForInteraction(eventData, eventState);
-        private _updatePointerInfo(eventData);
-        private _updateIntersectionList(mouseLocalPos, isCapture);
-        private _updateOverStatus();
-        private _updatePrimPointerPos(prim);
-        private _notifDebugMode;
-        private _debugExecObserver(prim, mask);
-        private _bubbleNotifyPrimPointerObserver(prim, mask, eventData);
-        private _triggerActionManager(prim, ppi, mask, eventData);
-        _notifChildren(prim: Prim2DBase, mask: number): void;
-        /**
-         * Don't forget to call the dispose method when you're done with the Canvas instance.
-         * But don't worry, if you dispose its scene, the canvas will be automatically disposed too.
-         */
-        dispose(): boolean;
-        /**
-         * Accessor to the Scene that owns the Canvas
-         * @returns The instance of the Scene object
-         */
-        scene: Scene;
-        /**
-         * Accessor to the Engine that drives the Scene used by this Canvas
-         * @returns The instance of the Engine object
-         */
-        engine: Engine;
-        /**
-         * Accessor of the Caching Strategy used by this Canvas.
-         * See Canvas2D.CACHESTRATEGY_xxxx static members for more information
-         * @returns the value corresponding to the used strategy.
-         */
-        cachingStrategy: number;
-        /**
-         * Only valid for World Space Canvas, returns the scene node that display the canvas
-         */
-        worldSpaceCanvasNode: WorldSpaceCanvas2D;
-        /**
-         * Check if the WebGL Instanced Array extension is supported or not
-         * @returns {}
-         */
-        supportInstancedArray: boolean;
-        /**
-         * Property that defines the fill object used to draw the background of the Canvas.
-         * Note that Canvas with a Caching Strategy of
-         * @returns If the background is not set, null will be returned, otherwise a valid fill object is returned.
-         */
-        backgroundFill: IBrush2D;
-        /**
-         * Property that defines the border object used to draw the background of the Canvas.
-         * @returns If the background is not set, null will be returned, otherwise a valid border object is returned.
-         */
-        backgroundBorder: IBrush2D;
-        /**
-         * You can set the roundRadius of the background
-         * @returns The current roundRadius
-         */
-        backgroundRoundRadius: number;
-        /**
-         * Enable/Disable interaction for this Canvas
-         * When enabled the Prim2DBase.pointerEventObservable property will notified when appropriate events occur
-         */
-        interactionEnabled: boolean;
-        _engineData: Canvas2DEngineBoundData;
-        private checkBackgroundAvailability();
-        private __engineData;
-        private _interactionEnabled;
-        private _primPointerInfo;
-        private _updateRenderId;
-        private _intersectionRenderId;
-        private _hoverStatusRenderId;
-        private _pickStartingPosition;
-        private _pickedDownPrim;
-        private _pickStartingTime;
-        private _previousIntersectionList;
-        private _actualIntersectionList;
-        private _previousOverPrimitive;
-        private _actualOverPrimitive;
-        private _capturedPointers;
-        private _scenePrePointerObserver;
-        private _worldSpaceNode;
-        private _mapCounter;
-        private _background;
-        private _scene;
-        private _engine;
-        private _fitRenderingDevice;
-        private _isScreeSpace;
-        private _cachedCanvasGroup;
-        private _cachingStrategy;
-        private _hierarchyLevelMaxSiblingCount;
-        private _groupCacheMaps;
-        private _beforeRenderObserver;
-        private _afterRenderObserver;
-        private _supprtInstancedArray;
-        _renderingSize: Size;
-        protected onPrimBecomesDirty(): void;
-        private _updateCanvasState();
-        /**
-         * Method that renders the Canvas, you should not invoke
-         */
-        private _render();
-        /**
-         * Internal method that allocate a cache for the given group.
-         * Caching is made using a collection of MapTexture where many groups have their bitmap cache stored inside.
-         * @param group The group to allocate the cache of.
-         * @return custom type with the PackedRect instance giving information about the cache location into the texture and also the MapTexture instance that stores the cache.
-         */
-        _allocateGroupCache(group: Group2D, parent: Group2D, minSize?: Size): {
-            node: PackedRect;
-            texture: MapTexture;
-            sprite: Sprite2D;
-        };
-        /**
-         * Define the default size used for both the width and height of a MapTexture to allocate.
-         * Note that some MapTexture might be bigger than this size if the first node to allocate is bigger in width or height
-         */
-        private static _groupTextureCacheSize;
-        /**
-         * Get a Solid Color Brush instance matching the given color.
-         * @param color The color to retrieve
-         * @return A shared instance of the SolidColorBrush2D class that use the given color
-         */
-        static GetSolidColorBrush(color: Color4): IBrush2D;
-        /**
-         * Get a Solid Color Brush instance matching the given color expressed as a CSS formatted hexadecimal value.
-         * @param color The color to retrieve
-         * @return A shared instance of the SolidColorBrush2D class that uses the given color
-         */
-        static GetSolidColorBrushFromHex(hexValue: string): IBrush2D;
-        static GetGradientColorBrush(color1: Color4, color2: Color4, translation?: Vector2, rotation?: number, scale?: number): IBrush2D;
-        private static _solidColorBrushes;
-        private static _gradientColorBrushes;
-    }
-}
-
-declare module BABYLON {
-    class Ellipse2DRenderCache extends ModelRenderCache {
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFill: Effect;
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorder: Effect;
-        constructor(engine: Engine, modelKey: string, isTransparent: boolean);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Ellipse2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        properties: Vector3;
-    }
-    class Ellipse2D extends Shape2D {
-        static sizeProperty: Prim2DPropInfo;
-        static subdivisionsProperty: Prim2DPropInfo;
-        actualSize: Size;
-        size: Size;
-        subdivisions: number;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        protected setupEllipse2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, size: Size, subdivisions?: number, fill?: IBrush2D, border?: IBrush2D, borderThickness?: number): void;
-        /**
-         * Create an Ellipse 2D Shape primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * options:
-         *  - id: a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - width: the width of the ellipse, default is 10
-         *  - height: the height of the ellipse, default is 10
-         *  - subdivision: the number of subdivision to create the ellipse perimeter, default is 64.
-         *  - fill: the brush used to draw the fill content of the ellipse, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white.
-         *  - border: the brush used to draw the border of the ellipse, you can set null to draw nothing (but you will have to set a fill brush), default is null.
-         *  - borderThickness: the thickness of the drawn border, default is 1.
-         */
-        static Create(parent: Prim2DBase, options: {
-            id?: string;
-            x?: number;
-            y?: number;
-            origin?: Vector2;
-            width?: number;
-            height?: number;
-            subdivisions?: number;
-            fill?: IBrush2D;
-            border?: IBrush2D;
-            borderThickness?: number;
-        }): Ellipse2D;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Ellipse2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _size;
-        private _subdivisions;
-    }
-}
-
-declare module BABYLON {
-    class Group2D extends Prim2DBase {
-        static GROUP2D_PROPCOUNT: number;
-        static sizeProperty: Prim2DPropInfo;
-        static actualSizeProperty: Prim2DPropInfo;
-        /**
-         * Default behavior, the group will use the caching strategy defined at the Canvas Level
-         */
-        static GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY: number;
-        /**
-         * When used, this group's content won't be cached, no matter which strategy used.
-         * If the group is part of a WorldSpace Canvas, its content will be drawn in the Canvas cache bitmap.
-         */
-        static GROUPCACHEBEHAVIOR_DONTCACHEOVERRIDE: number;
-        /**
-         * When used, the group's content will be cached in the nearest cached parent group/canvas
-         */
-        static GROUPCACHEBEHAVIOR_CACHEINPARENTGROUP: number;
-        /**
-         * Don't invoke directly, rely on Group2D.CreateXXX methods
-         */
-        constructor();
-        /**
-         * Create an Logical or Renderable Group.
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * options:
-         *  - id a text identifier, for information purpose
-         *  - position: the X & Y positions relative to its parent, default is [0;0]
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - size: the size of the group, if null the size will be computed from its content, default is null.
-         *  - cacheBehavior: Define how the group should behave regarding the Canvas's cache strategy, default is Group2D.GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY
-         */
-        static CreateGroup2D(parent: Prim2DBase, options: {
-            id?: string;
-            position?: Vector2;
-            origin?: Vector2;
-            size?: Size;
-            cacheBehavior?: number;
-        }): Group2D;
-        static _createCachedCanvasGroup(owner: Canvas2D): Group2D;
-        protected applyCachedTexture(vertexData: VertexData, material: StandardMaterial): void;
-        /**
-         * Call this method to remove this Group and its children from the Canvas
-         */
-        dispose(): boolean;
-        protected setupGroup2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, size?: Size, cacheBehavior?: number): void;
-        /**
-         * @returns Returns true if the Group render content, false if it's a logical group only
-         */
-        isRenderableGroup: boolean;
-        /**
-         * @returns only meaningful for isRenderableGroup, will be true if the content of the Group is cached into a texture, false if it's rendered every time
-         */
-        isCachedGroup: boolean;
-        /**
-         * Get/Set the size of the group. If null the size of the group will be determine from its content.
-         * BEWARE: if the Group is a RenderableGroup and its content is cache the texture will be resized each time the group is getting bigger. For performance reason the opposite won't be true: the texture won't shrink if the group does.
-         */
-        size: Size;
-        viewportSize: ISize;
-        actualSize: Size;
-        /**
-         * Get/set the Cache Behavior, used in case the Canvas Cache Strategy is set to CACHESTRATEGY_ALLGROUPS. Can be either GROUPCACHEBEHAVIOR_CACHEINPARENTGROUP, GROUPCACHEBEHAVIOR_DONTCACHEOVERRIDE or GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY. See their documentation for more information.
-         * It is critical to understand than you HAVE TO play with this behavior in order to achieve a good performance/memory ratio. Caching all groups would certainly be the worst strategy of all.
-         */
-        cacheBehavior: number;
-        _addPrimToDirtyList(prim: Prim2DBase): void;
-        _renderCachedCanvas(context: Render2DContext): void;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        protected _prepareGroupRender(context: Render2DContext): void;
-        protected _groupRender(context: Render2DContext): void;
-        private _bindCacheTarget();
-        private _unbindCacheTarget();
-        protected handleGroupChanged(prop: Prim2DPropInfo): void;
-        private detectGroupStates();
-        protected _isRenderableGroup: boolean;
-        protected _isCachedGroup: boolean;
-        private _cacheGroupDirty;
-        protected _childrenRenderableGroups: Array<Group2D>;
-        private _size;
-        private _actualSize;
-        private _cacheBehavior;
-        private _primDirtyList;
-        private _cacheNode;
-        private _cacheTexture;
-        private _cacheRenderSprite;
-        private _viewportPosition;
-        private _viewportSize;
-        _renderGroupInstancesInfo: StringDictionary<GroupInstanceInfo>;
-=======
     }
     /**
      * Base class implementing the ILocable interface.
@@ -4747,14 +2637,10 @@ declare module BABYLON {
             paddingBottom?: number | string;
             padding?: string;
         });
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class Lines2DRenderCache extends ModelRenderCache {
-=======
     class LayoutEngineBase implements ILockable {
         constructor();
         updateLayout(prim: Prim2DBase): void;
@@ -4786,76 +2672,16 @@ declare module BABYLON {
 declare module BABYLON {
     class Ellipse2DRenderCache extends ModelRenderCache {
         effectsReady: boolean;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
         fillVB: WebGLBuffer;
         fillIB: WebGLBuffer;
         fillIndicesCount: number;
         instancingFillAttributes: InstancingAttributeInfo[];
-<<<<<<< HEAD
-=======
         effectFillInstanced: Effect;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
         effectFill: Effect;
         borderVB: WebGLBuffer;
         borderIB: WebGLBuffer;
         borderIndicesCount: number;
         instancingBorderAttributes: InstancingAttributeInfo[];
-<<<<<<< HEAD
-        effectBorder: Effect;
-        constructor(engine: Engine, modelKey: string, isTransparent: boolean);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Lines2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        boundingMin: Vector2;
-        boundingMax: Vector2;
-    }
-    class Lines2D extends Shape2D {
-        static NoCap: number;
-        static RoundCap: number;
-        static TriangleCap: number;
-        static SquareAnchorCap: number;
-        static RoundAnchorCap: number;
-        static DiamondAnchorCap: number;
-        static ArrowCap: number;
-        static pointsProperty: Prim2DPropInfo;
-        static fillThicknessProperty: Prim2DPropInfo;
-        static closedProperty: Prim2DPropInfo;
-        static startCapProperty: Prim2DPropInfo;
-        static endCapProperty: Prim2DPropInfo;
-        actualSize: Size;
-        points: Vector2[];
-        fillThickness: number;
-        closed: boolean;
-        startCap: number;
-        endCap: number;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected size: Size;
-        protected boundingMin: Vector2;
-        protected boundingMax: Vector2;
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected updateLevelBoundingInfo(): void;
-        protected setupLines2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, points: Vector2[], fillThickness: number, startCap: number, endCap: number, fill: IBrush2D, border: IBrush2D, borderThickness: number, closed: boolean): void;
-        /**
-         * Create an 2D Lines Shape primitive. The defined lines may be opened or closed (see below)
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * @param points an array that describe the points to use to draw the line, must contain at least two entries.
-         * options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - fillThickness: the thickness of the fill part of the line, can be null to draw nothing (but a border brush must be given), default is 1.
-         *  - closed: if false the lines are said to be opened, the first point and the latest DON'T connect. if true the lines are said to be closed, the first and last point will be connected by a line. For instance you can define the 4 points of a rectangle, if you set closed to true a 4 edges rectangle will be drawn. If you set false, only three edges will be drawn, the edge formed by the first and last point won't exist. Default is false.
-         *  - Draw a cap of the given type at the start of the first line, you can't define a Cap if the Lines2D is closed. Default is Lines2D.NoCap.
-         *  - Draw a cap of the given type at the end of the last line, you can't define a Cap if the Lines2D is closed. Default is Lines2D.NoCap.
-         *  - fill: the brush used to draw the fill content of the lines, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white.
-         *  - border: the brush used to draw the border of the lines, you can set null to draw nothing (but you will have to set a fill brush), default is null.
-         *  - borderThickness: the thickness of the drawn border, default is 1.
-         */
-        static Create(parent: Prim2DBase, points: Vector2[], options: {
-=======
         effectBorderInstanced: Effect;
         effectBorder: Effect;
         constructor(engine: Engine, modelKey: string);
@@ -4908,7 +2734,6 @@ declare module BABYLON {
         constructor(settings?: {
             parent?: Prim2DBase;
             children?: Array<Prim2DBase>;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
             id?: string;
             position?: Vector2;
             x?: number;
@@ -4917,37 +2742,6 @@ declare module BABYLON {
             scale?: number;
             opacity?: number;
             origin?: Vector2;
-<<<<<<< HEAD
-            fillThickness?: number;
-            closed?: boolean;
-            startCap?: number;
-            endCap?: number;
-            fill?: IBrush2D;
-            border?: IBrush2D;
-            borderThickness?: number;
-        }): Lines2D;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Lines2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private static _noCap;
-        private static _roundCap;
-        private static _triangleCap;
-        private static _squareAnchorCap;
-        private static _roundAnchorCap;
-        private static _diamondAnchorCap;
-        private static _arrowCap;
-        private static _roundCapSubDiv;
-        private _boundingMin;
-        private _boundingMax;
-        private _size;
-        private _contour;
-        private _closed;
-        private _startCap;
-        private _endCap;
-        private _fillThickness;
-        private _points;
-=======
             size?: Size;
             width?: number;
             height?: number;
@@ -4976,76 +2770,10 @@ declare module BABYLON {
         protected createInstanceDataParts(): InstanceDataBase[];
         protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
         private _subdivisions;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    const enum ShaderDataType {
-        Vector2 = 0,
-        Vector3 = 1,
-        Vector4 = 2,
-        Matrix = 3,
-        float = 4,
-        Color3 = 5,
-        Color4 = 6,
-        Size = 7,
-    }
-    class GroupInstanceInfo {
-        constructor(owner: Group2D, cache: ModelRenderCache);
-        dispose(): boolean;
-        _isDisposed: boolean;
-        _owner: Group2D;
-        _modelCache: ModelRenderCache;
-        _partIndexFromId: StringDictionary<number>;
-        _instancesPartsData: DynamicFloatArray[];
-        _dirtyInstancesData: boolean;
-        _instancesPartsBuffer: WebGLBuffer[];
-        _instancesPartsBufferSize: number[];
-        _instancesPartsUsedShaderCategories: string[];
-    }
-    class ModelRenderCache {
-        constructor(engine: Engine, modelKey: string, isTransparent: boolean);
-        dispose(): boolean;
-        isDisposed: boolean;
-        addRef(): number;
-        modelKey: string;
-        /**
-         * Render the model instances
-         * @param instanceInfo
-         * @param context
-         * @return must return true is the rendering succeed, false if the rendering couldn't be done (asset's not yet ready, like Effect)
-         */
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        addInstanceDataParts(data: InstanceDataBase[]): string;
-        removeInstanceData(key: string): void;
-        protected getPartIndexFromId(partId: number): number;
-        protected loadInstancingAttributes(partId: number, effect: Effect): InstancingAttributeInfo[];
-        private static v2;
-        private static v3;
-        private static v4;
-        protected setupUniforms(effect: Effect, partIndex: number, data: DynamicFloatArray, elementCount: number): void;
-        protected _engine: Engine;
-        private _modelKey;
-        private _isTransparent;
-        isTransparent: boolean;
-        _instancesData: StringDictionary<InstanceDataBase[]>;
-        private _nextKey;
-        private _refCounter;
-        _partIdList: number[];
-        _partsDataStride: number[];
-        _partsUsedCategories: Array<string[]>;
-        _partsJoinedUsedCategories: string[];
-        _partsClassInfo: ClassTreeInfo<InstanceClassInfo, InstancePropInfo>[];
-    }
-}
-
-declare module BABYLON {
-    class Render2DContext {
-        forceRefreshPrimitive: boolean;
-    }
-=======
     class Group2D extends Prim2DBase {
         static GROUP2D_PROPCOUNT: number;
         static sizeProperty: Prim2DPropInfo;
@@ -5571,7 +3299,6 @@ declare module BABYLON {
         private static _renderModeTransparent;
         private _renderMode;
     }
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     /**
      * This class store information for the pointerEventObservable Observable.
      * The Observable is divided into many sub events (using the Mask feature of the Observable pattern): PointerOver, PointerEnter, PointerDown, PointerMouseWheel, PointerMove, PointerUp, PointerDown, PointerLeave, PointerGotCapture and PointerLostCapture.
@@ -5588,491 +3315,6 @@ declare module BABYLON {
         private static _pointerGotCapture;
         private static _pointerLostCapture;
         private static _mouseWheelPrecision;
-<<<<<<< HEAD
-        /**
-         * This event type is raised when a pointing device is moved into the hit test boundaries of a primitive.
-         * Bubbles: yes
-         */
-        static PointerOver: number;
-        /**
-         * This event type is raised when a pointing device is moved into the hit test boundaries of a primitive or one of its descendants.
-         * Bubbles: no
-         */
-        static PointerEnter: number;
-        /**
-         * This event type is raised when a pointer enters the active button state (non-zero value in the buttons property). For mouse it's when the device transitions from no buttons depressed to at least one button depressed. For touch/pen this is when a physical contact is made.
-         * Bubbles: yes
-         */
-        static PointerDown: number;
-        /**
-         * This event type is raised when the pointer is a mouse and it's wheel is rolling
-         * Bubbles: yes
-         */
-        static PointerMouseWheel: number;
-        /**
-         * This event type is raised when a pointer change coordinates or when a pointer changes button state, pressure, tilt, or contact geometry and the circumstances produce no other pointers events.
-         * Bubbles: yes
-         */
-        static PointerMove: number;
-        /**
-         * This event type is raised when the pointer leaves the active buttons states (zero value in the buttons property). For mouse, this is when the device transitions from at least one button depressed to no buttons depressed. For touch/pen, this is when physical contact is removed.
-         * Bubbles: yes
-         */
-        static PointerUp: number;
-        /**
-         * This event type is raised when a pointing device is moved out of the hit test the boundaries of a primitive.
-         * Bubbles: yes
-         */
-        static PointerOut: number;
-        /**
-         * This event type is raised when a pointing device is moved out of the hit test boundaries of a primitive and all its descendants.
-         * Bubbles: no
-         */
-        static PointerLeave: number;
-        /**
-         * This event type is raised when a primitive receives the pointer capture. This event is fired at the element that is receiving pointer capture. Subsequent events for that pointer will be fired at this element.
-         * Bubbles: yes
-         */
-        static PointerGotCapture: number;
-        /**
-         * This event type is raised after pointer capture is released for a pointer.
-         * Bubbles: yes
-         */
-        static PointerLostCapture: number;
-        static MouseWheelPrecision: number;
-        /**
-         * Event Type, one of the static PointerXXXX property defined above (PrimitivePointerInfo.PointerOver to PrimitivePointerInfo.PointerLostCapture)
-         */
-        eventType: number;
-        /**
-         * Position of the pointer relative to the bottom/left of the Canvas
-         */
-        canvasPointerPos: Vector2;
-        /**
-         * Position of the pointer relative to the bottom/left of the primitive that registered the Observer
-         */
-        primitivePointerPos: Vector2;
-        /**
-         * The primitive where the event was initiated first (in case of bubbling)
-         */
-        relatedTarget: Prim2DBase;
-        /**
-         * Position of the pointer relative to the bottom/left of the relatedTarget
-         */
-        relatedTargetPointerPos: Vector2;
-        /**
-         * An observable can set this property to true to stop bubbling on the upper levels
-         */
-        cancelBubble: boolean;
-        /**
-         * True if the Control keyboard key is down
-         */
-        ctrlKey: boolean;
-        /**
-         * true if the Shift keyboard key is down
-         */
-        shiftKey: boolean;
-        /**
-         * true if the Alt keyboard key is down
-         */
-        altKey: boolean;
-        /**
-         * true if the Meta keyboard key is down
-         */
-        metaKey: boolean;
-        /**
-         * For button, buttons, refer to https://www.w3.org/TR/pointerevents/#button-states
-         */
-        button: number;
-        /**
-         * For button, buttons, refer to https://www.w3.org/TR/pointerevents/#button-states
-         */
-        buttons: number;
-        /**
-         * The amount of mouse wheel rolled
-         */
-        mouseWheelDelta: number;
-        /**
-         * Id of the Pointer involved in the event
-         */
-        pointerId: number;
-        width: number;
-        height: number;
-        presssure: number;
-        tilt: Vector2;
-        /**
-         * true if the involved pointer is captured for a particular primitive, false otherwise.
-         */
-        isCaptured: boolean;
-        constructor();
-        updateRelatedTarget(prim: Prim2DBase, primPointerPos: Vector2): void;
-        static getEventTypeName(mask: number): string;
-    }
-    /**
-     * Stores information about a Primitive that was intersected
-     */
-    class PrimitiveIntersectedInfo {
-        prim: Prim2DBase;
-        intersectionLocation: Vector2;
-        constructor(prim: Prim2DBase, intersectionLocation: Vector2);
-    }
-    /**
-     * Main class used for the Primitive Intersection API
-     */
-    class IntersectInfo2D {
-        constructor();
-        /**
-         * Set the pick position, relative to the primitive where the intersection test is made
-         */
-        pickPosition: Vector2;
-        /**
-         * If true the intersection will stop at the first hit, if false all primitives will be tested and the intersectedPrimitives array will be filled accordingly (false default)
-         */
-        findFirstOnly: boolean;
-        /**
-         * If true the intersection test will also be made on hidden primitive (false default)
-         */
-        intersectHidden: boolean;
-        _globalPickPosition: Vector2;
-        _localPickPosition: Vector2;
-        /**
-         * The topmost intersected primitive
-         */
-        topMostIntersectedPrimitive: PrimitiveIntersectedInfo;
-        /**
-         * The array containing all intersected primitive, in no particular order.
-         */
-        intersectedPrimitives: Array<PrimitiveIntersectedInfo>;
-        /**
-         * true if at least one primitive intersected during the test
-         */
-        isIntersected: boolean;
-        isPrimIntersected(prim: Prim2DBase): Vector2;
-        _exit(firstLevel: boolean): void;
-    }
-    class Prim2DBase extends SmartPropertyPrim {
-        static PRIM2DBASE_PROPCOUNT: number;
-        protected setupPrim2DBase(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, isVisible?: boolean): void;
-        actionManager: ActionManager;
-        /**
-         * From 'this' primitive, traverse up (from parent to parent) until the given predicate is true
-         * @param predicate the predicate to test on each parent
-         * @return the first primitive where the predicate was successful
-         */
-        traverseUp(predicate: (p: Prim2DBase) => boolean): Prim2DBase;
-        /**
-         * Retrieve the owner Canvas2D
-         */
-        owner: Canvas2D;
-        /**
-         * Get the parent primitive (can be the Canvas, only the Canvas has no parent)
-         */
-        parent: Prim2DBase;
-        /**
-         * The array of direct children primitives
-         */
-        children: Prim2DBase[];
-        /**
-         * The identifier of this primitive, may not be unique, it's for information purpose only
-         */
-        id: string;
-        /**
-         * Metadata of the position property
-         */
-        static positionProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the rotation property
-         */
-        static rotationProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the scale property
-         */
-        static scaleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the origin property
-         */
-        static originProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the levelVisible property
-         */
-        static levelVisibleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the isVisible property
-         */
-        static isVisibleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the zOrder property
-         */
-        static zOrderProperty: Prim2DPropInfo;
-        position: Vector2;
-        rotation: number;
-        scale: number;
-        /**
-         * this method must be implemented by the primitive type to return its size
-         * @returns The size of the primitive
-         */
-        actualSize: Size;
-        /**
-         * The origin defines the normalized coordinate of the center of the primitive, from the top/left corner.
-         * The origin is used only to compute transformation of the primitive, it has no meaning in the primitive local frame of reference
-         * For instance:
-         * 0,0 means the center is bottom/left. Which is the default for Canvas2D instances
-         * 0.5,0.5 means the center is at the center of the primitive, which is default of all types of Primitives
-         * 0,1 means the center is top/left
-         * @returns The normalized center.
-         */
-        origin: Vector2;
-        levelVisible: boolean;
-        isVisible: boolean;
-        zOrder: number;
-        /**
-         * Define if the Primitive can be subject to intersection test or not (default is true)
-         */
-        isPickable: boolean;
-        /**
-         * Return the depth level of the Primitive into the Canvas' Graph. A Canvas will be 0, its direct children 1, and so on.
-         * @returns {}
-         */
-        hierarchyDepth: number;
-        /**
-         * Retrieve the Group that is responsible to render this primitive
-         * @returns {}
-         */
-        renderGroup: Group2D;
-        /**
-         * Get the global transformation matrix of the primitive
-         */
-        globalTransform: Matrix;
-        /**
-         * Get invert of the global transformation matrix of the primitive
-         * @returns {}
-         */
-        invGlobalTransform: Matrix;
-        /**
-         * Get the local transformation of the primitive
-         */
-        localTransform: Matrix;
-        /**
-         * Get the boundingInfo associated to the primitive.
-         * The value is supposed to be always up to date
-         */
-        boundingInfo: BoundingInfo2D;
-        /**
-         * Interaction with the primitive can be create using this Observable. See the PrimitivePointerInfo class for more information
-         */
-        pointerEventObservable: Observable<PrimitivePointerInfo>;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        /**
-         * Capture all the Events of the given PointerId for this primitive.
-         * Don't forget to call releasePointerEventsCapture when done.
-         * @param pointerId the Id of the pointer to capture the events from.
-         */
-        setPointerEventCapture(pointerId: number): boolean;
-        /**
-         * Release a captured pointer made with setPointerEventCapture.
-         * @param pointerId the Id of the pointer to release the capture from.
-         */
-        releasePointerEventsCapture(pointerId: number): boolean;
-        /**
-         * Make an intersection test with the primitive, all inputs/outputs are stored in the IntersectInfo2D class, see its documentation for more information.
-         * @param intersectInfo contains the settings of the intersection to perform, to setup before calling this method as well as the result, available after a call to this method.
-         */
-        intersect(intersectInfo: IntersectInfo2D): boolean;
-        moveChild(child: Prim2DBase, previous: Prim2DBase): boolean;
-        private addChild(child);
-        dispose(): boolean;
-        getActualZOffset(): number;
-        protected onPrimBecomesDirty(): void;
-        _needPrepare(): boolean;
-        _prepareRender(context: Render2DContext): void;
-        _prepareRenderPre(context: Render2DContext): void;
-        _prepareRenderPost(context: Render2DContext): void;
-        protected static CheckParent(parent: Prim2DBase): void;
-        protected updateGlobalTransVisOf(list: Prim2DBase[], recurse: boolean): void;
-        private _updateLocalTransform();
-        protected updateGlobalTransVis(recurse: boolean): void;
-        private _owner;
-        private _parent;
-        private _actionManager;
-        protected _children: Array<Prim2DBase>;
-        private _renderGroup;
-        private _hierarchyDepth;
-        protected _hierarchyDepthOffset: number;
-        protected _siblingDepthOffset: number;
-        private _zOrder;
-        private _levelVisible;
-        _pointerEventObservable: Observable<PrimitivePointerInfo>;
-        _boundingInfoDirty: boolean;
-        protected _visibilityChanged: any;
-        private _isPickable;
-        private _isVisible;
-        private _id;
-        private _position;
-        private _rotation;
-        private _scale;
-        private _origin;
-        protected _parentTransformStep: number;
-        protected _globalTransformStep: number;
-        protected _globalTransformProcessStep: number;
-        protected _localTransform: Matrix;
-        protected _globalTransform: Matrix;
-        protected _invGlobalTransform: Matrix;
-    }
-}
-
-declare module BABYLON {
-    class Rectangle2DRenderCache extends ModelRenderCache {
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFill: Effect;
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorder: Effect;
-        constructor(engine: Engine, modelKey: string, isTransparent: boolean);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Rectangle2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        properties: Vector3;
-    }
-    class Rectangle2D extends Shape2D {
-        static sizeProperty: Prim2DPropInfo;
-        static notRoundedProperty: Prim2DPropInfo;
-        static roundRadiusProperty: Prim2DPropInfo;
-        actualSize: Size;
-        size: Size;
-        notRounded: boolean;
-        roundRadius: number;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        protected setupRectangle2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, size: Size, roundRadius?: number, fill?: IBrush2D, border?: IBrush2D, borderThickness?: number): void;
-        /**
-         * Create an Rectangle 2D Shape primitive. May be a sharp rectangle (with sharp corners), or a rounded one.
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - width: the width of the rectangle, default is 10
-         *  - height: the height of the rectangle, default is 10
-         *  - roundRadius: if the rectangle has rounded corner, set their radius, default is 0 (to get a sharp rectangle).
-         *  - fill: the brush used to draw the fill content of the ellipse, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white.
-         *  - border: the brush used to draw the border of the ellipse, you can set null to draw nothing (but you will have to set a fill brush), default is null.
-         *  - borderThickness: the thickness of the drawn border, default is 1.
-         */
-        static Create(parent: Prim2DBase, options: {
-            id?: string;
-            x?: number;
-            y?: number;
-            origin?: Vector2;
-            width?: number;
-            height?: number;
-            roundRadius?: number;
-            fill?: IBrush2D;
-            border?: IBrush2D;
-            borderThickness?: number;
-        }): Rectangle2D;
-        static roundSubdivisions: number;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Rectangle2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _size;
-        private _notRounded;
-        private _roundRadius;
-    }
-}
-
-declare module BABYLON {
-    class InstanceClassInfo {
-        constructor(base: InstanceClassInfo);
-        mapProperty(propInfo: InstancePropInfo, push: boolean): void;
-        getInstancingAttributeInfos(effect: Effect, categories: string[]): InstancingAttributeInfo[];
-        getShaderAttributes(categories: string[]): string[];
-        private _getBaseOffset(categories);
-        static _CurCategories: string;
-        private _baseInfo;
-        private _nextOffset;
-        private _attributes;
-    }
-    class InstancePropInfo {
-        attributeName: string;
-        category: string;
-        size: number;
-        shaderOffset: number;
-        instanceOffset: StringDictionary<number>;
-        dataType: ShaderDataType;
-        delimitedCategory: string;
-        constructor();
-        setSize(val: any): void;
-        writeData(array: Float32Array, offset: number, val: any): void;
-    }
-    function instanceData<T>(category?: string, shaderAttributeName?: string): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    class InstanceDataBase {
-        constructor(partId: number, dataElementCount: number);
-        id: number;
-        isVisible: boolean;
-        zBias: Vector2;
-        transformX: Vector4;
-        transformY: Vector4;
-        origin: Vector2;
-        getClassTreeInfo(): ClassTreeInfo<InstanceClassInfo, InstancePropInfo>;
-        allocElements(): void;
-        freeElements(): void;
-        dataElementCount: number;
-        curElement: number;
-        dataElements: DynamicFloatArrayElementInfo[];
-        dataBuffer: DynamicFloatArray;
-        typeInfo: ClassTreeInfo<InstanceClassInfo, InstancePropInfo>;
-        private _dataElementCount;
-    }
-    class RenderablePrim2D extends Prim2DBase {
-        static RENDERABLEPRIM2D_PROPCOUNT: number;
-        static isTransparentProperty: Prim2DPropInfo;
-        isTransparent: boolean;
-        setupRenderablePrim2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, isVisible: boolean): void;
-        dispose(): boolean;
-        _prepareRenderPre(context: Render2DContext): void;
-        /**
-         * Transform a given point using the Primitive's origin setting.
-         * This method requires the Primitive's actualSize to be accurate
-         * @param p the point to transform
-         * @param originOffset an offset applied on the current origin before performing the transformation. Depending on which frame of reference your data is expressed you may have to apply a offset. (if you data is expressed from the bottom/left, no offset is required. If it's expressed from the center the a [-0.5;-0.5] offset has to be applied.
-         * @param res an allocated Vector2 that will receive the transformed content
-         */
-        protected transformPointWithOriginByRef(p: Vector2, originOffset: Vector2, res: Vector2): void;
-        protected transformPointWithOrigin(p: Vector2, originOffset: Vector2): Vector2;
-        protected getDataPartEffectInfo(dataPartId: number, vertexBufferAttributes: string[]): {
-            attributes: string[];
-            uniforms: string[];
-            defines: string;
-        };
-        protected modelRenderCache: ModelRenderCache;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): void;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected beforeRefreshForLayoutConstruction(part: InstanceDataBase): any;
-        protected afterRefreshForLayoutConstruction(part: InstanceDataBase, obj: any): void;
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        /**
-         * Update the instanceDataBase level properties of a part
-         * @param part the part to update
-         * @param positionOffset to use in multi part per primitive (e.g. the Text2D has N parts for N letter to display), this give the offset to apply (e.g. the position of the letter from the bottom/left corner of the text). You MUST also set customSize.
-         * @param customSize to use in multi part per primitive, this is the size of the overall primitive to display (the bounding rect's size of the Text, for instance). This is mandatory to compute correct transformation based on the Primitive's origin property.
-         */
-        protected updateInstanceDataPart(part: InstanceDataBase, positionOffset?: Vector2, customSize?: Size): void;
-        private _modelRenderCache;
-        private _modelRenderInstanceID;
-        protected _instanceDataParts: InstanceDataBase[];
-        protected _isTransparent: boolean;
-=======
         /**
          * This event type is raised when a pointing device is moved into the hit test boundaries of a primitive.
          * Bubbles: yes
@@ -7614,6 +4856,441 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+    class ArcRotateCamera extends TargetCamera {
+        alpha: number;
+        beta: number;
+        radius: number;
+        target: Vector3;
+        inertialAlphaOffset: number;
+        inertialBetaOffset: number;
+        inertialRadiusOffset: number;
+        lowerAlphaLimit: any;
+        upperAlphaLimit: any;
+        lowerBetaLimit: number;
+        upperBetaLimit: number;
+        lowerRadiusLimit: any;
+        upperRadiusLimit: any;
+        inertialPanningX: number;
+        inertialPanningY: number;
+        angularSensibilityX: number;
+        angularSensibilityY: number;
+        pinchPrecision: number;
+        panningSensibility: number;
+        keysUp: number[];
+        keysDown: number[];
+        keysLeft: number[];
+        keysRight: number[];
+        wheelPrecision: number;
+        zoomOnFactor: number;
+        targetScreenOffset: Vector2;
+        allowUpsideDown: boolean;
+        _viewMatrix: Matrix;
+        _useCtrlForPanning: boolean;
+        _panningMouseButton: number;
+        inputs: ArcRotateCameraInputsManager;
+        _reset: () => void;
+        panningAxis: Vector3;
+        private _localDirection;
+        private _transformedDirection;
+        onCollide: (collidedMesh: AbstractMesh) => void;
+        checkCollisions: boolean;
+        collisionRadius: Vector3;
+        private _collider;
+        private _previousPosition;
+        private _collisionVelocity;
+        private _newPosition;
+        private _previousAlpha;
+        private _previousBeta;
+        private _previousRadius;
+        private _collisionTriggered;
+        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene);
+        _initCache(): void;
+        _updateCache(ignoreParentClass?: boolean): void;
+        private _getTargetPosition();
+        _isSynchronizedViewMatrix(): boolean;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean, useCtrlForPanning?: boolean, panningMouseButton?: number): void;
+        detachControl(element: HTMLElement): void;
+        _checkInputs(): void;
+        private _checkLimits();
+        rebuildAnglesAndRadius(): void;
+        setPosition(position: Vector3): void;
+        setTarget(target: Vector3): void;
+        _getViewMatrix(): Matrix;
+        private _onCollisionPositionChange;
+        zoomOn(meshes?: AbstractMesh[], doNotUpdateMaxZ?: boolean): void;
+        focusOn(meshesOrMinMaxVectorAndDistance: any, doNotUpdateMaxZ?: boolean): void;
+        /**
+         * @override
+         * Override Camera.createRigCamera
+         */
+        createRigCamera(name: string, cameraIndex: number): Camera;
+        /**
+         * @override
+         * Override Camera._updateRigCameras
+         */
+        _updateRigCameras(): void;
+        dispose(): void;
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class ArcRotateCameraInputsManager extends CameraInputsManager<ArcRotateCamera> {
+        constructor(camera: ArcRotateCamera);
+        addMouseWheel(): ArcRotateCameraInputsManager;
+        addPointers(): ArcRotateCameraInputsManager;
+        addKeyboard(): ArcRotateCameraInputsManager;
+        addGamepad(): ArcRotateCameraInputsManager;
+        addVRDeviceOrientation(): ArcRotateCameraInputsManager;
+    }
+}
+
+declare module BABYLON {
+    class Camera extends Node {
+        inputs: CameraInputsManager<Camera>;
+        private static _PERSPECTIVE_CAMERA;
+        private static _ORTHOGRAPHIC_CAMERA;
+        private static _FOVMODE_VERTICAL_FIXED;
+        private static _FOVMODE_HORIZONTAL_FIXED;
+        private static _RIG_MODE_NONE;
+        private static _RIG_MODE_STEREOSCOPIC_ANAGLYPH;
+        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL;
+        private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED;
+        private static _RIG_MODE_STEREOSCOPIC_OVERUNDER;
+        private static _RIG_MODE_VR;
+        private static _RIG_MODE_VIVE;
+        static PERSPECTIVE_CAMERA: number;
+        static ORTHOGRAPHIC_CAMERA: number;
+        static FOVMODE_VERTICAL_FIXED: number;
+        static FOVMODE_HORIZONTAL_FIXED: number;
+        static RIG_MODE_NONE: number;
+        static RIG_MODE_STEREOSCOPIC_ANAGLYPH: number;
+        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL: number;
+        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED: number;
+        static RIG_MODE_STEREOSCOPIC_OVERUNDER: number;
+        static RIG_MODE_VR: number;
+        static RIG_MODE_VIVE: number;
+        static ForceAttachControlToAlwaysPreventDefault: boolean;
+        _counter: number;
+        position: Vector3;
+        upVector: Vector3;
+        orthoLeft: any;
+        orthoRight: any;
+        orthoBottom: any;
+        orthoTop: any;
+        fov: number;
+        minZ: number;
+        maxZ: number;
+        inertia: number;
+        mode: number;
+        isIntermediate: boolean;
+        viewport: Viewport;
+        layerMask: number;
+        fovMode: number;
+        cameraRigMode: number;
+        interaxialDistance: number;
+        isStereoscopicSideBySide: boolean;
+        _cameraRigParams: any;
+        _rigCameras: Camera[];
+        _rigPostProcess: PostProcess;
+        private _computedViewMatrix;
+        _projectionMatrix: Matrix;
+        private _worldMatrix;
+        _postProcesses: PostProcess[];
+        private _transformMatrix;
+        _activeMeshes: SmartArray<Mesh>;
+        private _globalPosition;
+        private _frustumPlanes;
+        private _refreshFrustumPlanes;
+        constructor(name: string, position: Vector3, scene: Scene);
+        /**
+         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
+         */
+        toString(fullDetails?: boolean): string;
+        globalPosition: Vector3;
+        getActiveMeshes(): SmartArray<Mesh>;
+        isActiveMesh(mesh: Mesh): boolean;
+        _initCache(): void;
+        _updateCache(ignoreParentClass?: boolean): void;
+        _updateFromScene(): void;
+        _isSynchronized(): boolean;
+        _isSynchronizedViewMatrix(): boolean;
+        _isSynchronizedProjectionMatrix(): boolean;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
+        detachControl(element: HTMLElement): void;
+        _update(): void;
+        _checkInputs(): void;
+        private _cascadePostProcessesToRigCams();
+        attachPostProcess(postProcess: PostProcess, insertAt?: number): number;
+        detachPostProcess(postProcess: PostProcess, atIndices?: any): number[];
+        getWorldMatrix(): Matrix;
+        _getViewMatrix(): Matrix;
+        getViewMatrix(force?: boolean): Matrix;
+        _computeViewMatrix(force?: boolean): Matrix;
+        getProjectionMatrix(force?: boolean): Matrix;
+        getTranformationMatrix(): Matrix;
+        private updateFrustumPlanes();
+        isInFrustum(target: ICullable): boolean;
+        isCompletelyInFrustum(target: ICullable): boolean;
+        dispose(): void;
+        setCameraRigMode(mode: number, rigParams: any): void;
+        private _getVRProjectionMatrix();
+        private _getVRRoomScaleProjectionMatrix();
+        setCameraRigParameter(name: string, value: any): void;
+        /**
+         * needs to be overridden by children so sub has required properties to be copied
+         */
+        createRigCamera(name: string, cameraIndex: number): Camera;
+        /**
+         * May need to be overridden by children
+         */
+        _updateRigCameras(): void;
+        _setupInputs(): void;
+        serialize(): any;
+        getTypeName(): string;
+        clone(name: string): Camera;
+        static GetConstructorFromName(type: string, name: string, scene: Scene, interaxial_distance?: number, isStereoscopicSideBySide?: boolean): () => Camera;
+        static Parse(parsedCamera: any, scene: Scene): Camera;
+    }
+}
+
+declare module BABYLON {
+    var CameraInputTypes: {};
+    interface ICameraInput<TCamera extends BABYLON.Camera> {
+        camera: TCamera;
+        getTypeName(): string;
+        getSimpleName(): string;
+        attachControl: (element: HTMLElement, noPreventDefault?: boolean) => void;
+        detachControl: (element: HTMLElement) => void;
+        checkInputs?: () => void;
+    }
+    interface CameraInputsMap<TCamera extends BABYLON.Camera> {
+        [name: string]: ICameraInput<TCamera>;
+        [idx: number]: ICameraInput<TCamera>;
+    }
+    class CameraInputsManager<TCamera extends BABYLON.Camera> {
+        attached: CameraInputsMap<TCamera>;
+        attachedElement: HTMLElement;
+        noPreventDefault: boolean;
+        camera: TCamera;
+        checkInputs: () => void;
+        constructor(camera: TCamera);
+        add(input: ICameraInput<TCamera>): void;
+        remove(inputToRemove: ICameraInput<TCamera>): void;
+        removeByType(inputType: string): void;
+        private _addCheckInputs(fn);
+        attachInput(input: ICameraInput<TCamera>): void;
+        attachElement(element: HTMLElement, noPreventDefault?: boolean): void;
+        detachElement(element: HTMLElement): void;
+        rebuildInputCheck(): void;
+        clear(): void;
+        serialize(serializedCamera: any): void;
+        parse(parsedCamera: any): void;
+    }
+}
+
+declare module BABYLON {
+    class DeviceOrientationCamera extends FreeCamera {
+        angularSensibility: number;
+        moveSensibility: number;
+        constructor(name: string, position: Vector3, scene: Scene);
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class FollowCamera extends TargetCamera {
+        radius: number;
+        rotationOffset: number;
+        heightOffset: number;
+        cameraAcceleration: number;
+        maxCameraSpeed: number;
+        target: AbstractMesh;
+        constructor(name: string, position: Vector3, scene: Scene, target?: AbstractMesh);
+        private getRadians(degrees);
+        private follow(cameraTarget);
+        _checkInputs(): void;
+        getTypeName(): string;
+    }
+    class ArcFollowCamera extends TargetCamera {
+        alpha: number;
+        beta: number;
+        radius: number;
+        target: AbstractMesh;
+        private _cartesianCoordinates;
+        constructor(name: string, alpha: number, beta: number, radius: number, target: AbstractMesh, scene: Scene);
+        private follow();
+        _checkInputs(): void;
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class FreeCamera extends TargetCamera {
+        ellipsoid: Vector3;
+        checkCollisions: boolean;
+        applyGravity: boolean;
+        inputs: FreeCameraInputsManager;
+        angularSensibility: number;
+        keysUp: number[];
+        keysDown: number[];
+        keysLeft: number[];
+        keysRight: number[];
+        onCollide: (collidedMesh: AbstractMesh) => void;
+        private _collider;
+        private _needMoveForGravity;
+        private _oldPosition;
+        private _diffPosition;
+        private _newPosition;
+        _localDirection: Vector3;
+        _transformedDirection: Vector3;
+        constructor(name: string, position: Vector3, scene: Scene);
+        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
+        detachControl(element: HTMLElement): void;
+        _collideWithWorld(velocity: Vector3): void;
+        private _onCollisionPositionChange;
+        _checkInputs(): void;
+        _decideIfNeedsToMove(): boolean;
+        _updatePosition(): void;
+        dispose(): void;
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class FreeCameraInputsManager extends CameraInputsManager<FreeCamera> {
+        constructor(camera: FreeCamera);
+        addKeyboard(): FreeCameraInputsManager;
+        addMouse(touchEnabled?: boolean): FreeCameraInputsManager;
+        addGamepad(): FreeCameraInputsManager;
+        addDeviceOrientation(): FreeCameraInputsManager;
+        addVRDeviceOrientation(): FreeCameraInputsManager;
+        addTouch(): FreeCameraInputsManager;
+        addVirtualJoystick(): FreeCameraInputsManager;
+        addVRDisplay(): FreeCameraInputsManager;
+    }
+}
+
+declare module BABYLON {
+    class GamepadCamera extends UniversalCamera {
+        gamepadAngularSensibility: number;
+        gamepadMoveSensibility: number;
+        constructor(name: string, position: Vector3, scene: Scene);
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class AnaglyphFreeCamera extends FreeCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
+        getTypeName(): string;
+    }
+    class AnaglyphArcRotateCamera extends ArcRotateCamera {
+        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, scene: Scene);
+        getTypeName(): string;
+    }
+    class AnaglyphGamepadCamera extends GamepadCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
+        getTypeName(): string;
+    }
+    class AnaglyphUniversalCamera extends UniversalCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
+        getTypeName(): string;
+    }
+    class StereoscopicFreeCamera extends FreeCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
+        getTypeName(): string;
+    }
+    class StereoscopicArcRotateCamera extends ArcRotateCamera {
+        constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
+        getTypeName(): string;
+    }
+    class StereoscopicGamepadCamera extends GamepadCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
+        getTypeName(): string;
+    }
+    class StereoscopicUniversalCamera extends UniversalCamera {
+        constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class TargetCamera extends Camera {
+        cameraDirection: Vector3;
+        cameraRotation: Vector2;
+        rotation: Vector3;
+        rotationQuaternion: Quaternion;
+        speed: number;
+        noRotationConstraint: boolean;
+        lockedTarget: any;
+        _currentTarget: Vector3;
+        _viewMatrix: Matrix;
+        _camMatrix: Matrix;
+        _cameraTransformMatrix: Matrix;
+        _cameraRotationMatrix: Matrix;
+        private _rigCamTransformMatrix;
+        _referencePoint: Vector3;
+        private _defaultUpVector;
+        _transformedReferencePoint: Vector3;
+        _lookAtTemp: Matrix;
+        _tempMatrix: Matrix;
+        _reset: () => void;
+        constructor(name: string, position: Vector3, scene: Scene);
+        getFrontPosition(distance: number): Vector3;
+        _getLockedTargetPosition(): Vector3;
+        _initCache(): void;
+        _updateCache(ignoreParentClass?: boolean): void;
+        _isSynchronizedViewMatrix(): boolean;
+        _computeLocalCameraSpeed(): number;
+        setTarget(target: Vector3): void;
+        getTarget(): Vector3;
+        _decideIfNeedsToMove(): boolean;
+        _updatePosition(): void;
+        _checkInputs(): void;
+        private _updateCameraRotationMatrix();
+        _getViewMatrix(): Matrix;
+        /**
+         * @override
+         * Override Camera.createRigCamera
+         */
+        createRigCamera(name: string, cameraIndex: number): Camera;
+        /**
+         * @override
+         * Override Camera._updateRigCameras
+         */
+        _updateRigCameras(): void;
+        private _getRigCamPosition(halfSpace, result);
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class TouchCamera extends FreeCamera {
+        touchAngularSensibility: number;
+        touchMoveSensibility: number;
+        constructor(name: string, position: Vector3, scene: Scene);
+        getTypeName(): string;
+        _setupInputs(): void;
+    }
+}
+
+declare module BABYLON {
+    class UniversalCamera extends TouchCamera {
+        gamepadAngularSensibility: number;
+        gamepadMoveSensibility: number;
+        constructor(name: string, position: Vector3, scene: Scene);
+        getTypeName(): string;
+    }
+}
+
+declare module BABYLON {
+    class VirtualJoysticksCamera extends FreeCamera {
+        constructor(name: string, position: Vector3, scene: Scene);
+    }
+}
+
+declare module BABYLON {
     class Collider {
         radius: Vector3;
         retry: number;
@@ -7901,46 +5578,10 @@ declare module BABYLON {
         _checkCollision(collider: Collider): boolean;
         intersectsPoint(point: Vector3): boolean;
         intersects(boundingInfo: BoundingInfo, precise: boolean): boolean;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class Shape2D extends RenderablePrim2D {
-        static SHAPE2D_BORDERPARTID: number;
-        static SHAPE2D_FILLPARTID: number;
-        static SHAPE2D_CATEGORY_BORDER: string;
-        static SHAPE2D_CATEGORY_BORDERSOLID: string;
-        static SHAPE2D_CATEGORY_BORDERGRADIENT: string;
-        static SHAPE2D_CATEGORY_FILLSOLID: string;
-        static SHAPE2D_CATEGORY_FILLGRADIENT: string;
-        static SHAPE2D_PROPCOUNT: number;
-        static borderProperty: Prim2DPropInfo;
-        static fillProperty: Prim2DPropInfo;
-        static borderThicknessProperty: Prim2DPropInfo;
-        border: IBrush2D;
-        fill: IBrush2D;
-        borderThickness: number;
-        setupShape2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, isVisible: boolean, fill: IBrush2D, border: IBrush2D, borderThickness?: number): void;
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _updateTransparencyStatus();
-        private _border;
-        private _borderThickness;
-        private _fill;
-    }
-    class Shape2DInstanceData extends InstanceDataBase {
-        fillSolidColor: Color4;
-        fillGradientColor1: Color4;
-        fillGradientColor2: Color4;
-        fillGradientTY: Vector4;
-        borderThickness: number;
-        borderSolidColor: Color4;
-        borderGradientColor1: Color4;
-        borderGradientColor2: Color4;
-        borderGradientTY: Vector4;
-=======
     class BoundingSphere {
         minimum: Vector3;
         maximum: Vector3;
@@ -7954,311 +5595,10 @@ declare module BABYLON {
         isInFrustum(frustumPlanes: Plane[]): boolean;
         intersectsPoint(point: Vector3): boolean;
         static Intersects(sphere0: BoundingSphere, sphere1: BoundingSphere): boolean;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class Prim2DClassInfo {
-    }
-    class Prim2DPropInfo {
-        static PROPKIND_MODEL: number;
-        static PROPKIND_INSTANCE: number;
-        static PROPKIND_DYNAMIC: number;
-        id: number;
-        flagId: number;
-        kind: number;
-        name: string;
-        dirtyBoundingInfo: boolean;
-        typeLevelCompare: boolean;
-    }
-    class PropertyChangedInfo {
-        oldValue: any;
-        newValue: any;
-        propertyName: string;
-    }
-    interface IPropertyChanged {
-        propertyChanged: Observable<PropertyChangedInfo>;
-    }
-    class ClassTreeInfo<TClass, TProp> {
-        constructor(baseClass: ClassTreeInfo<TClass, TProp>, type: Object, classContentFactory: (base: TClass) => TClass);
-        classContent: TClass;
-        type: Object;
-        levelContent: StringDictionary<TProp>;
-        fullContent: StringDictionary<TProp>;
-        getLevelOf(type: Object): ClassTreeInfo<TClass, TProp>;
-        getOrAddType(baseType: Object, type: Object): ClassTreeInfo<TClass, TProp>;
-        static get<TClass, TProp>(type: Object): ClassTreeInfo<TClass, TProp>;
-        static getOrRegister<TClass, TProp>(type: Object, classContentFactory: (base: TClass) => TClass): ClassTreeInfo<TClass, TProp>;
-        private _type;
-        private _classContent;
-        private _baseClass;
-        private _subClasses;
-        private _levelContent;
-        private _fullContent;
-        private _classContentFactory;
-    }
-    class SmartPropertyPrim implements IPropertyChanged {
-        protected setupSmartPropertyPrim(): void;
-        /**
-         * An observable that is triggered when a property (using of the XXXXLevelProperty decorator) has its value changing.
-         * You can add an observer that will be triggered only for a given set of Properties using the Mask feature of the Observable and the corresponding Prim2DPropInfo.flagid value (e.g. Prim2DBase.positionProperty.flagid|Prim2DBase.rotationProperty.flagid to be notified only about position or rotation change)
-         */
-        propertyChanged: Observable<PropertyChangedInfo>;
-        /**
-         * Check if the object is disposed or not.
-         * @returns true if the object is dispose, false otherwise.
-         */
-        isDisposed: boolean;
-        /**
-         * Disposable pattern, this method must be overloaded by derived types in order to clean up hardware related resources.
-         * @returns false if the object is already dispose, true otherwise. Your implementation must call super.dispose() and check for a false return and return immediately if it's the case.
-         */
-        dispose(): boolean;
-        /**
-         * Animation array, more info: http://doc.babylonjs.com/tutorials/Animations
-         */
-        animations: Animation[];
-        /**
-         * Returns as a new array populated with the Animatable used by the primitive. Must be overloaded by derived primitives.
-         * Look at Sprite2D for more information
-         */
-        getAnimatables(): IAnimatable[];
-        /**
-         * Property giving the Model Key associated to the property.
-         * This value is constructed from the type of the primitive and all the name/value of its properties declared with the modelLevelProperty decorator
-         * @returns the model key string.
-         */
-        modelKey: string;
-        /**
-         * States if the Primitive is dirty and should be rendered again next time.
-         * @returns true is dirty, false otherwise
-         */
-        isDirty: boolean;
-        /**
-         * Access the dictionary of properties metadata. Only properties decorated with XXXXLevelProperty are concerned
-         * @returns the dictionary, the key is the property name as declared in Javascript, the value is the metadata object
-         */
-        private propDic;
-        private static _createPropInfo(target, propName, propId, dirtyBoundingInfo, typeLevelCompare, kind);
-        private static _checkUnchanged(curValue, newValue);
-        private static propChangedInfo;
-        markAsDirty(propertyName: string): void;
-        private _handlePropChanged<T>(curValue, newValue, propName, propInfo, typeLevelCompare);
-        protected handleGroupChanged(prop: Prim2DPropInfo): void;
-        /**
-         * Check if a given set of properties are dirty or not.
-         * @param flags a ORed combination of Prim2DPropInfo.flagId values
-         * @return true if at least one property is dirty, false if none of them are.
-         */
-        checkPropertiesDirty(flags: number): boolean;
-        /**
-         * Clear a given set of properties.
-         * @param flags a ORed combination of Prim2DPropInfo.flagId values
-         * @return the new set of property still marked as dirty
-         */
-        protected clearPropertiesDirty(flags: number): number;
-        _resetPropertiesDirty(): void;
-        /**
-         * Retrieve the boundingInfo for this Primitive, computed based on the primitive itself and NOT its children
-         * @returns {}
-         */
-        levelBoundingInfo: BoundingInfo2D;
-        /**
-         * This method must be overridden by a given Primitive implementation to compute its boundingInfo
-         */
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Property method called when the Primitive becomes dirty
-         */
-        protected onPrimBecomesDirty(): void;
-        static _hookProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare: boolean, dirtyBoundingInfo: boolean, kind: number): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-        private _modelKey;
-        string: any;
-        private _propInfo;
-        private _isDisposed;
-        protected _levelBoundingInfoDirty: boolean;
-        protected _levelBoundingInfo: BoundingInfo2D;
-        protected _boundingInfo: BoundingInfo2D;
-        protected _modelDirty: boolean;
-        protected _instanceDirtyFlags: number;
-    }
-    function modelLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    function instanceLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    function dynamicLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-}
-
-declare module BABYLON {
-    class Sprite2DRenderCache extends ModelRenderCache {
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-        texture: Texture;
-        effect: Effect;
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Sprite2DInstanceData extends InstanceDataBase {
-        constructor(partId: number);
-        topLeftUV: Vector2;
-        sizeUV: Vector2;
-        textureSize: Vector2;
-        frame: number;
-        invertY: number;
-    }
-    class Sprite2D extends RenderablePrim2D {
-        static SPRITE2D_MAINPARTID: number;
-        static textureProperty: Prim2DPropInfo;
-        static spriteSizeProperty: Prim2DPropInfo;
-        static spriteLocationProperty: Prim2DPropInfo;
-        static spriteFrameProperty: Prim2DPropInfo;
-        static invertYProperty: Prim2DPropInfo;
-        texture: Texture;
-        actualSize: Size;
-        spriteSize: Size;
-        spriteLocation: Vector2;
-        spriteFrame: number;
-        invertY: boolean;
-        protected updateLevelBoundingInfo(): void;
-        getAnimatables(): IAnimatable[];
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected setupSprite2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, texture: Texture, spriteSize: Size, spriteLocation: Vector2, invertY: boolean): void;
-        /**
-         * Create an 2D Sprite primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * @param texture the texture that stores the sprite to render
-         * options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - spriteSize: the size of the sprite, if null the size of the given texture will be used, default is null.
-         *  - spriteLocation: the location in the texture of the top/left corner of the Sprite to display, default is null (0,0)
-         *  - invertY: if true the texture Y will be inverted, default is false.
-         */
-        static Create(parent: Prim2DBase, texture: Texture, options: {
-            id?: string;
-            x?: number;
-            y?: number;
-            origin?: Vector2;
-            spriteSize?: Size;
-            spriteLocation?: Vector2;
-            invertY?: boolean;
-        }): Sprite2D;
-        static _createCachedCanvasSprite(owner: Canvas2D, texture: MapTexture, size: Size, pos: Vector2): Sprite2D;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Sprite2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _texture;
-        private _size;
-        private _location;
-        private _spriteFrame;
-        private _invertY;
-    }
-}
-
-declare module BABYLON {
-    class Text2DRenderCache extends ModelRenderCache {
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-        fontTexture: FontTexture;
-        effect: Effect;
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Text2DInstanceData extends InstanceDataBase {
-        constructor(partId: number, dataElementCount: number);
-        topLeftUV: Vector2;
-        sizeUV: Vector2;
-        textureSize: Vector2;
-        color: Color4;
-    }
-    class Text2D extends RenderablePrim2D {
-        static TEXT2D_MAINPARTID: number;
-        static fontProperty: Prim2DPropInfo;
-        static defaultFontColorProperty: Prim2DPropInfo;
-        static textProperty: Prim2DPropInfo;
-        static areaSizeProperty: Prim2DPropInfo;
-        static vAlignProperty: Prim2DPropInfo;
-        static hAlignProperty: Prim2DPropInfo;
-        static TEXT2D_VALIGN_TOP: number;
-        static TEXT2D_VALIGN_CENTER: number;
-        static TEXT2D_VALIGN_BOTTOM: number;
-        static TEXT2D_HALIGN_LEFT: number;
-        static TEXT2D_HALIGN_CENTER: number;
-        static TEXT2D_HALIGN_RIGHT: number;
-        fontName: string;
-        defaultFontColor: Color4;
-        text: string;
-        areaSize: Size;
-        vAlign: number;
-        hAlign: number;
-        actualSize: Size;
-        protected fontTexture: FontTexture;
-        dispose(): boolean;
-        protected updateLevelBoundingInfo(): void;
-        protected setupText2D(owner: Canvas2D, parent: Prim2DBase, id: string, position: Vector2, origin: Vector2, fontName: string, text: string, areaSize: Size, defaultFontColor: Color4, vAlign: any, hAlign: any, tabulationSize: number): void;
-        /**
-         * Create a Text primitive
-         * @param parent the parent primitive, must be a valid primitive (or the Canvas)
-         * @param text the text to display
-         * Options:
-         *  - id a text identifier, for information purpose
-         *  - x: the X position relative to its parent, default is 0
-         *  - y: the Y position relative to its parent, default is 0
-         *  - origin: define the normalized origin point location, default [0.5;0.5]
-         *  - fontName: the name/size/style of the font to use, following the CSS notation. Default is "12pt Arial".
-         *  - defaultColor: the color by default to apply on each letter of the text to display, default is plain white.
-         *  - areaSize: the size of the area in which to display the text, default is auto-fit from text content.
-         *  - vAlign: vertical alignment (areaSize must be specified), default is Text2D.TEXT2D_VALIGN_CENTER
-         *  - hAlign: horizontal alignment (areaSize must be specified), default is Text2D.TEXT2D_HALIGN_CENTER
-         *  - tabulationSize: number of space character to insert when a tabulation is encountered, default is 4
-         */
-        static Create(parent: Prim2DBase, text: string, options?: {
-            id?: string;
-            x?: number;
-            y?: number;
-            origin?: Vector2;
-            fontName?: string;
-            defaultFontColor?: Color4;
-            areaSize?: Size;
-            vAlign?: number;
-            hAlign?: number;
-            tabulationSize?: number;
-        }): Text2D;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected createModelRenderCache(modelKey: string, isTransparent: boolean): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Text2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected beforeRefreshForLayoutConstruction(part: InstanceDataBase): any;
-        protected afterRefreshForLayoutConstruction(part: InstanceDataBase, obj: any): void;
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _updateCharCount();
-        private _fontTexture;
-        private _tabulationSize;
-        private _charCount;
-        private _fontName;
-        private _defaultFontColor;
-        private _text;
-        private _areaSize;
-        private _actualSize;
-        private _vAlign;
-        private _hAlign;
-    }
-}
-
-declare module BABYLON {
-    /**
-     * This is the class that is used to display a World Space Canvas into a scene
-     */
-    class WorldSpaceCanvas2D extends Mesh {
-        constructor(name: string, scene: Scene, canvas: Canvas2D);
-        dispose(): void;
-        private _canvas;
-=======
     class Ray {
         origin: Vector3;
         direction: Vector3;
@@ -8383,319 +5723,6 @@ declare module BABYLON.Debug {
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class Layer {
-        name: string;
-        texture: Texture;
-        isBackground: boolean;
-        color: Color4;
-        scale: Vector2;
-        offset: Vector2;
-        alphaBlendingMode: number;
-        alphaTest: boolean;
-        private _scene;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _alphaTestEffect;
-        /**
-        * An event triggered when the layer is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<Layer>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        /**
-        * An event triggered before rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onBeforeRenderObservable: Observable<Layer>;
-        private _onBeforeRenderObserver;
-        onBeforeRender: () => void;
-        /**
-        * An event triggered after rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onAfterRenderObservable: Observable<Layer>;
-        private _onAfterRenderObserver;
-        onAfterRender: () => void;
-        constructor(name: string, imgUrl: string, scene: Scene, isBackground?: boolean, color?: Color4);
-        render(): void;
-        dispose(): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class DebugLayer {
-        private _scene;
-        private _camera;
-        private _transformationMatrix;
-        private _enabled;
-        private _labelsEnabled;
-        private _displayStatistics;
-        private _displayTree;
-        private _displayLogs;
-        private _globalDiv;
-        private _statsDiv;
-        private _statsSubsetDiv;
-        private _optionsDiv;
-        private _optionsSubsetDiv;
-        private _logDiv;
-        private _logSubsetDiv;
-        private _treeDiv;
-        private _treeSubsetDiv;
-        private _drawingCanvas;
-        private _drawingContext;
-        private _rootElement;
-        private _skeletonViewers;
-        _syncPositions: () => void;
-        private _syncData;
-        private _syncUI;
-        private _onCanvasClick;
-        private _clickPosition;
-        private _ratio;
-        private _identityMatrix;
-        private _showUI;
-        private _needToRefreshMeshesTree;
-        shouldDisplayLabel: (node: Node) => boolean;
-        shouldDisplayAxis: (mesh: Mesh) => boolean;
-        axisRatio: number;
-        accentColor: string;
-        customStatsFunction: () => string;
-        constructor(scene: Scene);
-        private _refreshMeshesTreeContent();
-        private _renderSingleAxis(zero, unit, unitText, label, color);
-        private _renderAxis(projectedPosition, mesh, globalViewport);
-        private _renderLabel(text, projectedPosition, labelOffset, onClick, getFillStyle);
-        private _isClickInsideRect(x, y, width, height);
-        isVisible(): boolean;
-        hide(): void;
-        private _clearSkeletonViewers();
-        show(showUI?: boolean, camera?: Camera, rootElement?: HTMLElement): void;
-        private _clearLabels();
-        private _generateheader(root, text);
-        private _generateTexBox(root, title, color);
-        private _generateAdvancedCheckBox(root, leftTitle, rightTitle, initialState, task, tag?);
-        private _generateCheckBox(root, title, initialState, task, tag?);
-        private _generateButton(root, title, task, tag?);
-        private _generateRadio(root, title, name, initialState, task, tag?);
-        private _generateDOMelements();
-        private _displayStats();
-    }
-}
-
-declare module BABYLON.Debug {
-    /**
-    * Demo available here: http://www.babylonjs-playground.com/#1BZJVJ#8
-    */
-    class SkeletonViewer {
-        skeleton: Skeleton;
-        mesh: AbstractMesh;
-        autoUpdateBonesMatrices: boolean;
-        renderingGroupId: number;
-        color: Color3;
-        private _scene;
-        private _debugLines;
-        private _debugMesh;
-        private _isEnabled;
-        private _renderFunction;
-        constructor(skeleton: Skeleton, mesh: AbstractMesh, scene: Scene, autoUpdateBonesMatrices?: boolean, renderingGroupId?: number);
-        isEnabled: boolean;
-        private _getBonePosition(position, bone, meshMat, x?, y?, z?);
-        private _getLinesForBonesWithLength(bones, meshMat);
-        private _getLinesForBonesNoLength(bones, meshMat);
-        update(): void;
-        private _updateBoneMatrix(bone);
-        dispose(): void;
-=======
-    class LensFlare {
-        size: number;
-        position: number;
-        color: Color3;
-        texture: Texture;
-        private _system;
-        constructor(size: number, position: number, color: any, imgUrl: string, system: LensFlareSystem);
-        dispose: () => void;
-=======
-    class BoundingBox {
-        minimum: Vector3;
-        maximum: Vector3;
-        vectors: Vector3[];
-        center: Vector3;
-        extendSize: Vector3;
-        directions: Vector3[];
-        vectorsWorld: Vector3[];
-        minimumWorld: Vector3;
-        maximumWorld: Vector3;
-        private _worldMatrix;
-        constructor(minimum: Vector3, maximum: Vector3);
-        getWorldMatrix(): Matrix;
-        setWorldMatrix(matrix: Matrix): BoundingBox;
-        _update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        intersectsSphere(sphere: BoundingSphere): boolean;
-        intersectsMinMax(min: Vector3, max: Vector3): boolean;
-        static Intersects(box0: BoundingBox, box1: BoundingBox): boolean;
-        static IntersectsSphere(minPoint: Vector3, maxPoint: Vector3, sphereCenter: Vector3, sphereRadius: number): boolean;
-        static IsCompletelyInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
-        static IsInFrustum(boundingVectors: Vector3[], frustumPlanes: Plane[]): boolean;
-    }
-}
-
-declare module BABYLON {
-    class BoundingInfo {
-        minimum: Vector3;
-        maximum: Vector3;
-        boundingBox: BoundingBox;
-        boundingSphere: BoundingSphere;
-        private _isLocked;
-        constructor(minimum: Vector3, maximum: Vector3);
-        isLocked: boolean;
-        update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        _checkCollision(collider: Collider): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        intersects(boundingInfo: BoundingInfo, precise: boolean): boolean;
-    }
-}
-
-declare module BABYLON {
-    class BoundingSphere {
-        minimum: Vector3;
-        maximum: Vector3;
-        center: Vector3;
-        radius: number;
-        centerWorld: Vector3;
-        radiusWorld: number;
-        private _tempRadiusVector;
-        constructor(minimum: Vector3, maximum: Vector3);
-        _update(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        static Intersects(sphere0: BoundingSphere, sphere1: BoundingSphere): boolean;
->>>>>>> vr_room_scale_camera
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class LensFlareSystem {
-        name: string;
-        lensFlares: LensFlare[];
-        borderLimit: number;
-        meshesSelectionPredicate: (mesh: Mesh) => boolean;
-        layerMask: number;
-        id: string;
-        private _scene;
-        private _emitter;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _positionX;
-        private _positionY;
-        private _isEnabled;
-        constructor(name: string, emitter: any, scene: Scene);
-        isEnabled: boolean;
-        getScene(): Scene;
-        getEmitter(): any;
-        setEmitter(newEmitter: any): void;
-        getEmitterPosition(): Vector3;
-        computeEffectivePosition(globalViewport: Viewport): boolean;
-        _isVisible(): boolean;
-        render(): boolean;
-        dispose(): void;
-        static Parse(parsedLensFlareSystem: any, scene: Scene, rootUrl: string): LensFlareSystem;
-        serialize(): any;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-=======
-    class Ray {
-        origin: Vector3;
-        direction: Vector3;
-        length: number;
-        private _edge1;
-        private _edge2;
-        private _pvec;
-        private _tvec;
-        private _qvec;
-        constructor(origin: Vector3, direction: Vector3, length?: number);
-        intersectsBoxMinMax(minimum: Vector3, maximum: Vector3): boolean;
-        intersectsBox(box: BoundingBox): boolean;
-        intersectsSphere(sphere: BoundingSphere): boolean;
-        intersectsTriangle(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3): IntersectionInfo;
-        intersectsPlane(plane: Plane): number;
-        private static smallnum;
-        private static rayl;
-        /**
-         * Intersection test between the ray and a given segment whithin a given tolerance (threshold)
-         * @param sega the first point of the segment to test the intersection against
-         * @param segb the second point of the segment to test the intersection against
-         * @param threshold the tolerance margin, if the ray doesn't intersect the segment but is close to the given threshold, the intersection is successful
-         * @return the distance from the ray origin to the intersection point if there's intersection, or -1 if there's no intersection
-         */
-        intersectionSegment(sega: Vector3, segb: Vector3, threshold: number): number;
-        static CreateNew(x: number, y: number, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Ray;
-        /**
-        * Function will create a new transformed ray starting from origin and ending at the end point. Ray's length will be set, and ray will be
-        * transformed to the given world matrix.
-        * @param origin The origin point
-        * @param end The end point
-        * @param world a matrix to transform the ray to. Default is the identity matrix.
-        */
-        static CreateNewFromTo(origin: Vector3, end: Vector3, world?: Matrix): Ray;
-        static Transform(ray: Ray, matrix: Matrix): Ray;
->>>>>>> vr_room_scale_camera
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class Layer {
-        name: string;
-        texture: Texture;
-        isBackground: boolean;
-        color: Color4;
-        scale: Vector2;
-        offset: Vector2;
-        alphaBlendingMode: number;
-        alphaTest: boolean;
-        private _scene;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _alphaTestEffect;
-        /**
-        * An event triggered when the layer is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<Layer>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        /**
-        * An event triggered before rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onBeforeRenderObservable: Observable<Layer>;
-        private _onBeforeRenderObserver;
-        onBeforeRender: () => void;
-        /**
-        * An event triggered after rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onAfterRenderObservable: Observable<Layer>;
-        private _onAfterRenderObserver;
-        onAfterRender: () => void;
-        constructor(name: string, imgUrl: string, scene: Scene, isBackground?: boolean, color?: Color4);
-        render(): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
     class LensFlare {
         size: number;
         position: number;
@@ -8735,47 +5762,48 @@ declare module BABYLON {
         dispose(): void;
         static Parse(parsedLensFlareSystem: any, scene: Scene, rootUrl: string): LensFlareSystem;
         serialize(): any;
-=======
-    interface ISceneLoaderPlugin {
-        extensions: string;
-        importMesh: (meshesNames: any, scene: Scene, data: any, rootUrl: string, meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => boolean;
-        load: (scene: Scene, data: string, rootUrl: string) => boolean;
     }
-    interface ISceneLoaderPluginAsync {
-        extensions: string;
-        importMeshAsync: (meshesNames: any, scene: Scene, data: any, rootUrl: string, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, onerror?: () => void) => void;
-        loadAsync: (scene: Scene, data: string, rootUrl: string, onsuccess: () => void, onerror: () => void) => boolean;
-    }
-    class SceneLoader {
-        private static _ForceFullSceneLoadingForIncremental;
-        private static _ShowLoadingScreen;
-        static NO_LOGGING: number;
-        static MINIMAL_LOGGING: number;
-        static SUMMARY_LOGGING: number;
-        static DETAILED_LOGGING: number;
-        private static _loggingLevel;
-        static ForceFullSceneLoadingForIncremental: boolean;
-        static ShowLoadingScreen: boolean;
-        static loggingLevel: number;
-        private static _registeredPlugins;
-        private static _getPluginForFilename(sceneFilename);
-        static GetPluginForExtension(extension: string): ISceneLoaderPlugin | ISceneLoaderPluginAsync;
-        static RegisterPlugin(plugin: ISceneLoaderPlugin): void;
-        static ImportMesh(meshesNames: any, rootUrl: string, sceneFilename: string, scene: Scene, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, progressCallBack?: () => void, onerror?: (scene: Scene, message: string, exception?: any) => void): void;
+}
+
+declare module BABYLON {
+    class Layer {
+        name: string;
+        texture: Texture;
+        isBackground: boolean;
+        color: Color4;
+        scale: Vector2;
+        offset: Vector2;
+        alphaBlendingMode: number;
+        alphaTest: boolean;
+        private _scene;
+        private _vertexBuffers;
+        private _indexBuffer;
+        private _effect;
+        private _alphaTestEffect;
         /**
-        * Load a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param engine is the instance of BABYLON.Engine to use to create the scene
+        * An event triggered when the layer is disposed.
+        * @type {BABYLON.Observable}
         */
-        static Load(rootUrl: string, sceneFilename: any, engine: Engine, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+        onDisposeObservable: Observable<Layer>;
+        private _onDisposeObserver;
+        onDispose: () => void;
         /**
-        * Append a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param scene is the instance of BABYLON.Scene to append to
+        * An event triggered before rendering the scene
+        * @type {BABYLON.Observable}
         */
-        static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+        onBeforeRenderObservable: Observable<Layer>;
+        private _onBeforeRenderObserver;
+        onBeforeRender: () => void;
+        /**
+        * An event triggered after rendering the scene
+        * @type {BABYLON.Observable}
+        */
+        onAfterRenderObservable: Observable<Layer>;
+        private _onAfterRenderObserver;
+        onAfterRender: () => void;
+        constructor(name: string, imgUrl: string, scene: Scene, isBackground?: boolean, color?: Color4);
+        render(): void;
+        dispose(): void;
     }
 }
 
@@ -8834,7 +5862,7 @@ declare module BABYLON {
         needRefreshPerFrame(): boolean;
         needCube(): boolean;
         getShadowDirection(faceIndex?: number): Vector3;
-        _shadowGenerator: ShadowGenerator;
+        _shadowGenerator: IShadowGenerator;
     }
     class Light extends Node {
         diffuse: Color3;
@@ -8846,7 +5874,7 @@ declare module BABYLON {
         excludedMeshes: AbstractMesh[];
         excludeWithLayerMask: number;
         radius: number;
-        _shadowGenerator: ShadowGenerator;
+        _shadowGenerator: IShadowGenerator;
         private _parentedWorldMatrix;
         _excludedMeshesIds: string[];
         _includedOnlyMeshesIds: string[];
@@ -8855,210 +5883,7 @@ declare module BABYLON {
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
         toString(fullDetails?: boolean): string;
-        getShadowGenerator(): ShadowGenerator;
-        getAbsolutePosition(): Vector3;
-        transferToEffect(effect: Effect, uniformName0?: string, uniformName1?: string): void;
-        _getWorldMatrix(): Matrix;
-        canAffectMesh(mesh: AbstractMesh): boolean;
-        getWorldMatrix(): Matrix;
-        dispose(): void;
-        getTypeID(): number;
-        clone(name: string): Light;
-        serialize(): any;
-        static GetConstructorFromName(type: number, name: string, scene: Scene): () => Light;
-        static Parse(parsedLight: any, scene: Scene): Light;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    class DebugLayer {
-        private _scene;
-        private _camera;
-        private _transformationMatrix;
-        private _enabled;
-        private _labelsEnabled;
-        private _displayStatistics;
-        private _displayTree;
-        private _displayLogs;
-        private _globalDiv;
-        private _statsDiv;
-        private _statsSubsetDiv;
-        private _optionsDiv;
-        private _optionsSubsetDiv;
-        private _logDiv;
-        private _logSubsetDiv;
-        private _treeDiv;
-        private _treeSubsetDiv;
-        private _drawingCanvas;
-        private _drawingContext;
-        private _rootElement;
-        private _skeletonViewers;
-        _syncPositions: () => void;
-        private _syncData;
-        private _syncUI;
-        private _onCanvasClick;
-        private _clickPosition;
-        private _ratio;
-        private _identityMatrix;
-        private _showUI;
-        private _needToRefreshMeshesTree;
-        shouldDisplayLabel: (node: Node) => boolean;
-        shouldDisplayAxis: (mesh: Mesh) => boolean;
-        axisRatio: number;
-        accentColor: string;
-        customStatsFunction: () => string;
-        constructor(scene: Scene);
-        private _refreshMeshesTreeContent();
-        private _renderSingleAxis(zero, unit, unitText, label, color);
-        private _renderAxis(projectedPosition, mesh, globalViewport);
-        private _renderLabel(text, projectedPosition, labelOffset, onClick, getFillStyle);
-        private _isClickInsideRect(x, y, width, height);
-        isVisible(): boolean;
-        hide(): void;
-        private _clearSkeletonViewers();
-        show(showUI?: boolean, camera?: Camera, rootElement?: HTMLElement): void;
-        private _clearLabels();
-        private _generateheader(root, text);
-        private _generateTexBox(root, title, color);
-        private _generateAdvancedCheckBox(root, leftTitle, rightTitle, initialState, task, tag?);
-        private _generateCheckBox(root, title, initialState, task, tag?);
-        private _generateButton(root, title, task, tag?);
-        private _generateRadio(root, title, name, initialState, task, tag?);
-        private _generateDOMelements();
-        private _displayStats();
-    }
-}
-
-declare module BABYLON.Debug {
-    /**
-    * Demo available here: http://www.babylonjs-playground.com/#1BZJVJ#8
-    */
-    class SkeletonViewer {
-        skeleton: Skeleton;
-        mesh: AbstractMesh;
-        autoUpdateBonesMatrices: boolean;
-        renderingGroupId: number;
-        color: Color3;
-        private _scene;
-        private _debugLines;
-        private _debugMesh;
-        private _isEnabled;
-        private _renderFunction;
-        constructor(skeleton: Skeleton, mesh: AbstractMesh, scene: Scene, autoUpdateBonesMatrices?: boolean, renderingGroupId?: number);
-        isEnabled: boolean;
-        private _getBonePosition(position, bone, meshMat, x?, y?, z?);
-        private _getLinesForBonesWithLength(bones, meshMat);
-        private _getLinesForBonesNoLength(bones, meshMat);
-        update(): void;
-        private _updateBoneMatrix(bone);
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
->>>>>>> vr_room_scale_camera
-    class DirectionalLight extends Light implements IShadowLight {
-        position: Vector3;
-        direction: Vector3;
-        private _transformedDirection;
-        transformedPosition: Vector3;
-        private _worldMatrix;
-        shadowOrthoScale: number;
-        autoUpdateExtends: boolean;
-        private _orthoLeft;
-        private _orthoRight;
-        private _orthoTop;
-        private _orthoBottom;
-        constructor(name: string, direction: Vector3, scene: Scene);
-        getAbsolutePosition(): Vector3;
-        setDirectionToTarget(target: Vector3): Vector3;
-        setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
-        supportsVSM(): boolean;
-        needRefreshPerFrame(): boolean;
-        needCube(): boolean;
-        getShadowDirection(faceIndex?: number): Vector3;
-        computeTransformedPosition(): boolean;
-        transferToEffect(effect: Effect, directionUniformName: string): void;
-<<<<<<< HEAD
-=======
-    class PointLight extends Light implements IShadowLight {
-        private _worldMatrix;
-        transformedPosition: Vector3;
-        position: Vector3;
-        constructor(name: string, position: Vector3, scene: Scene);
-        getAbsolutePosition(): Vector3;
-        computeTransformedPosition(): boolean;
-        transferToEffect(effect: Effect, positionUniformName: string): void;
-        needCube(): boolean;
-        supportsVSM(): boolean;
-        needRefreshPerFrame(): boolean;
-        getShadowDirection(faceIndex?: number): Vector3;
-        setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-=======
->>>>>>> vr_room_scale_camera
-        _getWorldMatrix(): Matrix;
-        getTypeID(): number;
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> vr_room_scale_camera
-    class HemisphericLight extends Light {
-        groundColor: Color3;
-        direction: Vector3;
-        private _worldMatrix;
-        constructor(name: string, direction: Vector3, scene: Scene);
-        setDirectionToTarget(target: Vector3): Vector3;
-        getShadowGenerator(): ShadowGenerator;
-        transferToEffect(effect: Effect, directionUniformName: string, groundColorUniformName: string): void;
-        _getWorldMatrix(): Matrix;
-        getTypeID(): number;
-    }
-}
-
-declare module BABYLON {
-    interface IShadowLight {
-        id: string;
-        position: Vector3;
-        transformedPosition: Vector3;
-        name: string;
-        computeTransformedPosition(): boolean;
-        getScene(): Scene;
-        setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
-        supportsVSM(): boolean;
-        needRefreshPerFrame(): boolean;
-        needCube(): boolean;
-        getShadowDirection(faceIndex?: number): Vector3;
-        _shadowGenerator: ShadowGenerator;
-    }
-    class Light extends Node {
-        diffuse: Color3;
-        specular: Color3;
-        intensity: number;
-        range: number;
-        includeOnlyWithLayerMask: number;
-        includedOnlyMeshes: AbstractMesh[];
-        excludedMeshes: AbstractMesh[];
-        excludeWithLayerMask: number;
-        radius: number;
-        _shadowGenerator: ShadowGenerator;
-        private _parentedWorldMatrix;
-        _excludedMeshesIds: string[];
-        _includedOnlyMeshesIds: string[];
-        constructor(name: string, scene: Scene);
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
-        getShadowGenerator(): ShadowGenerator;
+        getShadowGenerator(): IShadowGenerator;
         getAbsolutePosition(): Vector3;
         transferToEffect(effect: Effect, uniformName0?: string, uniformName1?: string): void;
         _getWorldMatrix(): Matrix;
@@ -9093,8 +5918,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-=======
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     class SpotLight extends Light implements IShadowLight {
         position: Vector3;
         direction: Vector3;
@@ -9159,869 +5982,6 @@ declare module BABYLON {
         * @param scene is the instance of BABYLON.Scene to append to
         */
         static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
-    }
-}
-
-declare module BABYLON {
-    class SIMDVector3 {
-        static TransformCoordinatesToRefSIMD(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformCoordinatesFromFloatsToRefSIMD(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-    }
-    class SIMDMatrix {
-        multiplyToArraySIMD(other: Matrix, result: Matrix, offset?: number): void;
-        invertToRefSIMD(other: Matrix): Matrix;
-        static LookAtLHToRefSIMD(eyeRef: Vector3, targetRef: Vector3, upRef: Vector3, result: Matrix): void;
-    }
-    class SIMDHelper {
-        private static _isEnabled;
-        static IsEnabled: boolean;
-        static DisableSIMD(): void;
-        static EnableSIMD(): void;
-    }
-}
-
-declare module BABYLON {
-    const ToGammaSpace: number;
-    const ToLinearSpace: number;
-    const Epsilon: number;
-    class MathTools {
-        static WithinEpsilon(a: number, b: number, epsilon?: number): boolean;
-        static ToHex(i: number): string;
-        static Sign(value: number): number;
-        static Clamp(value: number, min?: number, max?: number): number;
-    }
-    class Color3 {
-        r: number;
-        g: number;
-        b: number;
-        constructor(r?: number, g?: number, b?: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        toArray(array: number[], index?: number): Color3;
-        toColor4(alpha?: number): Color4;
-        asArray(): number[];
-        toLuminance(): number;
-        multiply(otherColor: Color3): Color3;
-        multiplyToRef(otherColor: Color3, result: Color3): Color3;
-        equals(otherColor: Color3): boolean;
-        equalsFloats(r: number, g: number, b: number): boolean;
-        scale(scale: number): Color3;
-        scaleToRef(scale: number, result: Color3): Color3;
-        add(otherColor: Color3): Color3;
-        addToRef(otherColor: Color3, result: Color3): Color3;
-        subtract(otherColor: Color3): Color3;
-        subtractToRef(otherColor: Color3, result: Color3): Color3;
-        clone(): Color3;
-        copyFrom(source: Color3): Color3;
-        copyFromFloats(r: number, g: number, b: number): Color3;
-        toHexString(): string;
-        toLinearSpace(): Color3;
-        toLinearSpaceToRef(convertedColor: Color3): Color3;
-        toGammaSpace(): Color3;
-        toGammaSpaceToRef(convertedColor: Color3): Color3;
-        static FromHexString(hex: string): Color3;
-        static FromArray(array: number[], offset?: number): Color3;
-        static FromInts(r: number, g: number, b: number): Color3;
-        static Lerp(start: Color3, end: Color3, amount: number): Color3;
-        static Red(): Color3;
-        static Green(): Color3;
-        static Blue(): Color3;
-        static Black(): Color3;
-        static White(): Color3;
-        static Purple(): Color3;
-        static Magenta(): Color3;
-        static Yellow(): Color3;
-        static Gray(): Color3;
-    }
-    class Color4 {
-        r: number;
-        g: number;
-        b: number;
-        a: number;
-        constructor(r: number, g: number, b: number, a: number);
-        addInPlace(right: any): Color4;
-        asArray(): number[];
-        toArray(array: number[], index?: number): Color4;
-        add(right: Color4): Color4;
-        subtract(right: Color4): Color4;
-        subtractToRef(right: Color4, result: Color4): Color4;
-        scale(scale: number): Color4;
-        scaleToRef(scale: number, result: Color4): Color4;
-        /**
-          * Multipy an RGBA Color4 value by another and return a new Color4 object
-          * @param color The Color4 (RGBA) value to multiply by
-          * @returns A new Color4.
-          */
-        multiply(color: Color4): Color4;
-        /**
-         * Multipy an RGBA Color4 value by another and push the result in a reference value
-         * @param color The Color4 (RGBA) value to multiply by
-         * @param result The Color4 (RGBA) to fill the result in
-         * @returns the result Color4.
-         */
-        multiplyToRef(color: Color4, result: Color4): Color4;
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        clone(): Color4;
-        copyFrom(source: Color4): Color4;
-        toHexString(): string;
-        static FromHexString(hex: string): Color4;
-        static Lerp(left: Color4, right: Color4, amount: number): Color4;
-        static LerpToRef(left: Color4, right: Color4, amount: number, result: Color4): void;
-        static FromArray(array: number[], offset?: number): Color4;
-        static FromInts(r: number, g: number, b: number, a: number): Color4;
-        static CheckColors4(colors: number[], count: number): number[];
-    }
-    class Vector2 {
-        x: number;
-        y: number;
-        constructor(x: number, y: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        toArray(array: number[] | Float32Array, index?: number): Vector2;
-        asArray(): number[];
-        copyFrom(source: Vector2): Vector2;
-        copyFromFloats(x: number, y: number): Vector2;
-        add(otherVector: Vector2): Vector2;
-        addToRef(otherVector: Vector2, result: Vector2): Vector2;
-        addVector3(otherVector: Vector3): Vector2;
-        subtract(otherVector: Vector2): Vector2;
-        subtractToRef(otherVector: Vector2, result: Vector2): Vector2;
-        subtractInPlace(otherVector: Vector2): Vector2;
-        multiplyInPlace(otherVector: Vector2): Vector2;
-        multiply(otherVector: Vector2): Vector2;
-        multiplyToRef(otherVector: Vector2, result: Vector2): Vector2;
-        multiplyByFloats(x: number, y: number): Vector2;
-        divide(otherVector: Vector2): Vector2;
-        divideToRef(otherVector: Vector2, result: Vector2): Vector2;
-        negate(): Vector2;
-        scaleInPlace(scale: number): Vector2;
-        scale(scale: number): Vector2;
-        equals(otherVector: Vector2): boolean;
-        equalsWithEpsilon(otherVector: Vector2, epsilon?: number): boolean;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector2;
-        clone(): Vector2;
-        static Zero(): Vector2;
-        static FromArray(array: number[] | Float32Array, offset?: number): Vector2;
-        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector2): void;
-        static CatmullRom(value1: Vector2, value2: Vector2, value3: Vector2, value4: Vector2, amount: number): Vector2;
-        static Clamp(value: Vector2, min: Vector2, max: Vector2): Vector2;
-        static Hermite(value1: Vector2, tangent1: Vector2, value2: Vector2, tangent2: Vector2, amount: number): Vector2;
-        static Lerp(start: Vector2, end: Vector2, amount: number): Vector2;
-        static Dot(left: Vector2, right: Vector2): number;
-        static Normalize(vector: Vector2): Vector2;
-        static Minimize(left: Vector2, right: Vector2): Vector2;
-        static Maximize(left: Vector2, right: Vector2): Vector2;
-        static Transform(vector: Vector2, transformation: Matrix): Vector2;
-        static TransformToRef(vector: Vector2, transformation: Matrix, result: Vector2): void;
-        static PointInTriangle(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): boolean;
-        static Distance(value1: Vector2, value2: Vector2): number;
-        static DistanceSquared(value1: Vector2, value2: Vector2): number;
-        static DistanceOfPointFromSegment(p: Vector2, segA: Vector2, segB: Vector2): number;
-    }
-    class Vector3 {
-        x: number;
-        y: number;
-        z: number;
-        constructor(x: number, y: number, z: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        toArray(array: number[] | Float32Array, index?: number): Vector3;
-        toQuaternion(): Quaternion;
-        addInPlace(otherVector: Vector3): Vector3;
-        add(otherVector: Vector3): Vector3;
-        addToRef(otherVector: Vector3, result: Vector3): Vector3;
-        subtractInPlace(otherVector: Vector3): Vector3;
-        subtract(otherVector: Vector3): Vector3;
-        subtractToRef(otherVector: Vector3, result: Vector3): Vector3;
-        subtractFromFloats(x: number, y: number, z: number): Vector3;
-        subtractFromFloatsToRef(x: number, y: number, z: number, result: Vector3): Vector3;
-        negate(): Vector3;
-        scaleInPlace(scale: number): Vector3;
-        scale(scale: number): Vector3;
-        scaleToRef(scale: number, result: Vector3): void;
-        equals(otherVector: Vector3): boolean;
-        equalsWithEpsilon(otherVector: Vector3, epsilon?: number): boolean;
-        equalsToFloats(x: number, y: number, z: number): boolean;
-        multiplyInPlace(otherVector: Vector3): Vector3;
-        multiply(otherVector: Vector3): Vector3;
-        multiplyToRef(otherVector: Vector3, result: Vector3): Vector3;
-        multiplyByFloats(x: number, y: number, z: number): Vector3;
-        divide(otherVector: Vector3): Vector3;
-        divideToRef(otherVector: Vector3, result: Vector3): Vector3;
-        MinimizeInPlace(other: Vector3): Vector3;
-        MaximizeInPlace(other: Vector3): Vector3;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector3;
-        clone(): Vector3;
-        copyFrom(source: Vector3): Vector3;
-        copyFromFloats(x: number, y: number, z: number): Vector3;
-        static GetClipFactor(vector0: Vector3, vector1: Vector3, axis: Vector3, size: any): number;
-        static FromArray(array: number[] | Float32Array, offset?: number): Vector3;
-        static FromFloatArray(array: Float32Array, offset?: number): Vector3;
-        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector3): void;
-        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector3): void;
-        static FromFloatsToRef(x: number, y: number, z: number, result: Vector3): void;
-        static Zero(): Vector3;
-        static Up(): Vector3;
-        static TransformCoordinates(vector: Vector3, transformation: Matrix): Vector3;
-        static TransformCoordinatesToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformCoordinatesFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-        static TransformNormal(vector: Vector3, transformation: Matrix): Vector3;
-        static TransformNormalToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformNormalFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-        static CatmullRom(value1: Vector3, value2: Vector3, value3: Vector3, value4: Vector3, amount: number): Vector3;
-        static Clamp(value: Vector3, min: Vector3, max: Vector3): Vector3;
-        static Hermite(value1: Vector3, tangent1: Vector3, value2: Vector3, tangent2: Vector3, amount: number): Vector3;
-        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
-        static Dot(left: Vector3, right: Vector3): number;
-        static Cross(left: Vector3, right: Vector3): Vector3;
-        static CrossToRef(left: Vector3, right: Vector3, result: Vector3): void;
-        static Normalize(vector: Vector3): Vector3;
-        static NormalizeToRef(vector: Vector3, result: Vector3): void;
-        private static _viewportMatrixCache;
-        private static _matrixCache;
-        static Project(vector: Vector3, world: Matrix, transform: Matrix, viewport: Viewport): Vector3;
-        static UnprojectFromTransform(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, transform: Matrix): Vector3;
-        static Unproject(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Vector3;
-        static Minimize(left: Vector3, right: Vector3): Vector3;
-        static Maximize(left: Vector3, right: Vector3): Vector3;
-        static Distance(value1: Vector3, value2: Vector3): number;
-        static DistanceSquared(value1: Vector3, value2: Vector3): number;
-        static Center(value1: Vector3, value2: Vector3): Vector3;
-        /**
-         * Given three orthogonal normalized left-handed oriented Vector3 axis in space (target system),
-         * RotationFromAxis() returns the rotation Euler angles (ex : rotation.x, rotation.y, rotation.z) to apply
-         * to something in order to rotate it from its local system to the given target system.
-         */
-        static RotationFromAxis(axis1: Vector3, axis2: Vector3, axis3: Vector3): Vector3;
-        /**
-         * The same than RotationFromAxis but updates the passed ref Vector3 parameter.
-         */
-        static RotationFromAxisToRef(axis1: Vector3, axis2: Vector3, axis3: Vector3, ref: Vector3): void;
-    }
-    class Vector4 {
-        x: number;
-        y: number;
-        z: number;
-        w: number;
-        constructor(x: number, y: number, z: number, w: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        toArray(array: number[], index?: number): Vector4;
-        addInPlace(otherVector: Vector4): Vector4;
-        add(otherVector: Vector4): Vector4;
-        addToRef(otherVector: Vector4, result: Vector4): Vector4;
-        subtractInPlace(otherVector: Vector4): Vector4;
-        subtract(otherVector: Vector4): Vector4;
-        subtractToRef(otherVector: Vector4, result: Vector4): Vector4;
-        subtractFromFloats(x: number, y: number, z: number, w: number): Vector4;
-        subtractFromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): Vector4;
-        negate(): Vector4;
-        scaleInPlace(scale: number): Vector4;
-        scale(scale: number): Vector4;
-        scaleToRef(scale: number, result: Vector4): void;
-        equals(otherVector: Vector4): boolean;
-        equalsWithEpsilon(otherVector: Vector4, epsilon?: number): boolean;
-        equalsToFloats(x: number, y: number, z: number, w: number): boolean;
-        multiplyInPlace(otherVector: Vector4): Vector4;
-        multiply(otherVector: Vector4): Vector4;
-        multiplyToRef(otherVector: Vector4, result: Vector4): Vector4;
-        multiplyByFloats(x: number, y: number, z: number, w: number): Vector4;
-        divide(otherVector: Vector4): Vector4;
-        divideToRef(otherVector: Vector4, result: Vector4): Vector4;
-        MinimizeInPlace(other: Vector4): Vector4;
-        MaximizeInPlace(other: Vector4): Vector4;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector4;
-        toVector3(): Vector3;
-        clone(): Vector4;
-        copyFrom(source: Vector4): Vector4;
-        copyFromFloats(x: number, y: number, z: number, w: number): Vector4;
-        static FromArray(array: number[], offset?: number): Vector4;
-        static FromArrayToRef(array: number[], offset: number, result: Vector4): void;
-        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector4): void;
-        static FromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): void;
-        static Zero(): Vector4;
-        static Normalize(vector: Vector4): Vector4;
-        static NormalizeToRef(vector: Vector4, result: Vector4): void;
-        static Minimize(left: Vector4, right: Vector4): Vector4;
-        static Maximize(left: Vector4, right: Vector4): Vector4;
-        static Distance(value1: Vector4, value2: Vector4): number;
-        static DistanceSquared(value1: Vector4, value2: Vector4): number;
-        static Center(value1: Vector4, value2: Vector4): Vector4;
-    }
-    interface ISize {
-        width: number;
-        height: number;
-    }
-    class Size implements ISize {
-        width: number;
-        height: number;
-        constructor(width: number, height: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        copyFrom(src: Size): void;
-        copyFromFloats(width: number, height: number): void;
-        multiplyByFloats(w: number, h: number): Size;
-        clone(): Size;
-        equals(other: Size): boolean;
-        surface: number;
-        static Zero(): Size;
-        add(otherSize: Size): Size;
-        substract(otherSize: Size): Size;
-        static Lerp(start: Size, end: Size, amount: number): Size;
-    }
-    class Quaternion {
-        x: number;
-        y: number;
-        z: number;
-        w: number;
-        constructor(x?: number, y?: number, z?: number, w?: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        equals(otherQuaternion: Quaternion): boolean;
-        clone(): Quaternion;
-        copyFrom(other: Quaternion): Quaternion;
-        copyFromFloats(x: number, y: number, z: number, w: number): Quaternion;
-        add(other: Quaternion): Quaternion;
-        subtract(other: Quaternion): Quaternion;
-        scale(value: number): Quaternion;
-        multiply(q1: Quaternion): Quaternion;
-        multiplyToRef(q1: Quaternion, result: Quaternion): Quaternion;
-        multiplyInPlace(q1: Quaternion): Quaternion;
-        conjugateToRef(ref: Quaternion): Quaternion;
-        conjugateInPlace(): Quaternion;
-        conjugate(): Quaternion;
-        length(): number;
-        normalize(): Quaternion;
-        toEulerAngles(order?: string): Vector3;
-        toEulerAnglesToRef(result: Vector3, order?: string): Quaternion;
-        toRotationMatrix(result: Matrix): Quaternion;
-        fromRotationMatrix(matrix: Matrix): Quaternion;
-        static FromRotationMatrix(matrix: Matrix): Quaternion;
-        static FromRotationMatrixToRef(matrix: Matrix, result: Quaternion): void;
-        static Inverse(q: Quaternion): Quaternion;
-        static Identity(): Quaternion;
-        static RotationAxis(axis: Vector3, angle: number): Quaternion;
-<<<<<<< HEAD
-=======
-        static RotationAxisToRef(axis: Vector3, angle: number, result: Quaternion): Quaternion;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        static FromArray(array: number[], offset?: number): Quaternion;
-        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Quaternion;
-        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Quaternion): void;
-        static RotationAlphaBetaGamma(alpha: number, beta: number, gamma: number): Quaternion;
-        static RotationAlphaBetaGammaToRef(alpha: number, beta: number, gamma: number, result: Quaternion): void;
-        static Slerp(left: Quaternion, right: Quaternion, amount: number): Quaternion;
-<<<<<<< HEAD
-    }
-    class Matrix {
-        private static _tempQuaternion;
-        private static _xAxis;
-        private static _yAxis;
-        private static _zAxis;
-        m: Float32Array;
-        isIdentity(): boolean;
-        determinant(): number;
-        toArray(): Float32Array;
-        asArray(): Float32Array;
-        invert(): Matrix;
-        reset(): Matrix;
-        add(other: Matrix): Matrix;
-        addToRef(other: Matrix, result: Matrix): Matrix;
-        addToSelf(other: Matrix): Matrix;
-        invertToRef(other: Matrix): Matrix;
-        setTranslation(vector3: Vector3): Matrix;
-        getTranslation(): Vector3;
-        multiply(other: Matrix): Matrix;
-        copyFrom(other: Matrix): Matrix;
-        copyToArray(array: Float32Array, offset?: number): Matrix;
-        multiplyToRef(other: Matrix, result: Matrix): Matrix;
-        multiplyToArray(other: Matrix, result: Float32Array, offset: number): Matrix;
-        equals(value: Matrix): boolean;
-        clone(): Matrix;
-        getClassName(): string;
-        getHashCode(): number;
-        decompose(scale: Vector3, rotation: Quaternion, translation: Vector3): boolean;
-        static FromArray(array: number[], offset?: number): Matrix;
-        static FromArrayToRef(array: number[], offset: number, result: Matrix): void;
-        static FromFloat32ArrayToRefScaled(array: Float32Array, offset: number, scale: number, result: Matrix): void;
-        static FromValuesToRef(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number, result: Matrix): void;
-        getRow(index: number): Vector4;
-        setRow(index: number, row: Vector4): Matrix;
-        static FromValues(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number): Matrix;
-        static Compose(scale: Vector3, rotation: Quaternion, translation: Vector3): Matrix;
-        static Identity(): Matrix;
-        static IdentityToRef(result: Matrix): void;
-        static Zero(): Matrix;
-        static RotationX(angle: number): Matrix;
-        static Invert(source: Matrix): Matrix;
-        static RotationXToRef(angle: number, result: Matrix): void;
-        static RotationY(angle: number): Matrix;
-        static RotationYToRef(angle: number, result: Matrix): void;
-        static RotationZ(angle: number): Matrix;
-        static RotationZToRef(angle: number, result: Matrix): void;
-        static RotationAxis(axis: Vector3, angle: number): Matrix;
-        static RotationAxisToRef(axis: Vector3, angle: number, result: Matrix): void;
-        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Matrix;
-        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Matrix): void;
-        static Scaling(x: number, y: number, z: number): Matrix;
-        static ScalingToRef(x: number, y: number, z: number, result: Matrix): void;
-        static Translation(x: number, y: number, z: number): Matrix;
-        static TranslationToRef(x: number, y: number, z: number, result: Matrix): void;
-        static Lerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
-        static DecomposeLerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
-        static LookAtLH(eye: Vector3, target: Vector3, up: Vector3): Matrix;
-        static LookAtLHToRef(eye: Vector3, target: Vector3, up: Vector3, result: Matrix): void;
-        static OrthoLH(width: number, height: number, znear: number, zfar: number): Matrix;
-        static OrthoLHToRef(width: number, height: number, znear: number, zfar: number, result: Matrix): void;
-        static OrthoOffCenterLH(left: number, right: number, bottom: number, top: number, znear: number, zfar: number): Matrix;
-        static OrthoOffCenterLHToRef(left: number, right: any, bottom: number, top: number, znear: number, zfar: number, result: Matrix): void;
-        static PerspectiveLH(width: number, height: number, znear: number, zfar: number): Matrix;
-        static PerspectiveFovLH(fov: number, aspect: number, znear: number, zfar: number): Matrix;
-        static PerspectiveFovLHToRef(fov: number, aspect: number, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
-        static GetFinalMatrix(viewport: Viewport, world: Matrix, view: Matrix, projection: Matrix, zmin: number, zmax: number): Matrix;
-        static GetAsMatrix2x2(matrix: Matrix): Float32Array;
-        static GetAsMatrix3x3(matrix: Matrix): Float32Array;
-        static Transpose(matrix: Matrix): Matrix;
-        static Reflection(plane: Plane): Matrix;
-        static ReflectionToRef(plane: Plane, result: Matrix): void;
-    }
-    class Plane {
-        normal: Vector3;
-        d: number;
-        constructor(a: number, b: number, c: number, d: number);
-        asArray(): number[];
-        clone(): Plane;
-        getClassName(): string;
-        getHashCode(): number;
-        normalize(): Plane;
-        transform(transformation: Matrix): Plane;
-        dotCoordinate(point: any): number;
-        copyFromPoints(point1: Vector3, point2: Vector3, point3: Vector3): Plane;
-        isFrontFacingTo(direction: Vector3, epsilon: number): boolean;
-        signedDistanceTo(point: Vector3): number;
-        static FromArray(array: number[]): Plane;
-        static FromPoints(point1: any, point2: any, point3: any): Plane;
-        static FromPositionAndNormal(origin: Vector3, normal: Vector3): Plane;
-        static SignedDistanceToPlaneFromPositionAndNormal(origin: Vector3, normal: Vector3, point: Vector3): number;
-    }
-    class Viewport {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        constructor(x: number, y: number, width: number, height: number);
-        toGlobal(renderWidth: number, renderHeight: number): Viewport;
-    }
-    class Frustum {
-        static GetPlanes(transform: Matrix): Plane[];
-        static GetPlanesToRef(transform: Matrix, frustumPlanes: Plane[]): void;
-    }
-    enum Space {
-        LOCAL = 0,
-        WORLD = 1,
-    }
-    class Axis {
-        static X: Vector3;
-        static Y: Vector3;
-        static Z: Vector3;
-    }
-    class BezierCurve {
-        static interpolate(t: number, x1: number, y1: number, x2: number, y2: number): number;
-    }
-    enum Orientation {
-        CW = 0,
-        CCW = 1,
-    }
-    class Angle {
-        private _radians;
-        constructor(radians: number);
-        degrees: () => number;
-        radians: () => number;
-        static BetweenTwoPoints(a: Vector2, b: Vector2): Angle;
-        static FromRadians(radians: number): Angle;
-        static FromDegrees(degrees: number): Angle;
-    }
-    class Arc2 {
-        startPoint: Vector2;
-        midPoint: Vector2;
-        endPoint: Vector2;
-        centerPoint: Vector2;
-        radius: number;
-        angle: Angle;
-        startAngle: Angle;
-        orientation: Orientation;
-        constructor(startPoint: Vector2, midPoint: Vector2, endPoint: Vector2);
-    }
-    class Path2 {
-        private _points;
-        private _length;
-        closed: boolean;
-        constructor(x: number, y: number);
-        addLineTo(x: number, y: number): Path2;
-        addArcTo(midX: number, midY: number, endX: number, endY: number, numberOfSegments?: number): Path2;
-        close(): Path2;
-        length(): number;
-        getPoints(): Vector2[];
-        getPointAtLengthPosition(normalizedLengthPosition: number): Vector2;
-        static StartingAt(x: number, y: number): Path2;
-    }
-    class Path3D {
-        path: Vector3[];
-        private _curve;
-        private _distances;
-        private _tangents;
-        private _normals;
-        private _binormals;
-        private _raw;
-        /**
-        * new Path3D(path, normal, raw)
-        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
-        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
-        * path : an array of Vector3, the curve axis of the Path3D
-        * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
-        * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
-        */
-        constructor(path: Vector3[], firstNormal?: Vector3, raw?: boolean);
-        /**
-         * Returns the Path3D array of successive Vector3 designing its curve.
-         */
-        getCurve(): Vector3[];
-        /**
-         * Returns an array populated with tangent vectors on each Path3D curve point.
-         */
-        getTangents(): Vector3[];
-        /**
-         * Returns an array populated with normal vectors on each Path3D curve point.
-         */
-        getNormals(): Vector3[];
-        /**
-         * Returns an array populated with binormal vectors on each Path3D curve point.
-         */
-        getBinormals(): Vector3[];
-        /**
-         * Returns an array populated with distances (float) of the i-th point from the first curve point.
-         */
-        getDistances(): number[];
-        /**
-         * Forces the Path3D tangent, normal, binormal and distance recomputation.
-         * Returns the same object updated.
-         */
-        update(path: Vector3[], firstNormal?: Vector3): Path3D;
-        private _compute(firstNormal);
-        private _getFirstNonNullVector(index);
-        private _getLastNonNullVector(index);
-        private _normalVector(v0, vt, va);
-    }
-    class Curve3 {
-        private _points;
-        private _length;
-        /**
-         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Quadratic Bezier
-         * @param v1 (Vector3) the control point
-         * @param v2 (Vector3) the end point of the Quadratic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateQuadraticBezier(v0: Vector3, v1: Vector3, v2: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Cubic Bezier
-         * @param v1 (Vector3) the first control point
-         * @param v2 (Vector3) the second control point
-         * @param v3 (Vector3) the end point of the Cubic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateCubicBezier(v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
-         * @param p1 (Vector3) the origin point of the Hermite Spline
-         * @param t1 (Vector3) the tangent vector at the origin point
-         * @param p2 (Vector3) the end point of the Hermite Spline
-         * @param t2 (Vector3) the tangent vector at the end point
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateHermiteSpline(p1: Vector3, t1: Vector3, p2: Vector3, t2: Vector3, nbPoints: number): Curve3;
-        /**
-         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
-         * A Curve3 is designed from a series of successive Vector3.
-         * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
-         */
-        constructor(points: Vector3[]);
-        /**
-         * Returns the Curve3 stored array of successive Vector3
-         */
-        getPoints(): Vector3[];
-        /**
-         * Returns the computed length (float) of the curve.
-         */
-        length(): number;
-        /**
-         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
-         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
-         * curveA and curveB keep unchanged.
-         */
-        continue(curve: Curve3): Curve3;
-        private _computeLength(path);
-=======
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-    class SphericalHarmonics {
-        L00: Vector3;
-        L1_1: Vector3;
-        L10: Vector3;
-        L11: Vector3;
-        L2_2: Vector3;
-        L2_1: Vector3;
-        L20: Vector3;
-        L21: Vector3;
-        L22: Vector3;
-        addLight(direction: Vector3, color: Color3, deltaSolidAngle: number): void;
-        scale(scale: number): void;
-    }
-<<<<<<< HEAD
-=======
-    class Plane {
-        normal: Vector3;
-        d: number;
-        constructor(a: number, b: number, c: number, d: number);
-        asArray(): number[];
-        clone(): Plane;
-        getClassName(): string;
-        getHashCode(): number;
-        normalize(): Plane;
-        transform(transformation: Matrix): Plane;
-        dotCoordinate(point: any): number;
-        copyFromPoints(point1: Vector3, point2: Vector3, point3: Vector3): Plane;
-        isFrontFacingTo(direction: Vector3, epsilon: number): boolean;
-        signedDistanceTo(point: Vector3): number;
-        static FromArray(array: number[]): Plane;
-        static FromPoints(point1: any, point2: any, point3: any): Plane;
-        static FromPositionAndNormal(origin: Vector3, normal: Vector3): Plane;
-        static SignedDistanceToPlaneFromPositionAndNormal(origin: Vector3, normal: Vector3, point: Vector3): number;
-    }
-    class Viewport {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        constructor(x: number, y: number, width: number, height: number);
-        toGlobal(renderWidth: number, renderHeight: number): Viewport;
-    }
-    class Frustum {
-        static GetPlanes(transform: Matrix): Plane[];
-        static GetPlanesToRef(transform: Matrix, frustumPlanes: Plane[]): void;
-    }
-    enum Space {
-        LOCAL = 0,
-        WORLD = 1,
-    }
-    class Axis {
-        static X: Vector3;
-        static Y: Vector3;
-        static Z: Vector3;
-    }
-    class BezierCurve {
-        static interpolate(t: number, x1: number, y1: number, x2: number, y2: number): number;
-    }
-    enum Orientation {
-        CW = 0,
-        CCW = 1,
-    }
-    class Angle {
-        private _radians;
-        constructor(radians: number);
-        degrees: () => number;
-        radians: () => number;
-        static BetweenTwoPoints(a: Vector2, b: Vector2): Angle;
-        static FromRadians(radians: number): Angle;
-        static FromDegrees(degrees: number): Angle;
-    }
-    class Arc2 {
-        startPoint: Vector2;
-        midPoint: Vector2;
-        endPoint: Vector2;
-        centerPoint: Vector2;
-        radius: number;
-        angle: Angle;
-        startAngle: Angle;
-        orientation: Orientation;
-        constructor(startPoint: Vector2, midPoint: Vector2, endPoint: Vector2);
-    }
-    class Path2 {
-        private _points;
-        private _length;
-        closed: boolean;
-        constructor(x: number, y: number);
-        addLineTo(x: number, y: number): Path2;
-        addArcTo(midX: number, midY: number, endX: number, endY: number, numberOfSegments?: number): Path2;
-        close(): Path2;
-        length(): number;
-        getPoints(): Vector2[];
-        getPointAtLengthPosition(normalizedLengthPosition: number): Vector2;
-        static StartingAt(x: number, y: number): Path2;
-    }
-    class Path3D {
-        path: Vector3[];
-        private _curve;
-        private _distances;
-        private _tangents;
-        private _normals;
-        private _binormals;
-        private _raw;
-        /**
-        * new Path3D(path, normal, raw)
-        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
-        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
-        * path : an array of Vector3, the curve axis of the Path3D
-        * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
-        * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
-        */
-        constructor(path: Vector3[], firstNormal?: Vector3, raw?: boolean);
-        /**
-         * Returns the Path3D array of successive Vector3 designing its curve.
-         */
-        getCurve(): Vector3[];
-        /**
-         * Returns an array populated with tangent vectors on each Path3D curve point.
-         */
-        getTangents(): Vector3[];
-        /**
-         * Returns an array populated with normal vectors on each Path3D curve point.
-         */
-        getNormals(): Vector3[];
-        /**
-         * Returns an array populated with binormal vectors on each Path3D curve point.
-         */
-        getBinormals(): Vector3[];
-        /**
-         * Returns an array populated with distances (float) of the i-th point from the first curve point.
-         */
-        getDistances(): number[];
-        /**
-         * Forces the Path3D tangent, normal, binormal and distance recomputation.
-         * Returns the same object updated.
-         */
-        update(path: Vector3[], firstNormal?: Vector3): Path3D;
-        private _compute(firstNormal);
-        private _getFirstNonNullVector(index);
-        private _getLastNonNullVector(index);
-        private _normalVector(v0, vt, va);
-    }
-    class Curve3 {
-        private _points;
-        private _length;
-        /**
-         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Quadratic Bezier
-         * @param v1 (Vector3) the control point
-         * @param v2 (Vector3) the end point of the Quadratic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateQuadraticBezier(v0: Vector3, v1: Vector3, v2: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Cubic Bezier
-         * @param v1 (Vector3) the first control point
-         * @param v2 (Vector3) the second control point
-         * @param v3 (Vector3) the end point of the Cubic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateCubicBezier(v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
-         * @param p1 (Vector3) the origin point of the Hermite Spline
-         * @param t1 (Vector3) the tangent vector at the origin point
-         * @param p2 (Vector3) the end point of the Hermite Spline
-         * @param t2 (Vector3) the tangent vector at the end point
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateHermiteSpline(p1: Vector3, t1: Vector3, p2: Vector3, t2: Vector3, nbPoints: number): Curve3;
-        /**
-         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
-         * A Curve3 is designed from a series of successive Vector3.
-         * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
-         */
-        constructor(points: Vector3[]);
-        /**
-         * Returns the Curve3 stored array of successive Vector3
-         */
-        getPoints(): Vector3[];
-        /**
-         * Returns the computed length (float) of the curve.
-         */
-        length(): number;
-        /**
-         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
-         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
-         * curveA and curveB keep unchanged.
-         */
-        continue(curve: Curve3): Curve3;
-        private _computeLength(path);
-    }
-    class SphericalHarmonics {
-        L00: Vector3;
-        L1_1: Vector3;
-        L10: Vector3;
-        L11: Vector3;
-        L2_2: Vector3;
-        L2_1: Vector3;
-        L20: Vector3;
-        L21: Vector3;
-        L22: Vector3;
-        addLight(direction: Vector3, color: Color3, deltaSolidAngle: number): void;
-        scale(scale: number): void;
-    }
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    class SphericalPolynomial {
-        x: Vector3;
-        y: Vector3;
-        z: Vector3;
-        xx: Vector3;
-        yy: Vector3;
-        zz: Vector3;
-        xy: Vector3;
-        yz: Vector3;
-        zx: Vector3;
-        addAmbient(color: Color3): void;
-        static getSphericalPolynomialFromHarmonics(harmonics: SphericalHarmonics): SphericalPolynomial;
-    }
-    class PositionNormalVertex {
-        position: Vector3;
-        normal: Vector3;
-        constructor(position?: Vector3, normal?: Vector3);
-        clone(): PositionNormalVertex;
-    }
-    class PositionNormalTextureVertex {
-        position: Vector3;
-        normal: Vector3;
-        uv: Vector2;
-        constructor(position?: Vector3, normal?: Vector3, uv?: Vector2);
-        clone(): PositionNormalTextureVertex;
-    }
-    class Tmp {
-        static Color3: Color3[];
-        static Vector2: Vector2[];
-        static Vector3: Vector3[];
-        static Vector4: Vector4[];
-        static Quaternion: Quaternion[];
-        static Matrix: Matrix[];
     }
 }
 
@@ -10311,20 +6271,20 @@ declare module BABYLON {
         isSupported: boolean;
         _bindTexture(channel: string, texture: WebGLTexture): void;
         setTexture(channel: string, texture: BaseTexture): void;
-<<<<<<< HEAD
-        setTextureFromPostProcess(channel: string, postProcess: PostProcess): void;
-        _cacheMatrix(uniformName: any, matrix: any): void;
-        _cacheFloat2(uniformName: string, x: number, y: number): void;
-        _cacheFloat3(uniformName: string, x: number, y: number, z: number): void;
-        _cacheFloat4(uniformName: string, x: number, y: number, z: number, w: number): void;
-=======
         setTextureArray(channel: string, textures: BaseTexture[]): void;
         setTextureFromPostProcess(channel: string, postProcess: PostProcess): void;
         _cacheMatrix(uniformName: string, matrix: Matrix): boolean;
         _cacheFloat2(uniformName: string, x: number, y: number): boolean;
         _cacheFloat3(uniformName: string, x: number, y: number, z: number): boolean;
         _cacheFloat4(uniformName: string, x: number, y: number, z: number, w: number): boolean;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
+        setIntArray(uniformName: string, array: Int32Array): Effect;
+        setIntArray2(uniformName: string, array: Int32Array): Effect;
+        setIntArray3(uniformName: string, array: Int32Array): Effect;
+        setIntArray4(uniformName: string, array: Int32Array): Effect;
+        setFloatArray(uniformName: string, array: Float32Array): Effect;
+        setFloatArray2(uniformName: string, array: Float32Array): Effect;
+        setFloatArray3(uniformName: string, array: Float32Array): Effect;
+        setFloatArray4(uniformName: string, array: Float32Array): Effect;
         setArray(uniformName: string, array: number[]): Effect;
         setArray2(uniformName: string, array: number[]): Effect;
         setArray3(uniformName: string, array: number[]): Effect;
@@ -10332,11 +6292,7 @@ declare module BABYLON {
         setMatrices(uniformName: string, matrices: Float32Array): Effect;
         setMatrix(uniformName: string, matrix: Matrix): Effect;
         setMatrix3x3(uniformName: string, matrix: Float32Array): Effect;
-<<<<<<< HEAD
-        setMatrix2x2(uniformname: string, matrix: Float32Array): Effect;
-=======
         setMatrix2x2(uniformName: string, matrix: Float32Array): Effect;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
         setFloat(uniformName: string, value: number): Effect;
         setBool(uniformName: string, bool: boolean): Effect;
         setVector2(uniformName: string, vector2: Vector2): Effect;
@@ -10489,7 +6445,6 @@ declare module BABYLON {
      * http://doc.babylonjs.com/extensions/Physically_Based_Rendering
      */
     class PBRMaterial extends BABYLON.Material {
-<<<<<<< HEAD
         /**
          * Intensity of the direct lights e.g. the four lights available in your scene.
          * This impacts both the direct diffuse and specular highlights.
@@ -10600,123 +6555,10 @@ declare module BABYLON {
          */
         overloadedReflectionIntensity: number;
         /**
-=======
-        /**
-         * Intensity of the direct lights e.g. the four lights available in your scene.
-         * This impacts both the direct diffuse and specular highlights.
-         */
-        directIntensity: number;
-        /**
-         * Intensity of the emissive part of the material.
-         * This helps controlling the emissive effect without modifying the emissive color.
-         */
-        emissiveIntensity: number;
-        /**
-         * Intensity of the environment e.g. how much the environment will light the object
-         * either through harmonics for rough material or through the refelction for shiny ones.
-         */
-        environmentIntensity: number;
-        /**
-         * This is a special control allowing the reduction of the specular highlights coming from the
-         * four lights of the scene. Those highlights may not be needed in full environment lighting.
-         */
-        specularIntensity: number;
-        private _lightingInfos;
-        /**
-         * Debug Control allowing disabling the bump map on this material.
-         */
-        disableBumpMap: boolean;
-        /**
-         * Debug Control helping enforcing or dropping the darkness of shadows.
-         * 1.0 means the shadows have their normal darkness, 0.0 means the shadows are not visible.
-         */
-        overloadedShadowIntensity: number;
-        /**
-         * Debug Control helping dropping the shading effect coming from the diffuse lighting.
-         * 1.0 means the shade have their normal impact, 0.0 means no shading at all.
-         */
-        overloadedShadeIntensity: number;
-        private _overloadedShadowInfos;
-        /**
-         * The camera exposure used on this material.
-         * This property is here and not in the camera to allow controlling exposure without full screen post process.
-         * This corresponds to a photographic exposure.
-         */
-        cameraExposure: number;
-        /**
-         * The camera contrast used on this material.
-         * This property is here and not in the camera to allow controlling contrast without full screen post process.
-         */
-        cameraContrast: number;
-        /**
-         * Color Grading 2D Lookup Texture.
-         * This allows special effects like sepia, black and white to sixties rendering style.
-         */
-        cameraColorGradingTexture: BaseTexture;
-        private _cameraColorGradingScaleOffset;
-        private _cameraColorGradingInfos;
-        /**
-         * The color grading curves provide additional color adjustmnent that is applied after any color grading transform (3D LUT).
-         * They allow basic adjustment of saturation and small exposure adjustments, along with color filter tinting to provide white balance adjustment or more stylistic effects.
-         * These are similar to controls found in many professional imaging or colorist software. The global controls are applied to the entire image. For advanced tuning, extra controls are provided to adjust the shadow, midtone and highlight areas of the image;
-         * corresponding to low luminance, medium luminance, and high luminance areas respectively.
-         */
-        cameraColorCurves: ColorCurves;
-        private _cameraInfos;
-        private _microsurfaceTextureLods;
-        /**
-         * Debug Control allowing to overload the ambient color.
-         * This as to be use with the overloadedAmbientIntensity parameter.
-         */
-        overloadedAmbient: Color3;
-        /**
-         * Debug Control indicating how much the overloaded ambient color is used against the default one.
-         */
-        overloadedAmbientIntensity: number;
-        /**
-         * Debug Control allowing to overload the albedo color.
-         * This as to be use with the overloadedAlbedoIntensity parameter.
-         */
-        overloadedAlbedo: Color3;
-        /**
-         * Debug Control indicating how much the overloaded albedo color is used against the default one.
-         */
-        overloadedAlbedoIntensity: number;
-        /**
-         * Debug Control allowing to overload the reflectivity color.
-         * This as to be use with the overloadedReflectivityIntensity parameter.
-         */
-        overloadedReflectivity: Color3;
-        /**
-         * Debug Control indicating how much the overloaded reflectivity color is used against the default one.
-         */
-        overloadedReflectivityIntensity: number;
-        /**
-         * Debug Control allowing to overload the emissive color.
-         * This as to be use with the overloadedEmissiveIntensity parameter.
-         */
-        overloadedEmissive: Color3;
-        /**
-         * Debug Control indicating how much the overloaded emissive color is used against the default one.
-         */
-        overloadedEmissiveIntensity: number;
-        private _overloadedIntensity;
-        /**
-         * Debug Control allowing to overload the reflection color.
-         * This as to be use with the overloadedReflectionIntensity parameter.
-         */
-        overloadedReflection: Color3;
-        /**
-         * Debug Control indicating how much the overloaded reflection color is used against the default one.
-         */
-        overloadedReflectionIntensity: number;
-        /**
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
          * Debug Control allowing to overload the microsurface.
          * This as to be use with the overloadedMicroSurfaceIntensity parameter.
          */
         overloadedMicroSurface: number;
-<<<<<<< HEAD
         /**
          * Debug Control indicating how much the overloaded microsurface is used against the default one.
          */
@@ -10861,328 +6703,6 @@ declare module BABYLON {
         useLogarithmicDepth: boolean;
         needAlphaBlending(): boolean;
         needAlphaTesting(): boolean;
-        private _shouldUseAlphaFromAlbedoTexture();
-        getAlphaTestTexture(): BaseTexture;
-        private _checkCache(scene, mesh?, useInstances?);
-        private convertColorToLinearSpaceToRef(color, ref);
-        private static convertColorToLinearSpaceToRef(color, ref, useScalarInLinear);
-        private static _scaledAlbedo;
-        private static _scaledReflectivity;
-        private static _scaledEmissive;
-        private static _scaledReflection;
-        static BindLights(scene: Scene, mesh: AbstractMesh, effect: Effect, defines: MaterialDefines, useScalarInLinearSpace: boolean, maxSimultaneousLights: number, usePhysicalLightFalloff: boolean): void;
-        isReady(mesh?: AbstractMesh, useInstances?: boolean): boolean;
-        unbind(): void;
-        bindOnlyWorldMatrix(world: Matrix): void;
-        private _myScene;
-        private _myShadowGenerator;
-        bind(world: Matrix, mesh?: Mesh): void;
-        getAnimatables(): IAnimatable[];
-        dispose(forceDisposeEffect?: boolean, forceDisposeTextures?: boolean): void;
-        clone(name: string): PBRMaterial;
-        serialize(): any;
-        static Parse(source: any, scene: Scene, rootUrl: string): PBRMaterial;
-    }
-}
-
-declare module BABYLON {
-    class ShaderMaterial extends Material {
-        private _shaderPath;
-        private _options;
-        private _textures;
-        private _floats;
-        private _floatsArrays;
-        private _colors3;
-        private _colors4;
-        private _vectors2;
-        private _vectors3;
-        private _vectors4;
-        private _matrices;
-        private _matrices3x3;
-        private _matrices2x2;
-        private _cachedWorldViewMatrix;
-        private _renderId;
-        constructor(name: string, scene: Scene, shaderPath: any, options: any);
-        needAlphaBlending(): boolean;
-        needAlphaTesting(): boolean;
-        private _checkUniform(uniformName);
-        setTexture(name: string, texture: Texture): ShaderMaterial;
-        setFloat(name: string, value: number): ShaderMaterial;
-        setFloats(name: string, value: number[]): ShaderMaterial;
-        setColor3(name: string, value: Color3): ShaderMaterial;
-        setColor4(name: string, value: Color4): ShaderMaterial;
-        setVector2(name: string, value: Vector2): ShaderMaterial;
-        setVector3(name: string, value: Vector3): ShaderMaterial;
-        setVector4(name: string, value: Vector4): ShaderMaterial;
-        setMatrix(name: string, value: Matrix): ShaderMaterial;
-        setMatrix3x3(name: string, value: Float32Array): ShaderMaterial;
-        setMatrix2x2(name: string, value: Float32Array): ShaderMaterial;
-        isReady(mesh?: AbstractMesh, useInstances?: boolean): boolean;
-        bindOnlyWorldMatrix(world: Matrix): void;
-        bind(world: Matrix, mesh?: Mesh): void;
-        clone(name: string): ShaderMaterial;
-        dispose(forceDisposeEffect?: boolean, forceDisposeTextures?: boolean): void;
-        serialize(): any;
-        static Parse(source: any, scene: Scene, rootUrl: string): ShaderMaterial;
-    }
-}
-
-declare module BABYLON {
-    class StandardMaterial extends Material {
-        diffuseTexture: BaseTexture;
-        ambientTexture: BaseTexture;
-        opacityTexture: BaseTexture;
-        reflectionTexture: BaseTexture;
-        emissiveTexture: BaseTexture;
-        specularTexture: BaseTexture;
-        bumpTexture: BaseTexture;
-        lightmapTexture: BaseTexture;
-        refractionTexture: BaseTexture;
-        ambientColor: Color3;
-        diffuseColor: Color3;
-        specularColor: Color3;
-        emissiveColor: Color3;
-        specularPower: number;
-        useAlphaFromDiffuseTexture: boolean;
-        useEmissiveAsIllumination: boolean;
-        linkEmissiveWithDiffuse: boolean;
-        useReflectionFresnelFromSpecular: boolean;
-        useSpecularOverAlpha: boolean;
-        useReflectionOverAlpha: boolean;
-        disableLighting: boolean;
-        useParallax: boolean;
-        useParallaxOcclusion: boolean;
-        parallaxScaleBias: number;
-        roughness: number;
-        indexOfRefraction: number;
-        invertRefractionY: boolean;
-        useLightmapAsShadowmap: boolean;
-        diffuseFresnelParameters: FresnelParameters;
-        opacityFresnelParameters: FresnelParameters;
-        reflectionFresnelParameters: FresnelParameters;
-        refractionFresnelParameters: FresnelParameters;
-        emissiveFresnelParameters: FresnelParameters;
-        useGlossinessFromSpecularMapAlpha: boolean;
-=======
-        /**
-         * Debug Control indicating how much the overloaded microsurface is used against the default one.
-         */
-        overloadedMicroSurfaceIntensity: number;
-        private _overloadedMicroSurface;
-        /**
-         * AKA Diffuse Texture in standard nomenclature.
-         */
-        albedoTexture: BaseTexture;
-        /**
-         * AKA Occlusion Texture in other nomenclature.
-         */
-        ambientTexture: BaseTexture;
-        opacityTexture: BaseTexture;
-        reflectionTexture: BaseTexture;
-        emissiveTexture: BaseTexture;
-        /**
-         * AKA Specular texture in other nomenclature.
-         */
-        reflectivityTexture: BaseTexture;
-        bumpTexture: BaseTexture;
-        lightmapTexture: BaseTexture;
-        refractionTexture: BaseTexture;
-        ambientColor: Color3;
-        /**
-         * AKA Diffuse Color in other nomenclature.
-         */
-        albedoColor: Color3;
-        /**
-         * AKA Specular Color in other nomenclature.
-         */
-        reflectivityColor: Color3;
-        reflectionColor: Color3;
-        emissiveColor: Color3;
-        /**
-
-         * AKA Glossiness in other nomenclature.
-         */
-        microSurface: number;
-        /**
-         * source material index of refraction (IOR)' / 'destination material IOR.
-         */
-        indexOfRefraction: number;
-        /**
-         * Controls if refraction needs to be inverted on Y. This could be usefull for procedural texture.
-         */
-        invertRefractionY: boolean;
-        opacityFresnelParameters: FresnelParameters;
-        emissiveFresnelParameters: FresnelParameters;
-        /**
-         * This parameters will make the material used its opacity to control how much it is refracting aginst not.
-         * Materials half opaque for instance using refraction could benefit from this control.
-         */
-        linkRefractionWithTransparency: boolean;
-        /**
-         * The emissive and albedo are linked to never be more than one (Energy conservation).
-         */
-        linkEmissiveWithAlbedo: boolean;
-        useLightmapAsShadowmap: boolean;
-        /**
-         * In this mode, the emissive informtaion will always be added to the lighting once.
-         * A light for instance can be thought as emissive.
-         */
-        useEmissiveAsIllumination: boolean;
-        /**
-         * Secifies that the alpha is coming form the albedo channel alpha channel.
-         */
-        useAlphaFromAlbedoTexture: boolean;
-        /**
-         * Specifies that the material will keeps the specular highlights over a transparent surface (only the most limunous ones).
-         * A car glass is a good exemple of that. When sun reflects on it you can not see what is behind.
-         */
-        useSpecularOverAlpha: boolean;
-        /**
-         * Specifies if the reflectivity texture contains the glossiness information in its alpha channel.
-         */
-        useMicroSurfaceFromReflectivityMapAlpha: boolean;
-        /**
-         * In case the reflectivity map does not contain the microsurface information in its alpha channel,
-         * The material will try to infer what glossiness each pixel should be.
-         */
-        useAutoMicroSurfaceFromReflectivityMap: boolean;
-        /**
-         * Allows to work with scalar in linear mode. This is definitely a matter of preferences and tools used during
-         * the creation of the material.
-         */
-        useScalarInLinearSpace: boolean;
-        /**
-         * BJS is using an harcoded light falloff based on a manually sets up range.
-         * In PBR, one way to represents the fallof is to use the inverse squared root algorythm.
-         * This parameter can help you switch back to the BJS mode in order to create scenes using both materials.
-         */
-        usePhysicalLightFalloff: boolean;
-        /**
-         * Specifies that the material will keeps the reflection highlights over a transparent surface (only the most limunous ones).
-         * A car glass is a good exemple of that. When the street lights reflects on it you can not see what is behind.
-         */
-        useRadianceOverAlpha: boolean;
-        /**
-         * Allows using the bump map in parallax mode.
-         */
-        useParallax: boolean;
-        /**
-         * Allows using the bump map in parallax occlusion mode.
-         */
-        useParallaxOcclusion: boolean;
-        /**
-         * Controls the scale bias of the parallax mode.
-         */
-        parallaxScaleBias: number;
-        /**
-         * If sets to true, disables all the lights affecting the material.
-         */
-        disableLighting: boolean;
-        /**
-         * Number of Simultaneous lights allowed on the material.
-         */
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        maxSimultaneousLights: number;
-        /**
-         * If sets to true, x component of normal map value will invert (x = 1.0 - x).
-         */
-        invertNormalMapX: boolean;
-        /**
-         * If sets to true, y component of normal map value will invert (y = 1.0 - y).
-         */
-        invertNormalMapY: boolean;
-        private _renderTargets;
-        private _worldViewProjectionMatrix;
-        private _globalAmbientColor;
-<<<<<<< HEAD
-=======
-        private _tempColor;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        private _renderId;
-        private _defines;
-        private _cachedDefines;
-        private _useLogarithmicDepth;
-<<<<<<< HEAD
-=======
-        /**
-         * Instantiates a new PBRMaterial instance.
-         *
-         * @param name The material name
-         * @param scene The scene the material will be use in.
-         */
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        constructor(name: string, scene: Scene);
-        useLogarithmicDepth: boolean;
-        needAlphaBlending(): boolean;
-        needAlphaTesting(): boolean;
-<<<<<<< HEAD
-        private _shouldUseAlphaFromDiffuseTexture();
-        getAlphaTestTexture(): BaseTexture;
-        private _checkCache(scene, mesh?, useInstances?);
-        isReady(mesh?: AbstractMesh, useInstances?: boolean): boolean;
-        unbind(): void;
-        bindOnlyWorldMatrix(world: Matrix): void;
-        bind(world: Matrix, mesh?: Mesh): void;
-        getAnimatables(): IAnimatable[];
-        dispose(forceDisposeEffect?: boolean, forceDisposeTextures?: boolean): void;
-        clone(name: string): StandardMaterial;
-        serialize(): any;
-        static Parse(source: any, scene: Scene, rootUrl: string): StandardMaterial;
-        static DiffuseTextureEnabled: boolean;
-        static AmbientTextureEnabled: boolean;
-        static OpacityTextureEnabled: boolean;
-        static ReflectionTextureEnabled: boolean;
-        static EmissiveTextureEnabled: boolean;
-        static SpecularTextureEnabled: boolean;
-        static BumpTextureEnabled: boolean;
-        static FresnelEnabled: boolean;
-        static LightmapTextureEnabled: boolean;
-        static RefractionTextureEnabled: boolean;
-    }
-}
-
-declare module BABYLON {
-    interface ISceneLoaderPlugin {
-        extensions: string;
-        importMesh: (meshesNames: any, scene: Scene, data: any, rootUrl: string, meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => boolean;
-        load: (scene: Scene, data: string, rootUrl: string) => boolean;
-    }
-    interface ISceneLoaderPluginAsync {
-        extensions: string;
-        importMeshAsync: (meshesNames: any, scene: Scene, data: any, rootUrl: string, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, onerror?: () => void) => void;
-        loadAsync: (scene: Scene, data: string, rootUrl: string, onsuccess: () => void, onerror: () => void) => boolean;
-    }
-    class SceneLoader {
-        private static _ForceFullSceneLoadingForIncremental;
-        private static _ShowLoadingScreen;
-        static NO_LOGGING: number;
-        static MINIMAL_LOGGING: number;
-        static SUMMARY_LOGGING: number;
-        static DETAILED_LOGGING: number;
-        private static _loggingLevel;
-        static ForceFullSceneLoadingForIncremental: boolean;
-        static ShowLoadingScreen: boolean;
-        static loggingLevel: number;
-        private static _registeredPlugins;
-        private static _getPluginForFilename(sceneFilename);
-        static GetPluginForExtension(extension: string): ISceneLoaderPlugin | ISceneLoaderPluginAsync;
-        static RegisterPlugin(plugin: ISceneLoaderPlugin): void;
-        static ImportMesh(meshesNames: any, rootUrl: string, sceneFilename: string, scene: Scene, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, progressCallBack?: () => void, onerror?: (scene: Scene, message: string, exception?: any) => void): void;
-        /**
-        * Load a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param engine is the instance of BABYLON.Engine to use to create the scene
-        */
-        static Load(rootUrl: string, sceneFilename: any, engine: Engine, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
-        /**
-        * Append a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param scene is the instance of BABYLON.Scene to append to
-        */
-        static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
-=======
         private _shouldUseAlphaFromAlbedoTexture();
         getAlphaTestTexture(): BaseTexture;
         private _checkCache(scene, mesh?, useInstances?);
@@ -11329,24 +6849,668 @@ declare module BABYLON {
         static FresnelEnabled: boolean;
         static LightmapTextureEnabled: boolean;
         static RefractionTextureEnabled: boolean;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class AbstractMesh extends Node implements IDisposable, ICullable {
-        private static _BILLBOARDMODE_NONE;
-        private static _BILLBOARDMODE_X;
-        private static _BILLBOARDMODE_Y;
-        private static _BILLBOARDMODE_Z;
-        private static _BILLBOARDMODE_ALL;
-        static BILLBOARDMODE_NONE: number;
-        static BILLBOARDMODE_X: number;
-        static BILLBOARDMODE_Y: number;
-        static BILLBOARDMODE_Z: number;
-        static BILLBOARDMODE_ALL: number;
-=======
+    class SIMDVector3 {
+        static TransformCoordinatesToRefSIMD(vector: Vector3, transformation: Matrix, result: Vector3): void;
+        static TransformCoordinatesFromFloatsToRefSIMD(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
+    }
+    class SIMDMatrix {
+        multiplyToArraySIMD(other: Matrix, result: Matrix, offset?: number): void;
+        invertToRefSIMD(other: Matrix): Matrix;
+        static LookAtLHToRefSIMD(eyeRef: Vector3, targetRef: Vector3, upRef: Vector3, result: Matrix): void;
+    }
+    class SIMDHelper {
+        private static _isEnabled;
+        static IsEnabled: boolean;
+        static DisableSIMD(): void;
+        static EnableSIMD(): void;
+    }
+}
+
+declare module BABYLON {
+    const ToGammaSpace: number;
+    const ToLinearSpace: number;
+    const Epsilon: number;
+    class MathTools {
+        static WithinEpsilon(a: number, b: number, epsilon?: number): boolean;
+        static ToHex(i: number): string;
+        static Sign(value: number): number;
+        static Clamp(value: number, min?: number, max?: number): number;
+    }
+    class Color3 {
+        r: number;
+        g: number;
+        b: number;
+        constructor(r?: number, g?: number, b?: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        toArray(array: number[], index?: number): Color3;
+        toColor4(alpha?: number): Color4;
+        asArray(): number[];
+        toLuminance(): number;
+        multiply(otherColor: Color3): Color3;
+        multiplyToRef(otherColor: Color3, result: Color3): Color3;
+        equals(otherColor: Color3): boolean;
+        equalsFloats(r: number, g: number, b: number): boolean;
+        scale(scale: number): Color3;
+        scaleToRef(scale: number, result: Color3): Color3;
+        add(otherColor: Color3): Color3;
+        addToRef(otherColor: Color3, result: Color3): Color3;
+        subtract(otherColor: Color3): Color3;
+        subtractToRef(otherColor: Color3, result: Color3): Color3;
+        clone(): Color3;
+        copyFrom(source: Color3): Color3;
+        copyFromFloats(r: number, g: number, b: number): Color3;
+        toHexString(): string;
+        toLinearSpace(): Color3;
+        toLinearSpaceToRef(convertedColor: Color3): Color3;
+        toGammaSpace(): Color3;
+        toGammaSpaceToRef(convertedColor: Color3): Color3;
+        static FromHexString(hex: string): Color3;
+        static FromArray(array: number[], offset?: number): Color3;
+        static FromInts(r: number, g: number, b: number): Color3;
+        static Lerp(start: Color3, end: Color3, amount: number): Color3;
+        static Red(): Color3;
+        static Green(): Color3;
+        static Blue(): Color3;
+        static Black(): Color3;
+        static White(): Color3;
+        static Purple(): Color3;
+        static Magenta(): Color3;
+        static Yellow(): Color3;
+        static Gray(): Color3;
+    }
+    class Color4 {
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+        constructor(r: number, g: number, b: number, a: number);
+        addInPlace(right: any): Color4;
+        asArray(): number[];
+        toArray(array: number[], index?: number): Color4;
+        add(right: Color4): Color4;
+        subtract(right: Color4): Color4;
+        subtractToRef(right: Color4, result: Color4): Color4;
+        scale(scale: number): Color4;
+        scaleToRef(scale: number, result: Color4): Color4;
+        multiply(color: Color4): Color4;
+        /**
+         * Multipy an RGBA Color4 value by another and push the result in a reference value
+         * @param color The Color4 (RGBA) value to multiply by
+         * @param result The Color4 (RGBA) to fill the result in
+         * @returns the result Color4.
+         */
+        multiplyToRef(color: Color4, result: Color4): Color4;
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        clone(): Color4;
+        copyFrom(source: Color4): Color4;
+        toHexString(): string;
+        static FromHexString(hex: string): Color4;
+        static Lerp(left: Color4, right: Color4, amount: number): Color4;
+        static LerpToRef(left: Color4, right: Color4, amount: number, result: Color4): void;
+        static FromArray(array: number[], offset?: number): Color4;
+        static FromInts(r: number, g: number, b: number, a: number): Color4;
+        static CheckColors4(colors: number[], count: number): number[];
+    }
+    class Vector2 {
+        x: number;
+        y: number;
+        constructor(x: number, y: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        toArray(array: number[] | Float32Array, index?: number): Vector2;
+        asArray(): number[];
+        copyFrom(source: Vector2): Vector2;
+        copyFromFloats(x: number, y: number): Vector2;
+        add(otherVector: Vector2): Vector2;
+        addToRef(otherVector: Vector2, result: Vector2): Vector2;
+        addVector3(otherVector: Vector3): Vector2;
+        subtract(otherVector: Vector2): Vector2;
+        subtractToRef(otherVector: Vector2, result: Vector2): Vector2;
+        subtractInPlace(otherVector: Vector2): Vector2;
+        multiplyInPlace(otherVector: Vector2): Vector2;
+        multiply(otherVector: Vector2): Vector2;
+        multiplyToRef(otherVector: Vector2, result: Vector2): Vector2;
+        multiplyByFloats(x: number, y: number): Vector2;
+        divide(otherVector: Vector2): Vector2;
+        divideToRef(otherVector: Vector2, result: Vector2): Vector2;
+        negate(): Vector2;
+        scaleInPlace(scale: number): Vector2;
+        scale(scale: number): Vector2;
+        equals(otherVector: Vector2): boolean;
+        equalsWithEpsilon(otherVector: Vector2, epsilon?: number): boolean;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector2;
+        clone(): Vector2;
+        static Zero(): Vector2;
+        static FromArray(array: number[] | Float32Array, offset?: number): Vector2;
+        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector2): void;
+        static CatmullRom(value1: Vector2, value2: Vector2, value3: Vector2, value4: Vector2, amount: number): Vector2;
+        static Clamp(value: Vector2, min: Vector2, max: Vector2): Vector2;
+        static Hermite(value1: Vector2, tangent1: Vector2, value2: Vector2, tangent2: Vector2, amount: number): Vector2;
+        static Lerp(start: Vector2, end: Vector2, amount: number): Vector2;
+        static Dot(left: Vector2, right: Vector2): number;
+        static Normalize(vector: Vector2): Vector2;
+        static Minimize(left: Vector2, right: Vector2): Vector2;
+        static Maximize(left: Vector2, right: Vector2): Vector2;
+        static Transform(vector: Vector2, transformation: Matrix): Vector2;
+        static TransformToRef(vector: Vector2, transformation: Matrix, result: Vector2): void;
+        static PointInTriangle(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): boolean;
+        static Distance(value1: Vector2, value2: Vector2): number;
+        static DistanceSquared(value1: Vector2, value2: Vector2): number;
+        static DistanceOfPointFromSegment(p: Vector2, segA: Vector2, segB: Vector2): number;
+    }
+    class Vector3 {
+        x: number;
+        y: number;
+        z: number;
+        constructor(x: number, y: number, z: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        toArray(array: number[] | Float32Array, index?: number): Vector3;
+        toQuaternion(): Quaternion;
+        addInPlace(otherVector: Vector3): Vector3;
+        add(otherVector: Vector3): Vector3;
+        addToRef(otherVector: Vector3, result: Vector3): Vector3;
+        subtractInPlace(otherVector: Vector3): Vector3;
+        subtract(otherVector: Vector3): Vector3;
+        subtractToRef(otherVector: Vector3, result: Vector3): Vector3;
+        subtractFromFloats(x: number, y: number, z: number): Vector3;
+        subtractFromFloatsToRef(x: number, y: number, z: number, result: Vector3): Vector3;
+        negate(): Vector3;
+        scaleInPlace(scale: number): Vector3;
+        scale(scale: number): Vector3;
+        scaleToRef(scale: number, result: Vector3): void;
+        equals(otherVector: Vector3): boolean;
+        equalsWithEpsilon(otherVector: Vector3, epsilon?: number): boolean;
+        equalsToFloats(x: number, y: number, z: number): boolean;
+        multiplyInPlace(otherVector: Vector3): Vector3;
+        multiply(otherVector: Vector3): Vector3;
+        multiplyToRef(otherVector: Vector3, result: Vector3): Vector3;
+        multiplyByFloats(x: number, y: number, z: number): Vector3;
+        divide(otherVector: Vector3): Vector3;
+        divideToRef(otherVector: Vector3, result: Vector3): Vector3;
+        MinimizeInPlace(other: Vector3): Vector3;
+        MaximizeInPlace(other: Vector3): Vector3;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector3;
+        clone(): Vector3;
+        copyFrom(source: Vector3): Vector3;
+        copyFromFloats(x: number, y: number, z: number): Vector3;
+        static GetClipFactor(vector0: Vector3, vector1: Vector3, axis: Vector3, size: any): number;
+        static FromArray(array: number[] | Float32Array, offset?: number): Vector3;
+        static FromFloatArray(array: Float32Array, offset?: number): Vector3;
+        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector3): void;
+        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector3): void;
+        static FromFloatsToRef(x: number, y: number, z: number, result: Vector3): void;
+        static Zero(): Vector3;
+        static Up(): Vector3;
+        static TransformCoordinates(vector: Vector3, transformation: Matrix): Vector3;
+        static TransformCoordinatesToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
+        static TransformCoordinatesFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
+        static TransformNormal(vector: Vector3, transformation: Matrix): Vector3;
+        static TransformNormalToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
+        static TransformNormalFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
+        static CatmullRom(value1: Vector3, value2: Vector3, value3: Vector3, value4: Vector3, amount: number): Vector3;
+        static Clamp(value: Vector3, min: Vector3, max: Vector3): Vector3;
+        static Hermite(value1: Vector3, tangent1: Vector3, value2: Vector3, tangent2: Vector3, amount: number): Vector3;
+        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
+        static Dot(left: Vector3, right: Vector3): number;
+        static Cross(left: Vector3, right: Vector3): Vector3;
+        static CrossToRef(left: Vector3, right: Vector3, result: Vector3): void;
+        static Normalize(vector: Vector3): Vector3;
+        static NormalizeToRef(vector: Vector3, result: Vector3): void;
+        private static _viewportMatrixCache;
+        private static _matrixCache;
+        static Project(vector: Vector3, world: Matrix, transform: Matrix, viewport: Viewport): Vector3;
+        static UnprojectFromTransform(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, transform: Matrix): Vector3;
+        static Unproject(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Vector3;
+        static Minimize(left: Vector3, right: Vector3): Vector3;
+        static Maximize(left: Vector3, right: Vector3): Vector3;
+        static Distance(value1: Vector3, value2: Vector3): number;
+        static DistanceSquared(value1: Vector3, value2: Vector3): number;
+        static Center(value1: Vector3, value2: Vector3): Vector3;
+        /**
+         * Given three orthogonal normalized left-handed oriented Vector3 axis in space (target system),
+         * RotationFromAxis() returns the rotation Euler angles (ex : rotation.x, rotation.y, rotation.z) to apply
+         * to something in order to rotate it from its local system to the given target system.
+         */
+        static RotationFromAxis(axis1: Vector3, axis2: Vector3, axis3: Vector3): Vector3;
+        /**
+         * The same than RotationFromAxis but updates the passed ref Vector3 parameter.
+         */
+        static RotationFromAxisToRef(axis1: Vector3, axis2: Vector3, axis3: Vector3, ref: Vector3): void;
+    }
+    class Vector4 {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x: number, y: number, z: number, w: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        toArray(array: number[], index?: number): Vector4;
+        addInPlace(otherVector: Vector4): Vector4;
+        add(otherVector: Vector4): Vector4;
+        addToRef(otherVector: Vector4, result: Vector4): Vector4;
+        subtractInPlace(otherVector: Vector4): Vector4;
+        subtract(otherVector: Vector4): Vector4;
+        subtractToRef(otherVector: Vector4, result: Vector4): Vector4;
+        subtractFromFloats(x: number, y: number, z: number, w: number): Vector4;
+        subtractFromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): Vector4;
+        negate(): Vector4;
+        scaleInPlace(scale: number): Vector4;
+        scale(scale: number): Vector4;
+        scaleToRef(scale: number, result: Vector4): void;
+        equals(otherVector: Vector4): boolean;
+        equalsWithEpsilon(otherVector: Vector4, epsilon?: number): boolean;
+        equalsToFloats(x: number, y: number, z: number, w: number): boolean;
+        multiplyInPlace(otherVector: Vector4): Vector4;
+        multiply(otherVector: Vector4): Vector4;
+        multiplyToRef(otherVector: Vector4, result: Vector4): Vector4;
+        multiplyByFloats(x: number, y: number, z: number, w: number): Vector4;
+        divide(otherVector: Vector4): Vector4;
+        divideToRef(otherVector: Vector4, result: Vector4): Vector4;
+        MinimizeInPlace(other: Vector4): Vector4;
+        MaximizeInPlace(other: Vector4): Vector4;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector4;
+        toVector3(): Vector3;
+        clone(): Vector4;
+        copyFrom(source: Vector4): Vector4;
+        copyFromFloats(x: number, y: number, z: number, w: number): Vector4;
+        static FromArray(array: number[], offset?: number): Vector4;
+        static FromArrayToRef(array: number[], offset: number, result: Vector4): void;
+        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector4): void;
+        static FromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): void;
+        static Zero(): Vector4;
+        static Normalize(vector: Vector4): Vector4;
+        static NormalizeToRef(vector: Vector4, result: Vector4): void;
+        static Minimize(left: Vector4, right: Vector4): Vector4;
+        static Maximize(left: Vector4, right: Vector4): Vector4;
+        static Distance(value1: Vector4, value2: Vector4): number;
+        static DistanceSquared(value1: Vector4, value2: Vector4): number;
+        static Center(value1: Vector4, value2: Vector4): Vector4;
+    }
+    interface ISize {
+        width: number;
+        height: number;
+    }
+    class Size implements ISize {
+        width: number;
+        height: number;
+        constructor(width: number, height: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        copyFrom(src: Size): void;
+        copyFromFloats(width: number, height: number): void;
+        multiplyByFloats(w: number, h: number): Size;
+        clone(): Size;
+        equals(other: Size): boolean;
+        surface: number;
+        static Zero(): Size;
+        add(otherSize: Size): Size;
+        substract(otherSize: Size): Size;
+        static Lerp(start: Size, end: Size, amount: number): Size;
+    }
+    class Quaternion {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x?: number, y?: number, z?: number, w?: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        equals(otherQuaternion: Quaternion): boolean;
+        clone(): Quaternion;
+        copyFrom(other: Quaternion): Quaternion;
+        copyFromFloats(x: number, y: number, z: number, w: number): Quaternion;
+        add(other: Quaternion): Quaternion;
+        subtract(other: Quaternion): Quaternion;
+        scale(value: number): Quaternion;
+        multiply(q1: Quaternion): Quaternion;
+        multiplyToRef(q1: Quaternion, result: Quaternion): Quaternion;
+        multiplyInPlace(q1: Quaternion): Quaternion;
+        conjugateToRef(ref: Quaternion): Quaternion;
+        conjugateInPlace(): Quaternion;
+        conjugate(): Quaternion;
+        length(): number;
+        normalize(): Quaternion;
+        toEulerAngles(order?: string): Vector3;
+        toEulerAnglesToRef(result: Vector3, order?: string): Quaternion;
+        toRotationMatrix(result: Matrix): Quaternion;
+        fromRotationMatrix(matrix: Matrix): Quaternion;
+        static FromRotationMatrix(matrix: Matrix): Quaternion;
+        static FromRotationMatrixToRef(matrix: Matrix, result: Quaternion): void;
+        static Inverse(q: Quaternion): Quaternion;
+        static Identity(): Quaternion;
+        static RotationAxis(axis: Vector3, angle: number): Quaternion;
+        static RotationAxisToRef(axis: Vector3, angle: number, result: Quaternion): Quaternion;
+        static FromArray(array: number[], offset?: number): Quaternion;
+        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Quaternion;
+        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Quaternion): void;
+        static RotationAlphaBetaGamma(alpha: number, beta: number, gamma: number): Quaternion;
+        static RotationAlphaBetaGammaToRef(alpha: number, beta: number, gamma: number, result: Quaternion): void;
+        static Slerp(left: Quaternion, right: Quaternion, amount: number): Quaternion;
+    }
+    class Matrix {
+        private static _tempQuaternion;
+        private static _xAxis;
+        private static _yAxis;
+        private static _zAxis;
+        m: Float32Array;
+        isIdentity(): boolean;
+        determinant(): number;
+        toArray(): Float32Array;
+        asArray(): Float32Array;
+        invert(): Matrix;
+        reset(): Matrix;
+        add(other: Matrix): Matrix;
+        addToRef(other: Matrix, result: Matrix): Matrix;
+        addToSelf(other: Matrix): Matrix;
+        invertToRef(other: Matrix): Matrix;
+        setTranslation(vector3: Vector3): Matrix;
+        getTranslation(): Vector3;
+        multiply(other: Matrix): Matrix;
+        copyFrom(other: Matrix): Matrix;
+        copyToArray(array: Float32Array, offset?: number): Matrix;
+        multiplyToRef(other: Matrix, result: Matrix): Matrix;
+        multiplyToArray(other: Matrix, result: Float32Array, offset: number): Matrix;
+        equals(value: Matrix): boolean;
+        clone(): Matrix;
+        getClassName(): string;
+        getHashCode(): number;
+        decompose(scale: Vector3, rotation: Quaternion, translation: Vector3): boolean;
+        static FromArray(array: number[], offset?: number): Matrix;
+        static FromArrayToRef(array: number[], offset: number, result: Matrix): void;
+        static FromFloat32ArrayToRefScaled(array: Float32Array, offset: number, scale: number, result: Matrix): void;
+        static FromValuesToRef(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number, result: Matrix): void;
+        getRow(index: number): Vector4;
+        setRow(index: number, row: Vector4): Matrix;
+        static FromValues(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number): Matrix;
+        static Compose(scale: Vector3, rotation: Quaternion, translation: Vector3): Matrix;
+        static Identity(): Matrix;
+        static IdentityToRef(result: Matrix): void;
+        static Zero(): Matrix;
+        static RotationX(angle: number): Matrix;
+        static Invert(source: Matrix): Matrix;
+        static RotationXToRef(angle: number, result: Matrix): void;
+        static RotationY(angle: number): Matrix;
+        static RotationYToRef(angle: number, result: Matrix): void;
+        static RotationZ(angle: number): Matrix;
+        static RotationZToRef(angle: number, result: Matrix): void;
+        static RotationAxis(axis: Vector3, angle: number): Matrix;
+        static RotationAxisToRef(axis: Vector3, angle: number, result: Matrix): void;
+        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Matrix;
+        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Matrix): void;
+        static Scaling(x: number, y: number, z: number): Matrix;
+        static ScalingToRef(x: number, y: number, z: number, result: Matrix): void;
+        static Translation(x: number, y: number, z: number): Matrix;
+        static TranslationToRef(x: number, y: number, z: number, result: Matrix): void;
+        static Lerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
+        static DecomposeLerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
+        static LookAtLH(eye: Vector3, target: Vector3, up: Vector3): Matrix;
+        static LookAtLHToRef(eye: Vector3, target: Vector3, up: Vector3, result: Matrix): void;
+        static OrthoLH(width: number, height: number, znear: number, zfar: number): Matrix;
+        static OrthoLHToRef(width: number, height: number, znear: number, zfar: number, result: Matrix): void;
+        static OrthoOffCenterLH(left: number, right: number, bottom: number, top: number, znear: number, zfar: number): Matrix;
+        static OrthoOffCenterLHToRef(left: number, right: any, bottom: number, top: number, znear: number, zfar: number, result: Matrix): void;
+        static PerspectiveLH(width: number, height: number, znear: number, zfar: number): Matrix;
+        static PerspectiveFovLH(fov: number, aspect: number, znear: number, zfar: number): Matrix;
+        static PerspectiveFovLHToRef(fov: number, aspect: number, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
+        static GetFinalMatrix(viewport: Viewport, world: Matrix, view: Matrix, projection: Matrix, zmin: number, zmax: number): Matrix;
+        static GetAsMatrix2x2(matrix: Matrix): Float32Array;
+        static GetAsMatrix3x3(matrix: Matrix): Float32Array;
+        static Transpose(matrix: Matrix): Matrix;
+        static Reflection(plane: Plane): Matrix;
+        static ReflectionToRef(plane: Plane, result: Matrix): void;
+    }
+    class Plane {
+        normal: Vector3;
+        d: number;
+        constructor(a: number, b: number, c: number, d: number);
+        asArray(): number[];
+        clone(): Plane;
+        getClassName(): string;
+        getHashCode(): number;
+        normalize(): Plane;
+        transform(transformation: Matrix): Plane;
+        dotCoordinate(point: any): number;
+        copyFromPoints(point1: Vector3, point2: Vector3, point3: Vector3): Plane;
+        isFrontFacingTo(direction: Vector3, epsilon: number): boolean;
+        signedDistanceTo(point: Vector3): number;
+        static FromArray(array: number[]): Plane;
+        static FromPoints(point1: any, point2: any, point3: any): Plane;
+        static FromPositionAndNormal(origin: Vector3, normal: Vector3): Plane;
+        static SignedDistanceToPlaneFromPositionAndNormal(origin: Vector3, normal: Vector3, point: Vector3): number;
+    }
+    class Viewport {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        constructor(x: number, y: number, width: number, height: number);
+        toGlobal(renderWidth: number, renderHeight: number): Viewport;
+    }
+    class Frustum {
+        static GetPlanes(transform: Matrix): Plane[];
+        static GetPlanesToRef(transform: Matrix, frustumPlanes: Plane[]): void;
+    }
+    enum Space {
+        LOCAL = 0,
+        WORLD = 1,
+    }
+    class Axis {
+        static X: Vector3;
+        static Y: Vector3;
+        static Z: Vector3;
+    }
+    class BezierCurve {
+        static interpolate(t: number, x1: number, y1: number, x2: number, y2: number): number;
+    }
+    enum Orientation {
+        CW = 0,
+        CCW = 1,
+    }
+    class Angle {
+        private _radians;
+        constructor(radians: number);
+        degrees: () => number;
+        radians: () => number;
+        static BetweenTwoPoints(a: Vector2, b: Vector2): Angle;
+        static FromRadians(radians: number): Angle;
+        static FromDegrees(degrees: number): Angle;
+    }
+    class Arc2 {
+        startPoint: Vector2;
+        midPoint: Vector2;
+        endPoint: Vector2;
+        centerPoint: Vector2;
+        radius: number;
+        angle: Angle;
+        startAngle: Angle;
+        orientation: Orientation;
+        constructor(startPoint: Vector2, midPoint: Vector2, endPoint: Vector2);
+    }
+    class Path2 {
+        private _points;
+        private _length;
+        closed: boolean;
+        constructor(x: number, y: number);
+        addLineTo(x: number, y: number): Path2;
+        addArcTo(midX: number, midY: number, endX: number, endY: number, numberOfSegments?: number): Path2;
+        close(): Path2;
+        length(): number;
+        getPoints(): Vector2[];
+        getPointAtLengthPosition(normalizedLengthPosition: number): Vector2;
+        static StartingAt(x: number, y: number): Path2;
+    }
+    class Path3D {
+        path: Vector3[];
+        private _curve;
+        private _distances;
+        private _tangents;
+        private _normals;
+        private _binormals;
+        private _raw;
+        /**
+        * new Path3D(path, normal, raw)
+        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
+        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
+        * path : an array of Vector3, the curve axis of the Path3D
+        * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
+        * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
+        */
+        constructor(path: Vector3[], firstNormal?: Vector3, raw?: boolean);
+        /**
+         * Returns the Path3D array of successive Vector3 designing its curve.
+         */
+        getCurve(): Vector3[];
+        /**
+         * Returns an array populated with tangent vectors on each Path3D curve point.
+         */
+        getTangents(): Vector3[];
+        /**
+         * Returns an array populated with normal vectors on each Path3D curve point.
+         */
+        getNormals(): Vector3[];
+        /**
+         * Returns an array populated with binormal vectors on each Path3D curve point.
+         */
+        getBinormals(): Vector3[];
+        /**
+         * Returns an array populated with distances (float) of the i-th point from the first curve point.
+         */
+        getDistances(): number[];
+        /**
+         * Forces the Path3D tangent, normal, binormal and distance recomputation.
+         * Returns the same object updated.
+         */
+        update(path: Vector3[], firstNormal?: Vector3): Path3D;
+        private _compute(firstNormal);
+        private _getFirstNonNullVector(index);
+        private _getLastNonNullVector(index);
+        private _normalVector(v0, vt, va);
+    }
+    class Curve3 {
+        private _points;
+        private _length;
+        /**
+         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
+         * @param v0 (Vector3) the origin point of the Quadratic Bezier
+         * @param v1 (Vector3) the control point
+         * @param v2 (Vector3) the end point of the Quadratic Bezier
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateQuadraticBezier(v0: Vector3, v1: Vector3, v2: Vector3, nbPoints: number): Curve3;
+        /**
+         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
+         * @param v0 (Vector3) the origin point of the Cubic Bezier
+         * @param v1 (Vector3) the first control point
+         * @param v2 (Vector3) the second control point
+         * @param v3 (Vector3) the end point of the Cubic Bezier
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateCubicBezier(v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, nbPoints: number): Curve3;
+        /**
+         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
+         * @param p1 (Vector3) the origin point of the Hermite Spline
+         * @param t1 (Vector3) the tangent vector at the origin point
+         * @param p2 (Vector3) the end point of the Hermite Spline
+         * @param t2 (Vector3) the tangent vector at the end point
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateHermiteSpline(p1: Vector3, t1: Vector3, p2: Vector3, t2: Vector3, nbPoints: number): Curve3;
+        /**
+         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
+         * A Curve3 is designed from a series of successive Vector3.
+         * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
+         */
+        constructor(points: Vector3[]);
+        /**
+         * Returns the Curve3 stored array of successive Vector3
+         */
+        getPoints(): Vector3[];
+        /**
+         * Returns the computed length (float) of the curve.
+         */
+        length(): number;
+        /**
+         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
+         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
+         * curveA and curveB keep unchanged.
+         */
+        continue(curve: Curve3): Curve3;
+        private _computeLength(path);
+    }
+    class SphericalHarmonics {
+        L00: Vector3;
+        L1_1: Vector3;
+        L10: Vector3;
+        L11: Vector3;
+        L2_2: Vector3;
+        L2_1: Vector3;
+        L20: Vector3;
+        L21: Vector3;
+        L22: Vector3;
+        addLight(direction: Vector3, color: Color3, deltaSolidAngle: number): void;
+        scale(scale: number): void;
+    }
+    class SphericalPolynomial {
+        x: Vector3;
+        y: Vector3;
+        z: Vector3;
+        xx: Vector3;
+        yy: Vector3;
+        zz: Vector3;
+        xy: Vector3;
+        yz: Vector3;
+        zx: Vector3;
+        addAmbient(color: Color3): void;
+        static getSphericalPolynomialFromHarmonics(harmonics: SphericalHarmonics): SphericalPolynomial;
+    }
+    class PositionNormalVertex {
+        position: Vector3;
+        normal: Vector3;
+        constructor(position?: Vector3, normal?: Vector3);
+        clone(): PositionNormalVertex;
+    }
+    class PositionNormalTextureVertex {
+        position: Vector3;
+        normal: Vector3;
+        uv: Vector2;
+        constructor(position?: Vector3, normal?: Vector3, uv?: Vector2);
+        clone(): PositionNormalTextureVertex;
+    }
+    class Tmp {
+        static Color3: Color3[];
+        static Vector2: Vector2[];
+        static Vector3: Vector3[];
+        static Vector4: Vector4[];
+        static Quaternion: Quaternion[];
+        static Matrix: Matrix[];
+    }
+}
+
+declare module BABYLON {
     class Particle {
         position: Vector3;
         direction: Vector3;
@@ -11385,7 +7549,6 @@ declare module BABYLON {
         maxAngularSpeed: number;
         particleTexture: Texture;
         layerMask: number;
->>>>>>> vr_room_scale_camera
         /**
         * An event triggered when the system is disposed.
         * @type {BABYLON.Observable}
@@ -11501,45 +7664,9 @@ declare module BABYLON {
         */
         counter: number;
         /**
-<<<<<<< HEAD
-         * Getting the rotation object.
-         * If rotation quaternion is set, this vector will (almost always) be the Zero vector!
-         */
-        rotation: Vector3;
-        scaling: Vector3;
-        rotationQuaternion: Quaternion;
-        updatePoseMatrix(matrix: Matrix): void;
-        getPoseMatrix(): Matrix;
-        disableEdgesRendering(): void;
-        enableEdgesRendering(epsilon?: number, checkVerticesInsteadOfIndices?: boolean): void;
-        isBlocked: boolean;
-        getLOD(camera: Camera): AbstractMesh;
-        getTotalVertices(): number;
-        getIndices(): number[] | Int32Array;
-        getVerticesData(kind: string): number[] | Float32Array;
-        isVerticesDataPresent(kind: string): boolean;
-        getBoundingInfo(): BoundingInfo;
-        setBoundingInfo(boundingInfo: BoundingInfo): void;
-        useBones: boolean;
-        _preActivate(): void;
-        _preActivateForIntermediateRendering(renderId: number): void;
-        _activate(renderId: number): void;
-        getWorldMatrix(): Matrix;
-        worldMatrixFromCache: Matrix;
-        absolutePosition: Vector3;
-        freezeWorldMatrix(): void;
-        unfreezeWorldMatrix(): void;
-        isWorldMatrixFrozen: boolean;
-        private static _rotationAxisCache;
-        rotate(axis: Vector3, amount: number, space?: Space): void;
-        translate(axis: Vector3, distance: number, space?: Space): void;
-        getAbsolutePosition(): Vector3;
-        setAbsolutePosition(absolutePosition: Vector3): void;
-=======
         * The SPS name. This name is also given to the underlying mesh.
         */
         name: string;
->>>>>>> vr_room_scale_camera
         /**
         * The SPS mesh. It's a standard BJS Mesh, so all the methods from the Mesh class are avalaible.
         */
@@ -11632,23 +7759,7 @@ declare module BABYLON {
         * Builds the SPS underlying mesh. Returns a standard Mesh.
         * If no model shape was added to the SPS, the returned mesh is just a single triangular plane.
         */
-<<<<<<< HEAD
-        registerAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
-        unregisterAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
-        setPositionWithLocalVector(vector3: Vector3): void;
-        getPositionExpressedInLocalSpace(): Vector3;
-        locallyTranslate(vector3: Vector3): void;
-        private static _lookAtVectorCache;
-        lookAt(targetPoint: Vector3, yawCor?: number, pitchCor?: number, rollCor?: number, space?: Space): void;
-        attachToBone(bone: Bone, affectedMesh: AbstractMesh): void;
-        detachFromBone(): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
-        intersectsPoint(point: Vector3): boolean;
-=======
         buildMesh(): Mesh;
->>>>>>> vr_room_scale_camera
         /**
         * Digests the mesh and generates as many solid particles in the system as wanted. Returns the SPS.
         * These particles will have the same geometry than the mesh parts and will be positioned at the same localisation than the mesh original places.
@@ -11711,7 +7822,345 @@ declare module BABYLON {
         * note : this doesn't lock the SPS mesh bounding box.
         * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
         */
-<<<<<<< HEAD
+        setVisibilityBox(size: number): void;
+        /**
+        * Sets the SPS as always visible or not
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+        isAlwaysVisible: boolean;
+        /**
+        * Sets the SPS visibility box as locked or not. This enables/disables the underlying mesh bounding box updates.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
+        */
+        isVisibilityBoxLocked: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle rotations or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle rotations aren't stored values, so setting `computeParticleRotation` to false will prevents the particle to rotate.
+        */
+        computeParticleRotation: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle colors or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle colors are stored values, so setting `computeParticleColor` to false will keep yet the last colors set.
+        */
+        computeParticleColor: boolean;
+        /**
+        * Tells to `setParticles()` to compute the particle textures or not.
+        * Default value : true. The SPS is faster when it's set to false.
+        * Note : the particle textures are stored values, so setting `computeParticleTexture` to false will keep yet the last colors set.
+        */
+        computeParticleTexture: boolean;
+        /**
+        * Tells to `setParticles()` to call the vertex function for each vertex of each particle, or not.
+        * Default value : false. The SPS is faster when it's set to false.
+        * Note : the particle custom vertex positions aren't stored values.
+        */
+        computeParticleVertex: boolean;
+        /**
+        * Tells to `setParticles()` to compute or not the mesh bounding box when computing the particle positions.
+        */
+        computeBoundingBox: boolean;
+        /**
+        * This function does nothing. It may be overwritten to set all the particle first values.
+        * The SPS doesn't call this function, you may have to call it by your own.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        */
+        initParticles(): void;
+        /**
+        * This function does nothing. It may be overwritten to recycle a particle.
+        * The SPS doesn't call this function, you may have to call it by your own.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        */
+        recycleParticle(particle: SolidParticle): SolidParticle;
+        /**
+        * Updates a particle : this function should  be overwritten by the user.
+        * It is called on each particle by `setParticles()`. This is the place to code each particle behavior.
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
+        * ex : just set a particle position or velocity and recycle conditions
+        */
+        updateParticle(particle: SolidParticle): SolidParticle;
+        /**
+        * Updates a vertex of a particle : it can be overwritten by the user.
+        * This will be called on each vertex particle by `setParticles()` if `computeParticleVertex` is set to true only.
+        * @param particle the current particle
+        * @param vertex the current index of the current particle
+        * @param pt the index of the current vertex in the particle shape
+        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#update-each-particle-shape
+        * ex : just set a vertex particle position
+        */
+        updateParticleVertex(particle: SolidParticle, vertex: Vector3, pt: number): Vector3;
+        /**
+        * This will be called before any other treatment by `setParticles()` and will be passed three parameters.
+        * This does nothing and may be overwritten by the user.
+        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param update the boolean update value actually passed to setParticles()
+        */
+        beforeUpdateParticles(start?: number, stop?: number, update?: boolean): void;
+        /**
+        * This will be called  by `setParticles()` after all the other treatments and just before the actual mesh update.
+        * This will be passed three parameters.
+        * This does nothing and may be overwritten by the user.
+        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
+        * @param update the boolean update value actually passed to setParticles()
+        */
+        afterUpdateParticles(start?: number, stop?: number, update?: boolean): void;
+    }
+}
+
+declare module BABYLON {
+    class AbstractMesh extends Node implements IDisposable, ICullable {
+        private static _BILLBOARDMODE_NONE;
+        private static _BILLBOARDMODE_X;
+        private static _BILLBOARDMODE_Y;
+        private static _BILLBOARDMODE_Z;
+        private static _BILLBOARDMODE_ALL;
+        static BILLBOARDMODE_NONE: number;
+        static BILLBOARDMODE_X: number;
+        static BILLBOARDMODE_Y: number;
+        static BILLBOARDMODE_Z: number;
+        static BILLBOARDMODE_ALL: number;
+        /**
+        * An event triggered when the mesh is disposed.
+        * @type {BABYLON.Observable}
+        */
+        onDisposeObservable: Observable<AbstractMesh>;
+        private _onDisposeObserver;
+        onDispose: () => void;
+        /**
+        * An event triggered when this mesh collides with another one
+        * @type {BABYLON.Observable}
+        */
+        onCollideObservable: Observable<AbstractMesh>;
+        private _onCollideObserver;
+        onCollide: () => void;
+        /**
+        * An event triggered when the collision's position changes
+        * @type {BABYLON.Observable}
+        */
+        onCollisionPositionChangeObservable: Observable<Vector3>;
+        private _onCollisionPositionChangeObserver;
+        onCollisionPositionChange: () => void;
+        /**
+        * An event triggered after the world matrix is updated
+        * @type {BABYLON.Observable}
+        */
+        onAfterWorldMatrixUpdateObservable: Observable<AbstractMesh>;
+        definedFacingForward: boolean;
+        position: Vector3;
+        private _rotation;
+        _rotationQuaternion: Quaternion;
+        private _scaling;
+        billboardMode: number;
+        visibility: number;
+        alphaIndex: number;
+        infiniteDistance: boolean;
+        isVisible: boolean;
+        isPickable: boolean;
+        showBoundingBox: boolean;
+        showSubMeshesBoundingBox: boolean;
+        isBlocker: boolean;
+        renderingGroupId: number;
+        material: Material;
+        receiveShadows: boolean;
+        renderOutline: boolean;
+        outlineColor: Color3;
+        outlineWidth: number;
+        renderOverlay: boolean;
+        overlayColor: Color3;
+        overlayAlpha: number;
+        hasVertexAlpha: boolean;
+        useVertexColors: boolean;
+        applyFog: boolean;
+        computeBonesUsingShaders: boolean;
+        scalingDeterminant: number;
+        numBoneInfluencers: number;
+        useOctreeForRenderingSelection: boolean;
+        useOctreeForPicking: boolean;
+        useOctreeForCollisions: boolean;
+        layerMask: number;
+        alwaysSelectAsActiveMesh: boolean;
+        /**
+         * This scene's action manager
+         * @type {BABYLON.ActionManager}
+        */
+        actionManager: ActionManager;
+        physicsImpostor: BABYLON.PhysicsImpostor;
+        onPhysicsCollide: (collidedMesh: AbstractMesh, contact: any) => void;
+        private _checkCollisions;
+        ellipsoid: Vector3;
+        ellipsoidOffset: Vector3;
+        private _collider;
+        private _oldPositionForCollisions;
+        private _diffPositionForCollisions;
+        private _newPositionForCollisions;
+        private _meshToBoneReferal;
+        edgesWidth: number;
+        edgesColor: Color4;
+        _edgesRenderer: EdgesRenderer;
+        private _localWorld;
+        _worldMatrix: Matrix;
+        private _rotateYByPI;
+        private _absolutePosition;
+        private _collisionsTransformMatrix;
+        private _collisionsScalingMatrix;
+        _positions: Vector3[];
+        private _isDirty;
+        _masterMesh: AbstractMesh;
+        _materialDefines: MaterialDefines;
+        _boundingInfo: BoundingInfo;
+        private _pivotMatrix;
+        _isDisposed: boolean;
+        _renderId: number;
+        subMeshes: SubMesh[];
+        _submeshesOctree: Octree<SubMesh>;
+        _intersectionsInProgress: AbstractMesh[];
+        private _isWorldMatrixFrozen;
+        _unIndexed: boolean;
+        _poseMatrix: Matrix;
+        _waitingActions: any;
+        _waitingFreezeWorldMatrix: boolean;
+        private _skeleton;
+        _bonesTransformMatrices: Float32Array;
+        skeleton: Skeleton;
+        constructor(name: string, scene: Scene);
+        /**
+         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
+         */
+        toString(fullDetails?: boolean): string;
+        /**
+         * Getting the rotation object.
+         * If rotation quaternion is set, this vector will (almost always) be the Zero vector!
+         */
+        rotation: Vector3;
+        scaling: Vector3;
+        rotationQuaternion: Quaternion;
+        updatePoseMatrix(matrix: Matrix): void;
+        getPoseMatrix(): Matrix;
+        disableEdgesRendering(): void;
+        enableEdgesRendering(epsilon?: number, checkVerticesInsteadOfIndices?: boolean): void;
+        isBlocked: boolean;
+        getLOD(camera: Camera): AbstractMesh;
+        getTotalVertices(): number;
+        getIndices(): number[] | Int32Array;
+        getVerticesData(kind: string): number[] | Float32Array;
+        isVerticesDataPresent(kind: string): boolean;
+        getBoundingInfo(): BoundingInfo;
+        setBoundingInfo(boundingInfo: BoundingInfo): void;
+        useBones: boolean;
+        _preActivate(): void;
+        _preActivateForIntermediateRendering(renderId: number): void;
+        _activate(renderId: number): void;
+        getWorldMatrix(): Matrix;
+        worldMatrixFromCache: Matrix;
+        absolutePosition: Vector3;
+        freezeWorldMatrix(): void;
+        unfreezeWorldMatrix(): void;
+        isWorldMatrixFrozen: boolean;
+        private static _rotationAxisCache;
+        rotate(axis: Vector3, amount: number, space?: Space): void;
+        translate(axis: Vector3, distance: number, space?: Space): void;
+        getAbsolutePosition(): Vector3;
+        setAbsolutePosition(absolutePosition: Vector3): void;
+        /**
+         * Perform relative position change from the point of view of behind the front of the mesh.
+         * This is performed taking into account the meshes current rotation, so you do not have to care.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} amountRight
+         * @param {number} amountUp
+         * @param {number} amountForward
+         */
+        movePOV(amountRight: number, amountUp: number, amountForward: number): void;
+        /**
+         * Calculate relative position change from the point of view of behind the front of the mesh.
+         * This is performed taking into account the meshes current rotation, so you do not have to care.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} amountRight
+         * @param {number} amountUp
+         * @param {number} amountForward
+         */
+        calcMovePOV(amountRight: number, amountUp: number, amountForward: number): Vector3;
+        /**
+         * Perform relative rotation change from the point of view of behind the front of the mesh.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} flipBack
+         * @param {number} twirlClockwise
+         * @param {number} tiltRight
+         */
+        rotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): void;
+        /**
+         * Calculate relative rotation change from the point of view of behind the front of the mesh.
+         * Supports definition of mesh facing forward or backward.
+         * @param {number} flipBack
+         * @param {number} twirlClockwise
+         * @param {number} tiltRight
+         */
+        calcRotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): Vector3;
+        setPivotMatrix(matrix: Matrix): void;
+        getPivotMatrix(): Matrix;
+        _isSynchronized(): boolean;
+        _initCache(): void;
+        markAsDirty(property: string): void;
+        _updateBoundingInfo(): void;
+        _updateSubMeshesBoundingInfo(matrix: Matrix): void;
+        computeWorldMatrix(force?: boolean): Matrix;
+        /**
+        * If you'd like to be callbacked after the mesh position, rotation or scaling has been updated
+        * @param func: callback function to add
+        */
+        registerAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
+        unregisterAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
+        setPositionWithLocalVector(vector3: Vector3): void;
+        getPositionExpressedInLocalSpace(): Vector3;
+        locallyTranslate(vector3: Vector3): void;
+        private static _lookAtVectorCache;
+        lookAt(targetPoint: Vector3, yawCor?: number, pitchCor?: number, rollCor?: number, space?: Space): void;
+        attachToBone(bone: Bone, affectedMesh: AbstractMesh): void;
+        detachFromBone(): void;
+        isInFrustum(frustumPlanes: Plane[]): boolean;
+        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
+        intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
+        intersectsPoint(point: Vector3): boolean;
+        /**
+         *  @Deprecated. Use new PhysicsImpostor instead.
+         * */
+        setPhysicsState(impostor?: any, options?: PhysicsImpostorParameters): any;
+        getPhysicsImpostor(): PhysicsImpostor;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("mass");
+         */
+        getPhysicsMass(): number;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("friction");
+         */
+        getPhysicsFriction(): number;
+        /**
+         * @Deprecated. Use getPhysicsImpostor().getParam("restitution");
+         */
+        getPhysicsRestitution(): number;
+        getPositionInCameraSpace(camera?: Camera): Vector3;
+        getDistanceToCamera(camera?: Camera): number;
+        applyImpulse(force: Vector3, contactPoint: Vector3): void;
+        setPhysicsLinkWith(otherMesh: Mesh, pivot1: Vector3, pivot2: Vector3, options?: any): void;
+        /**
+         * @Deprecated
+         */
+        updatePhysicsBodyPosition(): void;
+        /**
+         * @Deprecated
+         * Calling this function is not needed anymore.
+         * The physics engine takes care of transofmration automatically.
+         */
+        updatePhysicsBody(): void;
+        checkCollisions: boolean;
+        moveWithCollisions(velocity: Vector3): void;
+        private _onCollisionPositionChange;
+        /**
+        * This function will create an octree to help select the right submeshes for rendering, picking and collisions
+        * Please note that you must have a decent number of submeshes to get performance improvements when using octree
+        */
         createOrUpdateSubmeshesOctree(maxCapacity?: number, maxDepth?: number): Octree<SubMesh>;
         _collideForSubMesh(subMesh: SubMesh, transformMatrix: Matrix, collider: Collider): void;
         _processCollisionsForSubMeshes(collider: Collider, transformMatrix: Matrix): void;
@@ -11993,716 +8442,20 @@ declare module BABYLON {
         constructor(name: string, scene: Scene);
         subdivisions: number;
         optimize(chunksCount: number, octreeBlocksSize?: number): void;
-=======
-        setVisibilityBox(size: number): void;
->>>>>>> vr_room_scale_camera
-        /**
-        * Sets the SPS as always visible or not
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isAlwaysVisible: boolean;
-        /**
-        * Sets the SPS visibility box as locked or not. This enables/disables the underlying mesh bounding box updates.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isVisibilityBoxLocked: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle rotations or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle rotations aren't stored values, so setting `computeParticleRotation` to false will prevents the particle to rotate.
-        */
-        computeParticleRotation: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle colors or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle colors are stored values, so setting `computeParticleColor` to false will keep yet the last colors set.
-        */
-        computeParticleColor: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle textures or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle textures are stored values, so setting `computeParticleTexture` to false will keep yet the last colors set.
-        */
-        computeParticleTexture: boolean;
-        /**
-        * Tells to `setParticles()` to call the vertex function for each vertex of each particle, or not.
-        * Default value : false. The SPS is faster when it's set to false.
-        * Note : the particle custom vertex positions aren't stored values.
-        */
-        computeParticleVertex: boolean;
-        /**
-        * Tells to `setParticles()` to compute or not the mesh bounding box when computing the particle positions.
-        */
-        computeBoundingBox: boolean;
-        /**
-        * This function does nothing. It may be overwritten to set all the particle first values.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        initParticles(): void;
-        /**
-        * This function does nothing. It may be overwritten to recycle a particle.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        recycleParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a particle : this function should  be overwritten by the user.
-        * It is called on each particle by `setParticles()`. This is the place to code each particle behavior.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        * ex : just set a particle position or velocity and recycle conditions
-        */
-        updateParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a vertex of a particle : it can be overwritten by the user.
-        * This will be called on each vertex particle by `setParticles()` if `computeParticleVertex` is set to true only.
-        * @param particle the current particle
-        * @param vertex the current index of the current particle
-        * @param pt the index of the current vertex in the particle shape
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#update-each-particle-shape
-        * ex : just set a vertex particle position
-        */
-        updateParticleVertex(particle: SolidParticle, vertex: Vector3, pt: number): Vector3;
-        /**
-        * This will be called before any other treatment by `setParticles()` and will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        beforeUpdateParticles(start?: number, stop?: number, update?: boolean): void;
-        /**
-        * This will be called  by `setParticles()` after all the other treatments and just before the actual mesh update.
-        * This will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        afterUpdateParticles(start?: number, stop?: number, update?: boolean): void;
-    }
-}
-
-declare module BABYLON {
-    class ReflectionProbe {
-        name: string;
-        private _scene;
-        private _renderTargetTexture;
-        private _projectionMatrix;
-        private _viewMatrix;
-        private _target;
-        private _add;
-        private _attachedMesh;
-        invertYAxis: boolean;
-        position: Vector3;
-        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
-        refreshRate: number;
-        getScene(): Scene;
-        cubeTexture: RenderTargetTexture;
-        renderList: AbstractMesh[];
-        attachToMesh(mesh: AbstractMesh): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-    class AbstractMesh extends Node implements IDisposable {
-        private static _BILLBOARDMODE_NONE;
-        private static _BILLBOARDMODE_X;
-        private static _BILLBOARDMODE_Y;
-        private static _BILLBOARDMODE_Z;
-        private static _BILLBOARDMODE_ALL;
-        static BILLBOARDMODE_NONE: number;
-        static BILLBOARDMODE_X: number;
-        static BILLBOARDMODE_Y: number;
-        static BILLBOARDMODE_Z: number;
-        static BILLBOARDMODE_ALL: number;
-        /**
-        * An event triggered when the mesh is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<AbstractMesh>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        /**
-        * An event triggered when this mesh collides with another one
-        * @type {BABYLON.Observable}
-        */
-        onCollideObservable: Observable<AbstractMesh>;
-        private _onCollideObserver;
-        onCollide: () => void;
-        /**
-        * An event triggered when the collision's position changes
-        * @type {BABYLON.Observable}
-        */
-        onCollisionPositionChangeObservable: Observable<Vector3>;
-        private _onCollisionPositionChangeObserver;
-        onCollisionPositionChange: () => void;
-        /**
-        * An event triggered after the world matrix is updated
-        * @type {BABYLON.Observable}
-        */
-        onAfterWorldMatrixUpdateObservable: Observable<AbstractMesh>;
-        definedFacingForward: boolean;
-        position: Vector3;
-        private _rotation;
-        _rotationQuaternion: Quaternion;
-        private _scaling;
-        billboardMode: number;
-        visibility: number;
-        alphaIndex: number;
-        infiniteDistance: boolean;
-        isVisible: boolean;
-        isPickable: boolean;
-        showBoundingBox: boolean;
-        showSubMeshesBoundingBox: boolean;
-        isBlocker: boolean;
-        renderingGroupId: number;
-        material: Material;
-        receiveShadows: boolean;
-        renderOutline: boolean;
-        outlineColor: Color3;
-        outlineWidth: number;
-        renderOverlay: boolean;
-        overlayColor: Color3;
-        overlayAlpha: number;
-        hasVertexAlpha: boolean;
-        useVertexColors: boolean;
-        applyFog: boolean;
-        computeBonesUsingShaders: boolean;
-        scalingDeterminant: number;
-        numBoneInfluencers: number;
-        useOctreeForRenderingSelection: boolean;
-        useOctreeForPicking: boolean;
-        useOctreeForCollisions: boolean;
-        layerMask: number;
-        alwaysSelectAsActiveMesh: boolean;
-        /**
-         * This scene's action manager
-         * @type {BABYLON.ActionManager}
-        */
-        actionManager: ActionManager;
-        physicsImpostor: BABYLON.PhysicsImpostor;
-        onPhysicsCollide: (collidedMesh: AbstractMesh, contact: any) => void;
-        private _checkCollisions;
-        ellipsoid: Vector3;
-        ellipsoidOffset: Vector3;
-        private _collider;
-        private _oldPositionForCollisions;
-        private _diffPositionForCollisions;
-        private _newPositionForCollisions;
-        private _meshToBoneReferal;
-        edgesWidth: number;
-        edgesColor: Color4;
-        _edgesRenderer: EdgesRenderer;
-        private _localWorld;
-        _worldMatrix: Matrix;
-        private _rotateYByPI;
-        private _absolutePosition;
-        private _collisionsTransformMatrix;
-        private _collisionsScalingMatrix;
-        _positions: Vector3[];
-        private _isDirty;
-        _masterMesh: AbstractMesh;
-        _materialDefines: MaterialDefines;
-        _boundingInfo: BoundingInfo;
-        private _pivotMatrix;
-        _isDisposed: boolean;
-        _renderId: number;
-        subMeshes: SubMesh[];
-        _submeshesOctree: Octree<SubMesh>;
-        _intersectionsInProgress: AbstractMesh[];
-        private _isWorldMatrixFrozen;
-        _unIndexed: boolean;
-        _poseMatrix: Matrix;
-        _waitingActions: any;
-        _waitingFreezeWorldMatrix: boolean;
-        private _skeleton;
-        _bonesTransformMatrices: Float32Array;
-        skeleton: Skeleton;
-        constructor(name: string, scene: Scene);
-        /**
-         * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
-         */
-        toString(fullDetails?: boolean): string;
-        /**
-         * Getting the rotation object.
-         * If rotation quaternion is set, this vector will (almost always) be the Zero vector!
-         */
-        rotation: Vector3;
-        scaling: Vector3;
-        rotationQuaternion: Quaternion;
-        updatePoseMatrix(matrix: Matrix): void;
-        getPoseMatrix(): Matrix;
-        disableEdgesRendering(): void;
-        enableEdgesRendering(epsilon?: number, checkVerticesInsteadOfIndices?: boolean): void;
-        isBlocked: boolean;
-        getLOD(camera: Camera): AbstractMesh;
-        getTotalVertices(): number;
-        getIndices(): number[] | Int32Array;
-        getVerticesData(kind: string): number[] | Float32Array;
-        isVerticesDataPresent(kind: string): boolean;
-        getBoundingInfo(): BoundingInfo;
-        useBones: boolean;
-        _preActivate(): void;
-        _preActivateForIntermediateRendering(renderId: number): void;
-        _activate(renderId: number): void;
-        getWorldMatrix(): Matrix;
-        worldMatrixFromCache: Matrix;
-        absolutePosition: Vector3;
-        freezeWorldMatrix(): void;
-        unfreezeWorldMatrix(): void;
-        isWorldMatrixFrozen: boolean;
-        rotate(axis: Vector3, amount: number, space?: Space): void;
-        translate(axis: Vector3, distance: number, space?: Space): void;
-        getAbsolutePosition(): Vector3;
-        setAbsolutePosition(absolutePosition: Vector3): void;
-        /**
-         * Perform relative position change from the point of view of behind the front of the mesh.
-         * This is performed taking into account the meshes current rotation, so you do not have to care.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} amountRight
-         * @param {number} amountUp
-         * @param {number} amountForward
-         */
-        movePOV(amountRight: number, amountUp: number, amountForward: number): void;
-        /**
-         * Calculate relative position change from the point of view of behind the front of the mesh.
-         * This is performed taking into account the meshes current rotation, so you do not have to care.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} amountRight
-         * @param {number} amountUp
-         * @param {number} amountForward
-         */
-        calcMovePOV(amountRight: number, amountUp: number, amountForward: number): Vector3;
-        /**
-         * Perform relative rotation change from the point of view of behind the front of the mesh.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} flipBack
-         * @param {number} twirlClockwise
-         * @param {number} tiltRight
-         */
-        rotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): void;
-        /**
-         * Calculate relative rotation change from the point of view of behind the front of the mesh.
-         * Supports definition of mesh facing forward or backward.
-         * @param {number} flipBack
-         * @param {number} twirlClockwise
-         * @param {number} tiltRight
-         */
-        calcRotatePOV(flipBack: number, twirlClockwise: number, tiltRight: number): Vector3;
-        setPivotMatrix(matrix: Matrix): void;
-        getPivotMatrix(): Matrix;
-        _isSynchronized(): boolean;
-        _initCache(): void;
-        markAsDirty(property: string): void;
-        _updateBoundingInfo(): void;
-        _updateSubMeshesBoundingInfo(matrix: Matrix): void;
-        computeWorldMatrix(force?: boolean): Matrix;
-        /**
-        * If you'd like to be callbacked after the mesh position, rotation or scaling has been updated
-        * @param func: callback function to add
-        */
-        registerAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
-        unregisterAfterWorldMatrixUpdate(func: (mesh: AbstractMesh) => void): void;
-        setPositionWithLocalVector(vector3: Vector3): void;
-        getPositionExpressedInLocalSpace(): Vector3;
-        locallyTranslate(vector3: Vector3): void;
-        lookAt(targetPoint: Vector3, yawCor: number, pitchCor: number, rollCor: number): void;
-        attachToBone(bone: Bone, affectedMesh: AbstractMesh): void;
-        detachFromBone(): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(camera?: Camera): boolean;
-        intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
-        intersectsPoint(point: Vector3): boolean;
-        /**
-         *  @Deprecated. Use new PhysicsImpostor instead.
-         * */
-        setPhysicsState(impostor?: any, options?: PhysicsImpostorParameters): any;
-        getPhysicsImpostor(): PhysicsImpostor;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("mass");
-         */
-        getPhysicsMass(): number;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("friction");
-         */
-        getPhysicsFriction(): number;
-        /**
-         * @Deprecated. Use getPhysicsImpostor().getParam("restitution");
-         */
-        getPhysicsRestitution(): number;
-        getPositionInCameraSpace(camera?: Camera): Vector3;
-        getDistanceToCamera(camera?: Camera): number;
-        applyImpulse(force: Vector3, contactPoint: Vector3): void;
-        setPhysicsLinkWith(otherMesh: Mesh, pivot1: Vector3, pivot2: Vector3, options?: any): void;
-        /**
-         * @Deprecated
-         */
-        updatePhysicsBodyPosition(): void;
-        /**
-         * @Deprecated
-         * Calling this function is not needed anymore.
-         * The physics engine takes care of transofmration automatically.
-         */
-        updatePhysicsBody(): void;
-        checkCollisions: boolean;
-        moveWithCollisions(velocity: Vector3): void;
-        private _onCollisionPositionChange;
-        /**
-        * This function will create an octree to help select the right submeshes for rendering, picking and collisions
-        * Please note that you must have a decent number of submeshes to get performance improvements when using octree
-        */
-        createOrUpdateSubmeshesOctree(maxCapacity?: number, maxDepth?: number): Octree<SubMesh>;
-        _collideForSubMesh(subMesh: SubMesh, transformMatrix: Matrix, collider: Collider): void;
-        _processCollisionsForSubMeshes(collider: Collider, transformMatrix: Matrix): void;
-        _checkCollision(collider: Collider): void;
-        _generatePointsArray(): boolean;
-        intersects(ray: Ray, fastCheck?: boolean): PickingInfo;
-        clone(name: string, newParent: Node, doNotCloneChildren?: boolean): AbstractMesh;
-        releaseSubMeshes(): void;
-        dispose(doNotRecurse?: boolean): void;
-    }
-}
-
-declare module BABYLON {
-    class Buffer {
-        private _engine;
-        private _buffer;
-        private _data;
-        private _updatable;
-        private _strideSize;
-        private _instanced;
-        constructor(engine: any, data: number[] | Float32Array, updatable: boolean, stride: number, postponeInternalCreation?: boolean, instanced?: boolean);
-        createVertexBuffer(kind: string, offset: number, size: number, stride?: number): VertexBuffer;
-        isUpdatable(): boolean;
-        getData(): number[] | Float32Array;
-        getBuffer(): WebGLBuffer;
-        getStrideSize(): number;
-        getIsInstanced(): boolean;
-        create(data?: number[] | Float32Array): void;
-        update(data: number[] | Float32Array): void;
-        updateDirectly(data: Float32Array, offset: number, vertexCount?: number): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-    class CSG {
-        private polygons;
-        matrix: Matrix;
-        position: Vector3;
-        rotation: Vector3;
-        rotationQuaternion: Quaternion;
-        scaling: Vector3;
-        static FromMesh(mesh: Mesh): CSG;
-        private static FromPolygons(polygons);
-        clone(): CSG;
-        private toPolygons();
-        union(csg: CSG): CSG;
-        unionInPlace(csg: CSG): void;
-        subtract(csg: CSG): CSG;
-        subtractInPlace(csg: CSG): void;
-        intersect(csg: CSG): CSG;
-        intersectInPlace(csg: CSG): void;
-        inverse(): CSG;
-        inverseInPlace(): void;
-        copyTransformAttributes(csg: CSG): CSG;
-        buildMeshGeometry(name: string, scene: Scene, keepSubMeshes: boolean): Mesh;
-        toMesh(name: string, material: Material, scene: Scene, keepSubMeshes: boolean): Mesh;
-    }
-}
-
-declare module BABYLON {
-    class Geometry implements IGetSetVerticesData {
-        id: string;
-        delayLoadState: number;
-        delayLoadingFile: string;
-        onGeometryUpdated: (geometry: Geometry, kind?: string) => void;
-        private _scene;
-        private _engine;
-        private _meshes;
-        private _totalVertices;
-        private _indices;
-        private _vertexBuffers;
-        private _isDisposed;
-        private _extend;
-        private _boundingBias;
-        _delayInfo: any;
-        private _indexBuffer;
-        _boundingInfo: BoundingInfo;
-        _delayLoadingFunction: (any: any, geometry: Geometry) => void;
-        _softwareSkinningRenderId: number;
-        /**
-         *  The Bias Vector to apply on the bounding elements (box/sphere), the max extend is computed as v += v * bias.x + bias.y, the min is computed as v -= v * bias.x + bias.y
-         * @returns The Bias Vector
-         */
-        boundingBias: Vector2;
-        constructor(id: string, scene: Scene, vertexData?: VertexData, updatable?: boolean, mesh?: Mesh);
-        extend: {
-            minimum: Vector3;
-            maximum: Vector3;
-        };
-        getScene(): Scene;
-        getEngine(): Engine;
-        isReady(): boolean;
-        setAllVerticesData(vertexData: VertexData, updatable?: boolean): void;
-        setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean, stride?: number): void;
-        setVerticesBuffer(buffer: VertexBuffer): void;
-<<<<<<< HEAD
-        /**
-         * Updates the existing vertex data of the mesh geometry for the requested `kind`.
-         * If the mesh has no geometry, it is simply returned as it is.
-         * The `data` are either a numeric array either a Float32Array.
-         * No new underlying VertexBuffer object is created.
-         * If the `kind` is the `PositionKind` and if `updateExtends` is true, the mesh BoundingInfo is renewed, so the bounding box and sphere, and the mesh World Matrix is recomputed.
-         * If the parameter `makeItUnique` is true, a new global geometry is created from this positions and is set to the mesh.
-         *
-         * Possible `kind` values :
-         * - BABYLON.VertexBuffer.PositionKind
-         * - BABYLON.VertexBuffer.UVKind
-         * - BABYLON.VertexBuffer.UV2Kind
-         * - BABYLON.VertexBuffer.UV3Kind
-         * - BABYLON.VertexBuffer.UV4Kind
-         * - BABYLON.VertexBuffer.UV5Kind
-         * - BABYLON.VertexBuffer.UV6Kind
-         * - BABYLON.VertexBuffer.ColorKind
-         * - BABYLON.VertexBuffer.MatricesIndicesKind
-         * - BABYLON.VertexBuffer.MatricesIndicesExtraKind
-         * - BABYLON.VertexBuffer.MatricesWeightsKind
-         * - BABYLON.VertexBuffer.MatricesWeightsExtraKind
-         */
-        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
-        /**
-         * Deprecated since BabylonJS v2.3
-         */
-        updateVerticesDataDirectly(kind: string, data: Float32Array, offset?: number, makeItUnique?: boolean): void;
-        /**
-         * This method updates the vertex positions of an updatable mesh according to the `positionFunction` returned values.
-         * tuto : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#other-shapes-updatemeshpositions
-         * The parameter `positionFunction` is a simple JS function what is passed the mesh `positions` array. It doesn't need to return anything.
-         * The parameter `computeNormals` is a boolean (default true) to enable/disable the mesh normal recomputation after the vertex position update.
-         */
-        updateMeshPositions(positionFunction: any, computeNormals?: boolean): void;
-        makeGeometryUnique(): void;
-        /**
-         * Sets the mesh indices.
-         * Expects an array populated with integers or a Int32Array.
-         * If the mesh has no geometry, a new Geometry object is created and set to the mesh.
-         * This method creates a new index buffer each call.
-         */
-=======
-        updateVerticesDataDirectly(kind: string, data: Float32Array, offset: number): void;
-        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean): void;
-        private updateBoundingInfo(updateExtends, data);
-        getTotalVertices(): number;
-        getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Float32Array;
-        getVertexBuffer(kind: string): VertexBuffer;
-        getVertexBuffers(): {
-            [key: string]: VertexBuffer;
-        };
-        isVerticesDataPresent(kind: string): boolean;
-        getVerticesDataKinds(): string[];
->>>>>>> vr_room_scale_camera
-        setIndices(indices: number[] | Int32Array, totalVertices?: number): void;
-        getTotalIndices(): number;
-        getIndices(copyWhenShared?: boolean): number[] | Int32Array;
-        getIndexBuffer(): WebGLBuffer;
-        releaseForMesh(mesh: Mesh, shouldDispose?: boolean): void;
-        applyToMesh(mesh: Mesh): void;
-        private updateExtend(data?, stride?);
-        private _applyToMesh(mesh);
-        private notifyUpdate(kind?);
-        load(scene: Scene, onLoaded?: () => void): void;
-        /**
-         * Invert the geometry to move from a right handed system to a left handed one.
-         */
-        toLeftHanded(): void;
-        isDisposed(): boolean;
-        dispose(): void;
-        copy(id: string): Geometry;
-        serialize(): any;
-        serializeVerticeData(): any;
-        static ExtractFromMesh(mesh: Mesh, id: string): Geometry;
-        static RandomId(): string;
-        static ImportGeometry(parsedGeometry: any, mesh: Mesh): void;
-        static Parse(parsedVertexData: any, scene: Scene, rootUrl: string): Geometry;
-    }
-    module Geometry.Primitives {
-        class _Primitive extends Geometry {
-            private _canBeRegenerated;
-            private _beingRegenerated;
-            constructor(id: string, scene: Scene, _canBeRegenerated?: boolean, mesh?: Mesh);
-            canBeRegenerated(): boolean;
-            regenerate(): void;
-            asNewGeometry(id: string): Geometry;
-            setAllVerticesData(vertexData: VertexData, updatable?: boolean): void;
-            setVerticesData(kind: string, data: number[] | Int32Array | Float32Array, updatable?: boolean): void;
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-        }
-        class Ribbon extends _Primitive {
-            pathArray: Vector3[][];
-            closeArray: boolean;
-            closePath: boolean;
-            offset: number;
-            side: number;
-            constructor(id: string, scene: Scene, pathArray: Vector3[][], closeArray: boolean, closePath: boolean, offset: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-        }
-        class Box extends _Primitive {
-            size: number;
-            side: number;
-            constructor(id: string, scene: Scene, size: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedBox: any, scene: Scene): Box;
-        }
-        class Sphere extends _Primitive {
-            segments: number;
-            diameter: number;
-            side: number;
-            constructor(id: string, scene: Scene, segments: number, diameter: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedSphere: any, scene: Scene): Geometry.Primitives.Sphere;
-        }
-        class Disc extends _Primitive {
-            radius: number;
-            tessellation: number;
-            side: number;
-            constructor(id: string, scene: Scene, radius: number, tessellation: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-        }
-        class Cylinder extends _Primitive {
-            height: number;
-            diameterTop: number;
-            diameterBottom: number;
-            tessellation: number;
-            subdivisions: number;
-            side: number;
-            constructor(id: string, scene: Scene, height: number, diameterTop: number, diameterBottom: number, tessellation: number, subdivisions?: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedCylinder: any, scene: Scene): Geometry.Primitives.Cylinder;
-        }
-        class Torus extends _Primitive {
-            diameter: number;
-            thickness: number;
-            tessellation: number;
-            side: number;
-            constructor(id: string, scene: Scene, diameter: number, thickness: number, tessellation: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedTorus: any, scene: Scene): Geometry.Primitives.Torus;
-        }
-        class Ground extends _Primitive {
-            width: number;
-            height: number;
-            subdivisions: number;
-            constructor(id: string, scene: Scene, width: number, height: number, subdivisions: number, canBeRegenerated?: boolean, mesh?: Mesh);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedGround: any, scene: Scene): Geometry.Primitives.Ground;
-        }
-        class TiledGround extends _Primitive {
-            xmin: number;
-            zmin: number;
-            xmax: number;
-            zmax: number;
-            subdivisions: {
-                w: number;
-                h: number;
-            };
-            precision: {
-                w: number;
-                h: number;
-            };
-            constructor(id: string, scene: Scene, xmin: number, zmin: number, xmax: number, zmax: number, subdivisions: {
-                w: number;
-                h: number;
-            }, precision: {
-                w: number;
-                h: number;
-            }, canBeRegenerated?: boolean, mesh?: Mesh);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-        }
-        class Plane extends _Primitive {
-            size: number;
-            side: number;
-            constructor(id: string, scene: Scene, size: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedPlane: any, scene: Scene): Geometry.Primitives.Plane;
-        }
-        class TorusKnot extends _Primitive {
-            radius: number;
-            tube: number;
-            radialSegments: number;
-            tubularSegments: number;
-            p: number;
-            q: number;
-            side: number;
-            constructor(id: string, scene: Scene, radius: number, tube: number, radialSegments: number, tubularSegments: number, p: number, q: number, canBeRegenerated?: boolean, mesh?: Mesh, side?: number);
-            _regenerateVertexData(): VertexData;
-            copy(id: string): Geometry;
-            serialize(): any;
-            static Parse(parsedTorusKnot: any, scene: Scene): Geometry.Primitives.TorusKnot;
-        }
-    }
-}
-
-declare module BABYLON {
-    class GroundMesh extends Mesh {
-        generateOctree: boolean;
-        private _worldInverse;
-        private _heightQuads;
-        _subdivisions: number;
-        _width: number;
-        _height: number;
-        _minX: number;
-        _maxX: number;
-        _minZ: number;
-        _maxZ: number;
-        constructor(name: string, scene: Scene);
-        subdivisions: number;
-        optimize(chunksCount: number, octreeBlocksSize?: number): void;
         /**
          * Returns a height (y) value in the Worl system :
          * the ground altitude at the coordinates (x, z) expressed in the World system.
          * Returns the ground y position if (x, z) are outside the ground surface.
          * Not pertinent if the ground is rotated.
          */
-<<<<<<< HEAD
-        unregisterAfterRender(func: (mesh: AbstractMesh) => void): void;
-        _getInstancesRenderList(subMeshId: number): _InstancesBatch;
-        _renderWithInstances(subMesh: SubMesh, fillMode: number, batch: _InstancesBatch, effect: Effect, engine: Engine): void;
-        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix, effectiveMaterial?: Material) => void, effectiveMaterial?: Material): void;
-=======
         getHeightAtCoordinates(x: number, z: number): number;
->>>>>>> vr_room_scale_camera
         /**
          * Returns a normalized vector (Vector3) orthogonal to the ground
          * at the ground coordinates (x, z) expressed in the World system.
          * Returns Vector3(0, 1, 0) if (x, z) are outside the ground surface.
          * Not pertinent if the ground is rotated.
          */
-<<<<<<< HEAD
-        render(subMesh: SubMesh, enableAlphaMode: boolean): void;
-        private _onBeforeDraw(isInstance, world, effectiveMaterial);
-=======
         getNormalAtCoordinates(x: number, z: number): Vector3;
->>>>>>> vr_room_scale_camera
         /**
          * Updates the Vector3 passed a reference with a normalized vector orthogonal to the ground
          * at the ground coordinates (x, z) expressed in the World system.
@@ -12711,13 +8464,6 @@ declare module BABYLON {
          */
         getNormalAtCoordinatesToRef(x: number, z: number, ref: Vector3): void;
         /**
-<<<<<<< HEAD
-         * Returns an array populated with ParticleSystem objects whose the mesh or its children are the emitter.
-         */
-        getHierarchyEmittedParticleSystems(): ParticleSystem[];
-        _checkDelayState(): void;
-        private _queueLoad(mesh, scene);
-=======
         * Force the heights to be recomputed for getHeightAtCoordinates() or getNormalAtCoordinates()
         * if the ground has been updated.
         * This can be used in the render loop
@@ -12764,7 +8510,6 @@ declare module BABYLON {
         color: Color3;
         alpha: number;
         private _positionBuffer;
->>>>>>> vr_room_scale_camera
         /**
          * The intersection Threshold is the margin applied when intersection a segment of the LinesMesh with a Ray.
          * This margin is expressed in world space coordinates, so its value may vary.
@@ -12814,16 +8559,7 @@ declare module BABYLON {
          */
         static BACKSIDE: number;
         /**
-<<<<<<< HEAD
-         * Returns a new Mesh object generated from the current mesh properties.
-         * This method must not get confused with createInstance().
-         * The parameter `name` is a string, the name given to the new mesh.
-         * The optional parameter `newParent` can be any Node object (default `null`).
-         * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
-         * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any.
-=======
          * Mesh side orientation : both internal and external or front and back surfaces
->>>>>>> vr_room_scale_camera
          */
         static DOUBLESIDE: number;
         /**
@@ -13020,20 +8756,7 @@ declare module BABYLON {
         getIndices(copyWhenShared?: boolean): number[] | Int32Array;
         isBlocked: boolean;
         /**
-<<<<<<< HEAD
-         * Creates lathe mesh.
-         * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
-         * Please consider using the same method from the MeshBuilder class instead.
-         * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
-         * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
-         * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
-         * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-=======
          * Boolean : true once the mesh is ready after all the delayed process (loading, etc) are complete.
->>>>>>> vr_room_scale_camera
          */
         isReady(): boolean;
         /**
@@ -13057,50 +8780,12 @@ declare module BABYLON {
          */
         freezeNormals(): void;
         /**
-<<<<<<< HEAD
-         * Creates a tube mesh.
-         * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         * Please consider using the same method from the MeshBuilder class instead.
-         * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
-         * The parameter `radius` (positive float, default 1) sets the tube radius size.
-         * The parameter `tessellation` (positive float, default 64) is the number of sides on the tubular surface.
-         * The parameter `radiusFunction` (javascript function, default null) is a vanilla javascript function. If it is not null, it overwrittes the parameter `radius`.
-         * This function is called on each point of the tube path and is passed the index `i` of the i-th point and the distance of this point from the first point of the path.
-         * It must return a radius value (positive float) :
-         * ```javascript
-         * var radiusFunction = function(i, distance) {
-         *     // do things
-         *     return radius; }
-         * ```
-         * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
-         * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-=======
          * This function affects parametric shapes on vertex position update only : ribbons, tubes, etc.
          * It has no effect at all on other shapes.
          * It reactivates the mesh normals computation if it was previously frozen.
->>>>>>> vr_room_scale_camera
          */
         unfreezeNormals(): void;
         /**
-<<<<<<< HEAD
-         * Creates a polyhedron mesh.
-         * Please consider using the same method from the MeshBuilder class instead.
-         * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
-         *  to choose the wanted type.
-         * The parameter `size` (positive float, default 1) sets the polygon size.
-         * You can overwrite the `size` on each dimension bu using the parameters `sizeX`, `sizeY` or `sizeZ` (positive floats, default to `size` value).
-         * You can build other polyhedron types than the 15 embbeded ones by setting the parameter `custom` (`polyhedronObject`, default null). If you set the parameter `custom`, this overwrittes the parameter `type`.
-         * A `polyhedronObject` is a formatted javascript object. You'll find a full file with pre-set polyhedra here : https://github.com/BabylonJS/Extensions/tree/master/Polyhedron
-         * You can set the color and the UV of each side of the polyhedron with the parameters `faceColors` (Color4, default `(1, 1, 1, 1)`) and faceUV (Vector4, default `(0, 0, 1, 1)`).
-         * To understand how to set `faceUV` or `faceColors`, please read this by considering the right number of faces of your polyhedron, instead of only 6 for the box : http://doc.babylonjs.com/tutorials/CreateBox_Per_Face_Textures_And_Colors
-         * The parameter `flat` (boolean, default true). If set to false, it gives the polyhedron a single global face, so less vertices and shared normals. In this case, `faceColors` and `faceUV` are ignored.
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-=======
          * Overrides instance count. Only applicable when custom instanced InterleavedVertexBuffer are used rather than InstancedMeshs
          */
         overridenInstanceCount: number;
@@ -13136,7 +8821,6 @@ declare module BABYLON {
          * - BABYLON.VertexBuffer.MatricesIndicesExtraKind
          * - BABYLON.VertexBuffer.MatricesWeightsKind
          * - BABYLON.VertexBuffer.MatricesWeightsExtraKind
->>>>>>> vr_room_scale_camera
          */
         setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean, stride?: number): void;
         setVerticesBuffer(buffer: VertexBuffer): void;
@@ -13164,17 +8848,7 @@ declare module BABYLON {
          */
         updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
         /**
-<<<<<<< HEAD
-         * Creates a decal mesh.
-         * Please consider using the same method from the MeshBuilder class instead.
-         * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
-         * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
-         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.
-         * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
-         * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
-=======
          * Deprecated since BabylonJS v2.3
->>>>>>> vr_room_scale_camera
          */
         updateVerticesDataDirectly(kind: string, data: Float32Array, offset?: number, makeItUnique?: boolean): void;
         /**
@@ -13188,7 +8862,7 @@ declare module BABYLON {
         /**
          * Sets the mesh indices.
          * Expects an array populated with integers or a Int32Array.
-         * If the mesh has no geometry, a new `Geometry` object is created and set to the mesh.
+         * If the mesh has no geometry, a new Geometry object is created and set to the mesh.
          * This method creates a new index buffer each call.
          */
         setIndices(indices: number[] | Int32Array, totalVertices?: number): void;
@@ -13199,201 +8873,20 @@ declare module BABYLON {
         _bind(subMesh: SubMesh, effect: Effect, fillMode: number): void;
         _draw(subMesh: SubMesh, fillMode: number, instancesCount?: number): void;
         /**
-<<<<<<< HEAD
-         * Returns an object `{min:` Vector3`, max:` Vector3`}`
-         * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
-=======
          * Registers for this mesh a javascript function called just before the rendering process.
          * This function is passed the current mesh and doesn't return anything.
->>>>>>> vr_room_scale_camera
          */
         registerBeforeRender(func: (mesh: AbstractMesh) => void): void;
         /**
-<<<<<<< HEAD
-         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
-=======
          * Disposes a previously registered javascript function called before the rendering.
          * This function is passed the current mesh and doesn't return anything.
->>>>>>> vr_room_scale_camera
          */
         unregisterBeforeRender(func: (mesh: AbstractMesh) => void): void;
         /**
          * Registers for this mesh a javascript function called just after the rendering is complete.
          * This function is passed the current mesh and doesn't return anything.
          */
-<<<<<<< HEAD
-        static MergeMeshes(meshes: Array<Mesh>, disposeSource?: boolean, allow32BitsIndices?: boolean, meshSubclass?: Mesh): Mesh;
-    }
-}
-
-declare module BABYLON {
-    interface IGetSetVerticesData {
-        isVerticesDataPresent(kind: string): boolean;
-        getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Int32Array | Float32Array;
-        getIndices(copyWhenShared?: boolean): number[] | Int32Array;
-        setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean): void;
-        updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
-        setIndices(indices: number[] | Int32Array): void;
-    }
-    class VertexData {
-        positions: number[] | Float32Array;
-        normals: number[] | Float32Array;
-        uvs: number[] | Float32Array;
-        uvs2: number[] | Float32Array;
-        uvs3: number[] | Float32Array;
-        uvs4: number[] | Float32Array;
-        uvs5: number[] | Float32Array;
-        uvs6: number[] | Float32Array;
-        colors: number[] | Float32Array;
-        matricesIndices: number[] | Float32Array;
-        matricesWeights: number[] | Float32Array;
-        matricesIndicesExtra: number[] | Float32Array;
-        matricesWeightsExtra: number[] | Float32Array;
-        indices: number[] | Int32Array;
-        set(data: number[] | Float32Array, kind: string): void;
-        applyToMesh(mesh: Mesh, updatable?: boolean): void;
-        applyToGeometry(geometry: Geometry, updatable?: boolean): void;
-        updateMesh(mesh: Mesh, updateExtends?: boolean, makeItUnique?: boolean): void;
-        updateGeometry(geometry: Geometry, updateExtends?: boolean, makeItUnique?: boolean): void;
-        private _applyTo(meshOrGeometry, updatable?);
-        private _update(meshOrGeometry, updateExtends?, makeItUnique?);
-        transform(matrix: Matrix): void;
-        merge(other: VertexData): void;
-        private _mergeElement(source, other);
-        serialize(): any;
-        static ExtractFromMesh(mesh: Mesh, copyWhenShared?: boolean): VertexData;
-        static ExtractFromGeometry(geometry: Geometry, copyWhenShared?: boolean): VertexData;
-        private static _ExtractFrom(meshOrGeometry, copyWhenShared?);
-        static CreateRibbon(options: {
-            pathArray: Vector3[][];
-            closeArray?: boolean;
-            closePath?: boolean;
-            offset?: number;
-            sideOrientation?: number;
-            invertUV?: boolean;
-        }): VertexData;
-        static CreateBox(options: {
-            size?: number;
-            width?: number;
-            height?: number;
-            depth?: number;
-            faceUV?: Vector4[];
-            faceColors?: Color4[];
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateSphere(options: {
-            segments?: number;
-            diameter?: number;
-            diameterX?: number;
-            diameterY?: number;
-            diameterZ?: number;
-            arc?: number;
-            slice?: number;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateCylinder(options: {
-            height?: number;
-            diameterTop?: number;
-            diameterBottom?: number;
-            diameter?: number;
-            tessellation?: number;
-            subdivisions?: number;
-            arc?: number;
-            faceColors?: Color4[];
-            faceUV?: Vector4[];
-            hasRings?: boolean;
-            enclose?: boolean;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateTorus(options: {
-            diameter?: number;
-            thickness?: number;
-            tessellation?: number;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateLineSystem(options: {
-            lines: Vector3[][];
-        }): VertexData;
-        static CreateDashedLines(options: {
-            points: Vector3[];
-            dashSize?: number;
-            gapSize?: number;
-            dashNb?: number;
-        }): VertexData;
-        static CreateGround(options: {
-            width?: number;
-            height?: number;
-            subdivisions?: number;
-        }): VertexData;
-        static CreateTiledGround(options: {
-            xmin: number;
-            zmin: number;
-            xmax: number;
-            zmax: number;
-            subdivisions?: {
-                w: number;
-                h: number;
-            };
-            precision?: {
-                w: number;
-                h: number;
-            };
-        }): VertexData;
-        static CreateGroundFromHeightMap(options: {
-            width: number;
-            height: number;
-            subdivisions: number;
-            minHeight: number;
-            maxHeight: number;
-            buffer: Uint8Array;
-            bufferWidth: number;
-            bufferHeight: number;
-        }): VertexData;
-        static CreatePlane(options: {
-            size?: number;
-            width?: number;
-            height?: number;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateDisc(options: {
-            radius?: number;
-            tessellation?: number;
-            arc?: number;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateIcoSphere(options: {
-            radius?: number;
-            radiusX?: number;
-            radiusY?: number;
-            radiusZ?: number;
-            flat?: boolean;
-            subdivisions?: number;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreatePolyhedron(options: {
-            type?: number;
-            size?: number;
-            sizeX?: number;
-            sizeY?: number;
-            sizeZ?: number;
-            custom?: any;
-            faceUV?: Vector4[];
-            faceColors?: Color4[];
-            flat?: boolean;
-            sideOrientation?: number;
-        }): VertexData;
-        static CreateTorusKnot(options: {
-            radius?: number;
-            tube?: number;
-            radialSegments?: number;
-            tubularSegments?: number;
-            p?: number;
-            q?: number;
-            sideOrientation?: number;
-        }): VertexData;
-=======
         registerAfterRender(func: (mesh: AbstractMesh) => void): void;
->>>>>>> vr_room_scale_camera
         /**
          * Disposes a previously registered javascript function called after the rendering.
          * This function is passed the current mesh and doesn't return anything.
@@ -13401,12 +8894,13 @@ declare module BABYLON {
         unregisterAfterRender(func: (mesh: AbstractMesh) => void): void;
         _getInstancesRenderList(subMeshId: number): _InstancesBatch;
         _renderWithInstances(subMesh: SubMesh, fillMode: number, batch: _InstancesBatch, effect: Effect, engine: Engine): void;
-        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix) => void): void;
+        _processRendering(subMesh: SubMesh, effect: Effect, fillMode: number, batch: _InstancesBatch, hardwareInstancedRendering: boolean, onBeforeDraw: (isInstance: boolean, world: Matrix, effectiveMaterial?: Material) => void, effectiveMaterial?: Material): void;
         /**
          * Triggers the draw call for the mesh.
          * Usually, you don't need to call this method by your own because the mesh rendering is handled by the scene rendering manager.
          */
         render(subMesh: SubMesh, enableAlphaMode: boolean): void;
+        private _onBeforeDraw(isInstance, world, effectiveMaterial);
         /**
          * Returns an array populated with ParticleSystem objects whose the mesh is the emitter.
          */
@@ -13416,44 +8910,17 @@ declare module BABYLON {
          */
         getHierarchyEmittedParticleSystems(): ParticleSystem[];
         _checkDelayState(): void;
+        private _queueLoad(mesh, scene);
         /**
          * Boolean, true is the mesh in the frustum defined by the Plane objects from the `frustumPlanes` array parameter.
          */
         isInFrustum(frustumPlanes: Plane[]): boolean;
         /**
-<<<<<<< HEAD
-         * Creates a ribbon mesh.
-         * The ribbon is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         *
-         * Please read this full tutorial to understand how to design a ribbon : http://doc.babylonjs.com/tutorials/Ribbon_Tutorial
-         * The parameter `pathArray` is a required array of paths, what are each an array of successive Vector3. The pathArray parameter depicts the ribbon geometry.
-         * The parameter `closeArray` (boolean, default false) creates a seam between the first and the last paths of the path array.
-         * The parameter `closePath` (boolean, default false) creates a seam between the first and the last points of each path of the path array.
-         * The parameter `offset` (positive integer, default : rounded half size of the pathArray length), is taken in account only if the `pathArray` is containing a single path.
-         * It's the offset to join the points from the same path. Ex : offset = 10 means the point 1 is joined to the point 11.
-         * The optional parameter `instance` is an instance of an existing Ribbon object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#ribbon
-         * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
-         * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
-         * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
-         */
-        static CreateRibbon(name: string, options: {
-            pathArray: Vector3[][];
-            closeArray?: boolean;
-            closePath?: boolean;
-            offset?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene?: Scene): Mesh;
-=======
          * Sets the mesh material by the material or multiMaterial `id` property.
          * The material `id` is a string identifying the material or the multiMaterial.
          * This method returns nothing.
          */
         setMaterialByID(id: string): void;
->>>>>>> vr_room_scale_camera
         /**
          * Returns as a new array populated with the mesh material and/or skeleton, if any.
          */
@@ -13480,7 +8947,7 @@ declare module BABYLON {
          * Returns a new Mesh object generated from the current mesh properties.
          * This method must not get confused with createInstance().
          * The parameter `name` is a string, the name given to the new mesh.
-         * The optional parameter `newParent` can be any `Node` object (default `null`).
+         * The optional parameter `newParent` can be any Node object (default `null`).
          * The optional parameter `doNotCloneChildren` (default `false`) allows/denies the recursive cloning of the original mesh children if any.
          * The parameter `clonePhysicsImpostor` (default `true`)  allows/denies the cloning in the same time of the original mesh `body` used by the physics engine, if any.
          */
@@ -13695,24 +9162,9 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
-<<<<<<< HEAD
-        static ExtrudeShape(name: string, options: {
-            shape: Vector3[];
-            path: Vector3[];
-            scale?: number;
-            rotation?: number;
-            cap?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-=======
         static ExtrudeShape(name: string, shape: Vector3[], path: Vector3[], scale: number, rotation: number, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
->>>>>>> vr_room_scale_camera
         /**
          * Creates an custom extruded shape mesh.
          * The custom extrusion is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
@@ -13745,55 +9197,22 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
-<<<<<<< HEAD
-        static ExtrudeShapeCustom(name: string, options: {
-            shape: Vector3[];
-            path: Vector3[];
-            scaleFunction?: any;
-            rotationFunction?: any;
-            ribbonCloseArray?: boolean;
-            ribbonClosePath?: boolean;
-            cap?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-=======
         static ExtrudeShapeCustom(name: string, shape: Vector3[], path: Vector3[], scaleFunction: Function, rotationFunction: Function, ribbonCloseArray: boolean, ribbonClosePath: boolean, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
->>>>>>> vr_room_scale_camera
         /**
          * Creates lathe mesh.
          * The lathe is a shape with a symetry axis : a 2D model shape is rotated around this axis to design the lathe.
          * Please consider using the same method from the MeshBuilder class instead.
-         *
          * The parameter `shape` is a required array of successive Vector3. This array depicts the shape to be rotated in its local space : the shape must be designed in the xOy plane and will be
          * rotated around the Y axis. It's usually a 2D shape, so the Vector3 z coordinates are often set to zero.
          * The parameter `radius` (positive float, default 1) is the radius value of the lathe.
          * The parameter `tessellation` (positive integer, default 64) is the side number of the lathe.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
-<<<<<<< HEAD
-        static CreateLathe(name: string, options: {
-            shape: Vector3[];
-            radius?: number;
-            tessellation?: number;
-            arc?: number;
-            closed?: boolean;
-            updatable?: boolean;
-            sideOrientation?: number;
-            cap?: number;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-=======
         static CreateLathe(name: string, shape: Vector3[], radius: number, tessellation: number, scene: Scene, updatable?: boolean, sideOrientation?: number): Mesh;
->>>>>>> vr_room_scale_camera
         /**
          * Creates a plane mesh.
          * Please consider using the same method from the MeshBuilder class instead.
@@ -13850,7 +9269,6 @@ declare module BABYLON {
         /**
          * Creates a tube mesh.
          * The tube is a parametric shape :  http://doc.babylonjs.com/tutorials/Parametric_Shapes.  It has no predefined shape. Its final shape will depend on the input parameters.
-         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `path` is a required array of successive Vector3. It is the curve used as the axis of the tube.
          * The parameter `radius` (positive float, default 1) sets the tube radius size.
@@ -13867,32 +9285,13 @@ declare module BABYLON {
          * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
-         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
-<<<<<<< HEAD
-        static CreateTube(name: string, options: {
-            path: Vector3[];
-            radius?: number;
-            tessellation?: number;
-            radiusFunction?: {
-                (i: number, distance: number): number;
-            };
-            cap?: number;
-            arc?: number;
-            updatable?: boolean;
-            sideOrientation?: number;
-            instance?: Mesh;
-            invertUV?: boolean;
-        }, scene: Scene): Mesh;
-=======
         static CreateTube(name: string, path: Vector3[], radius: number, tessellation: number, radiusFunction: {
             (i: number, distance: number): number;
         }, cap: number, scene: Scene, updatable?: boolean, sideOrientation?: number, instance?: Mesh): Mesh;
->>>>>>> vr_room_scale_camera
         /**
          * Creates a polyhedron mesh.
-         *
          * Please consider using the same method from the MeshBuilder class instead.
          * The parameter `type` (positive integer, max 14, default 0) sets the polyhedron type to build among the 15 embbeded types. Please refer to the type sheet in the tutorial
          *  to choose the wanted type.
@@ -13942,27 +9341,10 @@ declare module BABYLON {
          * Please consider using the same method from the MeshBuilder class instead.
          * A decal is a mesh usually applied as a model onto the surface of another mesh. So don't forget the parameter `sourceMesh` depicting the decal.
          * The parameter `position` (Vector3, default `(0, 0, 0)`) sets the position of the decal in World coordinates.
-         * The parameter `normal` (Vector3, default `Vector3.Up`) sets the normal of the mesh where the decal is applied onto in World coordinates.
+         * The parameter `normal` (Vector3, default Vector3.Up) sets the normal of the mesh where the decal is applied onto in World coordinates.
          * The parameter `size` (Vector3, default `(1, 1, 1)`) sets the decal scaling.
          * The parameter `angle` (float in radian, default 0) sets the angle to rotate the decal.
          */
-<<<<<<< HEAD
-        static CreateDecal(name: string, sourceMesh: AbstractMesh, options: {
-            position?: Vector3;
-            normal?: Vector3;
-            size?: Vector3;
-            angle?: number;
-        }): Mesh;
-        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance, invertUV);
-    }
-}
-
-declare module BABYLON.Internals {
-    class MeshLODLevel {
-        distance: number;
-        mesh: Mesh;
-        constructor(distance: number, mesh: Mesh);
-=======
         static CreateDecal(name: string, sourceMesh: AbstractMesh, position: Vector3, normal: Vector3, size: Vector3, angle: number): Mesh;
         /**
          * @returns original positions used for CPU skinning.  Useful for integrating Morphing with skeletons in same mesh.
@@ -13978,7 +9360,7 @@ declare module BABYLON.Internals {
          */
         applySkeleton(skeleton: Skeleton): Mesh;
         /**
-         * Returns an object `{min: Vector3, max: Vector3}`
+         * Returns an object `{min:` Vector3`, max:` Vector3`}`
          * This min and max Vector3 are the minimum and maximum vectors of each mesh bounding box from the passed array, in the World system
          */
         static MinMax(meshes: AbstractMesh[]): {
@@ -13986,7 +9368,7 @@ declare module BABYLON.Internals {
             max: Vector3;
         };
         /**
-         * Returns a `Vector3`, the center of the `{min: Vector3, max: Vector3}` or the center of MinMax vector3 computed from a mesh array.
+         * Returns a Vector3, the center of the `{min:` Vector3`, max:` Vector3`}` or the center of MinMax vector3 computed from a mesh array.
          */
         static Center(meshesOrMinMaxVector: any): Vector3;
         /**
@@ -13997,7 +9379,6 @@ declare module BABYLON.Internals {
          * @param {Mesh} meshSubclass - When set, vertices inserted into this Mesh.  Meshes can then be merged into a Mesh sub-class.
          */
         static MergeMeshes(meshes: Array<Mesh>, disposeSource?: boolean, allow32BitsIndices?: boolean, meshSubclass?: Mesh): Mesh;
->>>>>>> vr_room_scale_camera
     }
 }
 
@@ -14010,68 +9391,6 @@ declare module BABYLON {
         updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean, makeItUnique?: boolean): void;
         setIndices(indices: number[] | Int32Array): void;
     }
-<<<<<<< HEAD
-    class Reference {
-        vertexId: number;
-        triangleId: number;
-        constructor(vertexId: number, triangleId: number);
-    }
-    /**
-     * An implementation of the Quadratic Error simplification algorithm.
-     * Original paper : http://www1.cs.columbia.edu/~cs4162/html05s/garland97.pdf
-     * Ported mostly from QSlim and http://voxels.blogspot.de/2014/05/quadric-mesh-simplification-with-source.html to babylon JS
-     * @author RaananW
-     */
-    class QuadraticErrorSimplification implements ISimplifier {
-        private _mesh;
-        private triangles;
-        private vertices;
-        private references;
-        private initialized;
-        private _reconstructedMesh;
-        syncIterations: number;
-        aggressiveness: number;
-        decimationIterations: number;
-        boundingBoxEpsilon: number;
-        constructor(_mesh: Mesh);
-        simplify(settings: ISimplificationSettings, successCallback: (simplifiedMesh: Mesh) => void): void;
-        private isTriangleOnBoundingBox(triangle);
-        private runDecimation(settings, submeshIndex, successCallback);
-        private initWithMesh(submeshIndex, callback, optimizeMesh?);
-        private init(callback);
-        private reconstructMesh(submeshIndex);
-        private initDecimatedMesh();
-        private isFlipped(vertex1, vertex2, point, deletedArray, borderFactor, delTr);
-        private updateTriangles(origVertex, vertex, deletedArray, deletedTriangles);
-        private identifyBorder();
-        private updateMesh(identifyBorders?);
-        private vertexError(q, point);
-        private calculateError(vertex1, vertex2, pointResult?, normalResult?, uvResult?, colorResult?);
-    }
-}
-
-declare module BABYLON {
-    class Polygon {
-        static Rectangle(xmin: number, ymin: number, xmax: number, ymax: number): Vector2[];
-        static Circle(radius: number, cx?: number, cy?: number, numberOfSides?: number): Vector2[];
-        static Parse(input: string): Vector2[];
-        static StartingAt(x: number, y: number): Path2;
-    }
-    class PolygonMeshBuilder {
-        private _points;
-        private _outlinepoints;
-        private _holes;
-        private _name;
-        private _scene;
-        private _epoints;
-        private _eholes;
-        private _addToepoint(points);
-        constructor(name: string, contours: Path2, scene: Scene);
-        constructor(name: string, contours: Vector2[], scene: Scene);
-        addHole(hole: Vector2[]): PolygonMeshBuilder;
-        build(updatable?: boolean, depth?: number): Mesh;
-        private addSide(positions, normals, uvs, indices, bounds, points, depth, flip);
-=======
     class VertexData {
         positions: number[] | Float32Array;
         normals: number[] | Float32Array;
@@ -14107,6 +9426,7 @@ declare module BABYLON {
             closePath?: boolean;
             offset?: number;
             sideOrientation?: number;
+            invertUV?: boolean;
         }): VertexData;
         static CreateBox(options: {
             size?: number;
@@ -14235,676 +9555,11 @@ declare module BABYLON {
         static ComputeNormals(positions: any, indices: any, normals: any): void;
         private static _ComputeSides(sideOrientation, positions, indices, normals, uvs);
         static ImportVertexData(parsedVertexData: any, geometry: Geometry): void;
->>>>>>> vr_room_scale_camera
     }
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class SubMesh implements ICullable {
-        materialIndex: number;
-        verticesStart: number;
-        verticesCount: number;
-        indexStart: any;
-        indexCount: number;
-        linesIndexCount: number;
-        private _mesh;
-        private _renderingMesh;
-        private _boundingInfo;
-        private _linesIndexBuffer;
-        _lastColliderWorldVertices: Vector3[];
-        _trianglePlanes: Plane[];
-        _lastColliderTransformMatrix: Matrix;
-        _renderId: number;
-        _alphaIndex: number;
-        _distanceToCamera: number;
-        _id: number;
-        constructor(materialIndex: number, verticesStart: number, verticesCount: number, indexStart: any, indexCount: number, mesh: AbstractMesh, renderingMesh?: Mesh, createBoundingBox?: boolean);
-        IsGlobal: boolean;
-        getBoundingInfo(): BoundingInfo;
-        getMesh(): AbstractMesh;
-        getRenderingMesh(): Mesh;
-        getMaterial(): Material;
-        refreshBoundingInfo(): void;
-        _checkCollision(collider: Collider): boolean;
-        updateBoundingInfo(world: Matrix): void;
-        isInFrustum(frustumPlanes: Plane[]): boolean;
-        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        render(enableAlphaMode: boolean): void;
-        getLinesIndexBuffer(indices: number[] | Int32Array, engine: Engine): WebGLBuffer;
-        canIntersects(ray: Ray): boolean;
-        intersects(ray: Ray, positions: Vector3[], indices: number[] | Int32Array, fastCheck?: boolean): IntersectionInfo;
-        clone(newMesh: AbstractMesh, newRenderingMesh?: Mesh): SubMesh;
-        dispose(): void;
-        static CreateFromIndices(materialIndex: number, startIndex: number, indexCount: number, mesh: AbstractMesh, renderingMesh?: Mesh): SubMesh;
-    }
-}
-
-declare module BABYLON {
-    class VertexBuffer {
-        private _buffer;
-        private _kind;
-        private _offset;
-        private _size;
-        private _stride;
-        private _ownsBuffer;
-        constructor(engine: any, data: number[] | Float32Array | Buffer, kind: string, updatable: boolean, postponeInternalCreation?: boolean, stride?: number, instanced?: boolean, offset?: number, size?: number);
-        getKind(): string;
-        isUpdatable(): boolean;
-        getData(): number[] | Float32Array;
-        getBuffer(): WebGLBuffer;
-        getStrideSize(): number;
-        getOffset(): number;
-        getSize(): number;
-        getIsInstanced(): boolean;
-        create(data?: number[] | Float32Array): void;
-        update(data: number[] | Float32Array): void;
-        updateDirectly(data: Float32Array, offset: number): void;
-        dispose(): void;
-        private static _PositionKind;
-        private static _NormalKind;
-        private static _UVKind;
-        private static _UV2Kind;
-        private static _UV3Kind;
-        private static _UV4Kind;
-        private static _UV5Kind;
-        private static _UV6Kind;
-        private static _ColorKind;
-        private static _MatricesIndicesKind;
-        private static _MatricesWeightsKind;
-        private static _MatricesIndicesExtraKind;
-        private static _MatricesWeightsExtraKind;
-        static PositionKind: string;
-        static NormalKind: string;
-        static UVKind: string;
-        static UV2Kind: string;
-        static UV3Kind: string;
-        static UV4Kind: string;
-        static UV5Kind: string;
-        static UV6Kind: string;
-        static ColorKind: string;
-        static MatricesIndicesKind: string;
-        static MatricesWeightsKind: string;
-        static MatricesIndicesExtraKind: string;
-        static MatricesWeightsExtraKind: string;
-    }
-}
-
-declare module BABYLON {
-    class Particle {
-        position: Vector3;
-        direction: Vector3;
-        color: Color4;
-        colorStep: Color4;
-        lifeTime: number;
-        age: number;
-        size: number;
-        angle: number;
-        angularSpeed: number;
-        copyTo(other: Particle): void;
-<<<<<<< HEAD
-=======
-    }
-}
-
-declare module BABYLON {
-    class ParticleSystem implements IDisposable, IAnimatable {
-        name: string;
-        static BLENDMODE_ONEONE: number;
-        static BLENDMODE_STANDARD: number;
-        animations: Animation[];
-        id: string;
-        renderingGroupId: number;
-        emitter: any;
-        emitRate: number;
-        manualEmitCount: number;
-        updateSpeed: number;
-        targetStopDuration: number;
-        disposeOnStop: boolean;
-        minEmitPower: number;
-        maxEmitPower: number;
-        minLifeTime: number;
-        maxLifeTime: number;
-        minSize: number;
-        maxSize: number;
-        minAngularSpeed: number;
-        maxAngularSpeed: number;
-        particleTexture: Texture;
-        layerMask: number;
-        /**
-        * An event triggered when the system is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<ParticleSystem>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        updateFunction: (particles: Particle[]) => void;
-        blendMode: number;
-        forceDepthWrite: boolean;
-        gravity: Vector3;
-        direction1: Vector3;
-        direction2: Vector3;
-        minEmitBox: Vector3;
-        maxEmitBox: Vector3;
-        color1: Color4;
-        color2: Color4;
-        colorDead: Color4;
-        textureMask: Color4;
-        startDirectionFunction: (emitPower: number, worldMatrix: Matrix, directionToUpdate: Vector3, particle: Particle) => void;
-        startPositionFunction: (worldMatrix: Matrix, positionToUpdate: Vector3, particle: Particle) => void;
-        private particles;
-        private _capacity;
-        private _scene;
-        private _stockParticles;
-        private _newPartsExcess;
-        private _vertexData;
-        private _vertexBuffer;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _customEffect;
-        private _cachedDefines;
-        private _scaledColorStep;
-        private _colorDiff;
-        private _scaledDirection;
-        private _scaledGravity;
-        private _currentRenderId;
-        private _alive;
-        private _started;
-        private _stopped;
-        private _actualFrame;
-        private _scaledUpdateSpeed;
-        constructor(name: string, capacity: number, scene: Scene, customEffect?: Effect);
-        recycleParticle(particle: Particle): void;
-        getCapacity(): number;
-        isAlive(): boolean;
-        isStarted(): boolean;
-        start(): void;
-        stop(): void;
-        _appendParticleVertex(index: number, particle: Particle, offsetX: number, offsetY: number): void;
-        private _update(newParticles);
-        private _getEffect();
-        animate(): void;
-        render(): number;
-        dispose(): void;
-        clone(name: string, newEmitter: any): ParticleSystem;
-        serialize(): any;
-        static Parse(parsedParticleSystem: any, scene: Scene, rootUrl: string): ParticleSystem;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    }
-}
-
-declare module BABYLON {
-<<<<<<< HEAD
-    class ParticleSystem implements IDisposable, IAnimatable {
-        name: string;
-        static BLENDMODE_ONEONE: number;
-        static BLENDMODE_STANDARD: number;
-        animations: Animation[];
-        id: string;
-        renderingGroupId: number;
-        emitter: any;
-        emitRate: number;
-        manualEmitCount: number;
-        updateSpeed: number;
-        targetStopDuration: number;
-        disposeOnStop: boolean;
-        minEmitPower: number;
-        maxEmitPower: number;
-        minLifeTime: number;
-        maxLifeTime: number;
-        minSize: number;
-        maxSize: number;
-        minAngularSpeed: number;
-        maxAngularSpeed: number;
-        particleTexture: Texture;
-        layerMask: number;
-        /**
-        * An event triggered when the system is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<ParticleSystem>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        updateFunction: (particles: Particle[]) => void;
-        blendMode: number;
-        forceDepthWrite: boolean;
-        gravity: Vector3;
-        direction1: Vector3;
-        direction2: Vector3;
-        minEmitBox: Vector3;
-        maxEmitBox: Vector3;
-        color1: Color4;
-        color2: Color4;
-        colorDead: Color4;
-        textureMask: Color4;
-        startDirectionFunction: (emitPower: number, worldMatrix: Matrix, directionToUpdate: Vector3, particle: Particle) => void;
-        startPositionFunction: (worldMatrix: Matrix, positionToUpdate: Vector3, particle: Particle) => void;
-        private particles;
-        private _capacity;
-        private _scene;
-        private _stockParticles;
-        private _newPartsExcess;
-        private _vertexData;
-        private _vertexBuffer;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _customEffect;
-        private _cachedDefines;
-        private _scaledColorStep;
-        private _colorDiff;
-        private _scaledDirection;
-        private _scaledGravity;
-        private _currentRenderId;
-        private _alive;
-        private _started;
-        private _stopped;
-        private _actualFrame;
-        private _scaledUpdateSpeed;
-        constructor(name: string, capacity: number, scene: Scene, customEffect?: Effect);
-        recycleParticle(particle: Particle): void;
-        getCapacity(): number;
-        isAlive(): boolean;
-        isStarted(): boolean;
-        start(): void;
-        stop(): void;
-        _appendParticleVertex(index: number, particle: Particle, offsetX: number, offsetY: number): void;
-        private _update(newParticles);
-        private _getEffect();
-        animate(): void;
-        render(): number;
-        dispose(): void;
-        clone(name: string, newEmitter: any): ParticleSystem;
-        serialize(): any;
-        static Parse(parsedParticleSystem: any, scene: Scene, rootUrl: string): ParticleSystem;
-    }
-}
-
-declare module BABYLON {
-=======
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-    class SolidParticle {
-        idx: number;
-        color: Color4;
-        position: Vector3;
-        rotation: Vector3;
-        rotationQuaternion: Quaternion;
-        scaling: Vector3;
-        uvs: Vector4;
-        velocity: Vector3;
-        alive: boolean;
-        isVisible: boolean;
-        _pos: number;
-        _model: ModelShape;
-        shapeId: number;
-        idxInShape: number;
-        constructor(particleIndex: number, positionIndex: number, model: ModelShape, shapeId: number, idxInShape: number);
-        scale: Vector3;
-        quaternion: Quaternion;
-<<<<<<< HEAD
-    }
-    class ModelShape {
-        shapeID: number;
-        _shape: Vector3[];
-        _shapeUV: number[];
-        _positionFunction: (particle: SolidParticle, i: number, s: number) => void;
-        _vertexFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void;
-        constructor(id: number, shape: Vector3[], shapeUV: number[], posFunction: (particle: SolidParticle, i: number, s: number) => void, vtxFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void);
-    }
-=======
-    }
-    class ModelShape {
-        shapeID: number;
-        _shape: Vector3[];
-        _shapeUV: number[];
-        _positionFunction: (particle: SolidParticle, i: number, s: number) => void;
-        _vertexFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void;
-        constructor(id: number, shape: Vector3[], shapeUV: number[], posFunction: (particle: SolidParticle, i: number, s: number) => void, vtxFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void);
-    }
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-}
-
-declare module BABYLON {
-    /**
-    * Full documentation here : http://doc.babylonjs.com/overviews/Solid_Particle_System
-    */
-    class SolidParticleSystem implements IDisposable {
-<<<<<<< HEAD
-        /**
-        *  The SPS array of Solid Particle objects. Just access each particle as with any classic array.
-        *  Example : var p = SPS.particles[i];
-        */
-        particles: SolidParticle[];
-        /**
-        * The SPS total number of particles. Read only. Use SPS.counter instead if you need to set your own value.
-        */
-        nbParticles: number;
-        /**
-        * If the particles must ever face the camera (default false). Useful for planar particles.
-        */
-        billboard: boolean;
-        /**
-        * This a counter ofr your own usage. It's not set by any SPS functions.
-        */
-        counter: number;
-        /**
-        * The SPS name. This name is also given to the underlying mesh.
-        */
-        name: string;
-        /**
-        * The SPS mesh. It's a standard BJS Mesh, so all the methods from the Mesh class are avalaible.
-        */
-        mesh: Mesh;
-        /**
-        * This empty object is intended to store some SPS specific or temporary values in order to lower the Garbage Collector activity.
-        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#garbage-collector-concerns
-        */
-        vars: any;
-        /**
-        * This array is populated when the SPS is set as 'pickable'.
-        * Each key of this array is a `faceId` value that you can get from a pickResult object.
-        * Each element of this array is an object `{idx: int, faceId: int}`.
-        * `idx` is the picked particle index in the `SPS.particles` array
-        * `faceId` is the picked face index counted within this particle.
-        * Please read : http://doc.babylonjs.com/overviews/Solid_Particle_System#pickable-particles
-        */
-        pickedParticles: {
-            idx: number;
-            faceId: number;
-        }[];
-        private _scene;
-        private _positions;
-        private _indices;
-        private _normals;
-        private _colors;
-        private _uvs;
-        private _positions32;
-        private _normals32;
-        private _fixedNormal32;
-        private _colors32;
-        private _uvs32;
-        private _index;
-        private _updatable;
-        private _pickable;
-        private _isVisibilityBoxLocked;
-        private _alwaysVisible;
-        private _shapeCounter;
-        private _copy;
-        private _shape;
-        private _shapeUV;
-        private _color;
-        private _computeParticleColor;
-        private _computeParticleTexture;
-        private _computeParticleRotation;
-        private _computeParticleVertex;
-        private _computeBoundingBox;
-        private _cam_axisZ;
-        private _cam_axisY;
-        private _cam_axisX;
-        private _axisX;
-        private _axisY;
-        private _axisZ;
-        private _camera;
-        private _particle;
-        private _fakeCamPos;
-        private _rotMatrix;
-        private _invertMatrix;
-        private _rotated;
-        private _quaternion;
-        private _vertex;
-        private _normal;
-        private _yaw;
-        private _pitch;
-        private _roll;
-        private _halfroll;
-        private _halfpitch;
-        private _halfyaw;
-        private _sinRoll;
-        private _cosRoll;
-        private _sinPitch;
-        private _cosPitch;
-        private _sinYaw;
-        private _cosYaw;
-        private _w;
-        private _minimum;
-        private _maximum;
-        /**
-        * Creates a SPS (Solid Particle System) object.
-        * `name` (String) is the SPS name, this will be the underlying mesh name.
-        * `scene` (Scene) is the scene in which the SPS is added.
-        * `updatable` (default true) : if the SPS must be updatable or immutable.
-        * `isPickable` (default false) : if the solid particles must be pickable.
-        */
-        constructor(name: string, scene: Scene, options?: {
-            updatable?: boolean;
-            isPickable?: boolean;
-        });
-        /**
-        * Builds the SPS underlying mesh. Returns a standard Mesh.
-        * If no model shape was added to the SPS, the returned mesh is just a single triangular plane.
-        */
-        buildMesh(): Mesh;
-        /**
-        * Digests the mesh and generates as many solid particles in the system as wanted. Returns the SPS.
-        * These particles will have the same geometry than the mesh parts and will be positioned at the same localisation than the mesh original places.
-        * Thus the particles generated from `digest()` have their property `position` set yet.
-        * `mesh` ( Mesh ) is the mesh to be digested
-        * `facetNb` (optional integer, default 1) is the number of mesh facets per particle, this parameter is overriden by the parameter `number` if any
-        * `delta` (optional integer, default 0) is the random extra number of facets per particle , each particle will have between `facetNb` and `facetNb + delta` facets
-        * `number` (optional positive integer) is the wanted number of particles : each particle is built with `mesh_total_facets / number` facets
-        */
-        digest(mesh: Mesh, options?: {
-            facetNb?: number;
-            number?: number;
-            delta?: number;
-        }): SolidParticleSystem;
-        private _resetCopy();
-        private _meshBuilder(p, shape, positions, meshInd, indices, meshUV, uvs, meshCol, colors, idx, idxInShape, options);
-        private _posToShape(positions);
-        private _uvsToShapeUV(uvs);
-        private _addParticle(idx, idxpos, model, shapeId, idxInShape);
-        /**
-        * Adds some particles to the SPS from the model shape. Returns the shape id.
-        * Please read the doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#create-an-immutable-sps
-        * `mesh` is any Mesh object that will be used as a model for the solid particles.
-        * `nb` (positive integer) the number of particles to be created from this model
-        * `positionFunction` is an optional javascript function to called for each particle on SPS creation.
-        * `vertexFunction` is an optional javascript function to called for each vertex of each particle on SPS creation
-        */
-        addShape(mesh: Mesh, nb: number, options?: {
-            positionFunction?: any;
-            vertexFunction?: any;
-        }): number;
-        private _rebuildParticle(particle);
-        /**
-        * Rebuilds the whole mesh and updates the VBO : custom positions and vertices are recomputed if needed.
-        */
-        rebuildMesh(): void;
-        /**
-        *  Sets all the particles : this method actually really updates the mesh according to the particle positions, rotations, colors, textures, etc.
-        *  This method calls `updateParticle()` for each particle of the SPS.
-        *  For an animated SPS, it is usually called within the render loop.
-        * @param start The particle index in the particle array where to start to compute the particle property values _(default 0)_
-        * @param end The particle index in the particle array where to stop to compute the particle property values _(default nbParticle - 1)_
-        * @param update If the mesh must be finally updated on this call after all the particle computations _(default true)_
-        */
-        setParticles(start?: number, end?: number, update?: boolean): void;
-        private _quaternionRotationYPR();
-        private _quaternionToRotationMatrix();
-        /**
-        * Disposes the SPS
-        */
-        dispose(): void;
-        /**
-        * Visibilty helper : Recomputes the visible size according to the mesh bounding box
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        refreshVisibleSize(): void;
-        /**
-        * Visibility helper : Sets the size of a visibility box, this sets the underlying mesh bounding box.
-        * @param size the size (float) of the visibility box
-        * note : this doesn't lock the SPS mesh bounding box.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        setVisibilityBox(size: number): void;
-        /**
-        * Sets the SPS as always visible or not
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isAlwaysVisible: boolean;
-        /**
-        * Sets the SPS visibility box as locked or not. This enables/disables the underlying mesh bounding box updates.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#sps-visibility
-        */
-        isVisibilityBoxLocked: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle rotations or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle rotations aren't stored values, so setting `computeParticleRotation` to false will prevents the particle to rotate.
-        */
-        computeParticleRotation: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle colors or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle colors are stored values, so setting `computeParticleColor` to false will keep yet the last colors set.
-        */
-        computeParticleColor: boolean;
-        /**
-        * Tells to `setParticles()` to compute the particle textures or not.
-        * Default value : true. The SPS is faster when it's set to false.
-        * Note : the particle textures are stored values, so setting `computeParticleTexture` to false will keep yet the last colors set.
-        */
-        computeParticleTexture: boolean;
-        /**
-        * Tells to `setParticles()` to call the vertex function for each vertex of each particle, or not.
-        * Default value : false. The SPS is faster when it's set to false.
-        * Note : the particle custom vertex positions aren't stored values.
-        */
-        computeParticleVertex: boolean;
-        /**
-        * Tells to `setParticles()` to compute or not the mesh bounding box when computing the particle positions.
-        */
-        computeBoundingBox: boolean;
-        /**
-        * This function does nothing. It may be overwritten to set all the particle first values.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        initParticles(): void;
-        /**
-        * This function does nothing. It may be overwritten to recycle a particle.
-        * The SPS doesn't call this function, you may have to call it by your own.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        */
-        recycleParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a particle : this function should  be overwritten by the user.
-        * It is called on each particle by `setParticles()`. This is the place to code each particle behavior.
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#particle-management
-        * ex : just set a particle position or velocity and recycle conditions
-        */
-        updateParticle(particle: SolidParticle): SolidParticle;
-        /**
-        * Updates a vertex of a particle : it can be overwritten by the user.
-        * This will be called on each vertex particle by `setParticles()` if `computeParticleVertex` is set to true only.
-        * @param particle the current particle
-        * @param vertex the current index of the current particle
-        * @param pt the index of the current vertex in the particle shape
-        * doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#update-each-particle-shape
-        * ex : just set a vertex particle position
-        */
-        updateParticleVertex(particle: SolidParticle, vertex: Vector3, pt: number): Vector3;
-        /**
-        * This will be called before any other treatment by `setParticles()` and will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        beforeUpdateParticles(start?: number, stop?: number, update?: boolean): void;
-        /**
-        * This will be called  by `setParticles()` after all the other treatments and just before the actual mesh update.
-        * This will be passed three parameters.
-        * This does nothing and may be overwritten by the user.
-        * @param start the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param stop the particle index in the particle array where to stop to iterate, same than the value passed to setParticle()
-        * @param update the boolean update value actually passed to setParticles()
-        */
-        afterUpdateParticles(start?: number, stop?: number, update?: boolean): void;
-    }
-}
-
-declare module BABYLON {
-    interface PhysicsImpostorJoint {
-        mainImpostor: PhysicsImpostor;
-        connectedImpostor: PhysicsImpostor;
-        joint: PhysicsJoint;
-    }
-    class PhysicsEngine {
-        private _physicsPlugin;
-        gravity: Vector3;
-        constructor(gravity?: Vector3, _physicsPlugin?: IPhysicsEnginePlugin);
-        setGravity(gravity: Vector3): void;
-        /**
-         * Set the time step of the physics engine.
-         * default is 1/60.
-         * To slow it down, enter 1/600 for example.
-         * To speed it up, 1/30
-         * @param {number} newTimeStep the new timestep to apply to this world.
-         */
-        setTimeStep(newTimeStep?: number): void;
-        dispose(): void;
-        getPhysicsPluginName(): string;
-        /**
-         * @Deprecated
-         *
-         */
-        static NoImpostor: number;
-        static SphereImpostor: number;
-        static BoxImpostor: number;
-        static PlaneImpostor: number;
-        static MeshImpostor: number;
-        static CylinderImpostor: number;
-        static HeightmapImpostor: number;
-        static CapsuleImpostor: number;
-        static ConeImpostor: number;
-        static ConvexHullImpostor: number;
-        static Epsilon: number;
-        private _impostors;
-        private _joints;
-        /**
-         * Adding a new impostor for the impostor tracking.
-         * This will be done by the impostor itself.
-         * @param {PhysicsImpostor} impostor the impostor to add
-         */
-        addImpostor(impostor: PhysicsImpostor): void;
-        /**
-         * Remove an impostor from the engine.
-         * This impostor and its mesh will not longer be updated by the physics engine.
-         * @param {PhysicsImpostor} impostor the impostor to remove
-         */
-        removeImpostor(impostor: PhysicsImpostor): void;
-        /**
-         * Add a joint to the physics engine
-         * @param {PhysicsImpostor} mainImpostor the main impostor to which the joint is added.
-         * @param {PhysicsImpostor} connectedImpostor the impostor that is connected to the main impostor using this joint
-         * @param {PhysicsJoint} the joint that will connect both impostors.
-         */
-        addJoint(mainImpostor: PhysicsImpostor, connectedImpostor: PhysicsImpostor, joint: PhysicsJoint): void;
-        removeJoint(mainImpostor: PhysicsImpostor, connectedImpostor: PhysicsImpostor, joint: PhysicsJoint): void;
-        /**
-         * Called by the scene. no need to call it.
-         */
-        _step(delta: number): void;
-        getPhysicsPlugin(): IPhysicsEnginePlugin;
-        getImpostorForPhysicsObject(object: IPhysicsEnabledObject): PhysicsImpostor;
-        getImpostorWithPhysicsBody(body: any): PhysicsImpostor;
-    }
-=======
-=======
     class MeshBuilder {
->>>>>>> vr_room_scale_camera
         /**
          * Creates a box mesh.
          * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#box
@@ -15000,6 +9655,7 @@ declare module BABYLON {
          * The optional parameter `instance` is an instance of an existing Ribbon object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#ribbon
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
         static CreateRibbon(name: string, options: {
@@ -15010,6 +9666,7 @@ declare module BABYLON {
             updatable?: boolean;
             sideOrientation?: number;
             instance?: Mesh;
+            invertUV?: boolean;
         }, scene?: Scene): Mesh;
         /**
          * Creates a cylinder or a cone mesh.
@@ -15156,6 +9813,7 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
         static ExtrudeShape(name: string, options: {
@@ -15167,6 +9825,7 @@ declare module BABYLON {
             updatable?: boolean;
             sideOrientation?: number;
             instance?: Mesh;
+            invertUV?: boolean;
         }, scene: Scene): Mesh;
         /**
          * Creates an custom extruded shape mesh.
@@ -15200,6 +9859,7 @@ declare module BABYLON {
          * Remember you can only change the shape or path point positions, not their number when updating an extruded shape.
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
         static ExtrudeShapeCustom(name: string, options: {
@@ -15213,6 +9873,7 @@ declare module BABYLON {
             updatable?: boolean;
             sideOrientation?: number;
             instance?: Mesh;
+            invertUV?: boolean;
         }, scene: Scene): Mesh;
         /**
          * Creates lathe mesh.
@@ -15228,6 +9889,7 @@ declare module BABYLON {
          * The parameter `cap` sets the way the extruded shape is capped. Possible values : BABYLON.Mesh.NO_CAP (default), BABYLON.Mesh.CAP_START, BABYLON.Mesh.CAP_END, BABYLON.Mesh.CAP_ALL
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
         static CreateLathe(name: string, options: {
@@ -15239,6 +9901,7 @@ declare module BABYLON {
             updatable?: boolean;
             sideOrientation?: number;
             cap?: number;
+            invertUV?: boolean;
         }, scene: Scene): Mesh;
         /**
          * Creates a plane mesh.
@@ -15344,6 +10007,7 @@ declare module BABYLON {
          * The optional parameter `instance` is an instance of an existing Tube object to be updated with the passed `pathArray` parameter : http://doc.babylonjs.com/tutorials/How_to_dynamically_morph_a_mesh#tube
          * You can also set the mesh side orientation with the values : BABYLON.Mesh.FRONTSIDE (default), BABYLON.Mesh.BACKSIDE or BABYLON.Mesh.DOUBLESIDE
          * Detail here : http://doc.babylonjs.com/tutorials/02._Discover_Basic_Elements#side-orientation
+         * The optional parameter `invertUV` (boolean, default false) swaps in the geometry the U and V coordinates to apply a texture.
          * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created.
          */
         static CreateTube(name: string, options: {
@@ -15358,6 +10022,7 @@ declare module BABYLON {
             updatable?: boolean;
             sideOrientation?: number;
             instance?: Mesh;
+            invertUV?: boolean;
         }, scene: Scene): Mesh;
         /**
          * Creates a polyhedron mesh.
@@ -15404,7 +10069,7 @@ declare module BABYLON {
             size?: Vector3;
             angle?: number;
         }): Mesh;
-        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance);
+        private static _ExtrudeShapeGeneric(name, shape, curve, scale, rotation, scaleFunction, rotateFunction, rbCA, rbCP, cap, custom, scene, updtbl, side, instance, invertUV);
     }
 }
 
@@ -15547,12 +10212,14 @@ declare module BABYLON {
         static StartingAt(x: number, y: number): Path2;
     }
     class PolygonMeshBuilder {
-        private _swctx;
         private _points;
         private _outlinepoints;
         private _holes;
         private _name;
         private _scene;
+        private _epoints;
+        private _eholes;
+        private _addToepoint(points);
         constructor(name: string, contours: Path2, scene: Scene);
         constructor(name: string, contours: Vector2[], scene: Scene);
         addHole(hole: Vector2[]): PolygonMeshBuilder;
@@ -15562,7 +10229,7 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class SubMesh {
+    class SubMesh implements ICullable {
         materialIndex: number;
         verticesStart: number;
         verticesCount: number;
@@ -15590,8 +10257,9 @@ declare module BABYLON {
         _checkCollision(collider: Collider): boolean;
         updateBoundingInfo(world: Matrix): void;
         isInFrustum(frustumPlanes: Plane[]): boolean;
+        isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
         render(enableAlphaMode: boolean): void;
-        getLinesIndexBuffer(indices: number[] | Int32Array, engine: any): WebGLBuffer;
+        getLinesIndexBuffer(indices: number[] | Int32Array, engine: Engine): WebGLBuffer;
         canIntersects(ray: Ray): boolean;
         intersects(ray: Ray, positions: Vector3[], indices: number[] | Int32Array, fastCheck?: boolean): IntersectionInfo;
         clone(newMesh: AbstractMesh, newRenderingMesh?: Mesh): SubMesh;
@@ -15647,28 +10315,6 @@ declare module BABYLON {
         static MatricesWeightsKind: string;
         static MatricesIndicesExtraKind: string;
         static MatricesWeightsExtraKind: string;
-    }
-}
-
-declare module BABYLON {
-    class ReflectionProbe {
-        name: string;
-        private _scene;
-        private _renderTargetTexture;
-        private _projectionMatrix;
-        private _viewMatrix;
-        private _target;
-        private _add;
-        private _attachedMesh;
-        invertYAxis: boolean;
-        position: Vector3;
-        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
-        refreshRate: number;
-        getScene(): Scene;
-        cubeTexture: RenderTargetTexture;
-        renderList: AbstractMesh[];
-        attachToMesh(mesh: AbstractMesh): void;
-        dispose(): void;
     }
 }
 
@@ -15738,7 +10384,6 @@ declare module BABYLON {
         getImpostorForPhysicsObject(object: IPhysicsEnabledObject): PhysicsImpostor;
         getImpostorWithPhysicsBody(body: any): PhysicsImpostor;
     }
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     interface IPhysicsEnginePlugin {
         world: any;
         name: string;
@@ -15807,181 +10452,6 @@ declare module BABYLON {
         uniqueId: number;
         private _joints;
         constructor(object: IPhysicsEnabledObject, type: number, _options?: PhysicsImpostorParameters, _scene?: Scene);
-<<<<<<< HEAD
-        /**
-         * This function will completly initialize this impostor.
-         * It will create a new body - but only if this mesh has no parent.
-         * If it has, this impostor will not be used other than to define the impostor
-         * of the child mesh.
-         */
-        _init(): void;
-        private _getPhysicsParent();
-        /**
-         * Should a new body be generated.
-         */
-        isBodyInitRequired(): boolean;
-        setScalingUpdated(updated: boolean): void;
-        /**
-         * Force a regeneration of this or the parent's impostor's body.
-         * Use under cautious - This will remove all joints already implemented.
-         */
-        forceUpdate(): void;
-        /**
-         * Gets the body that holds this impostor. Either its own, or its parent.
-         */
-        /**
-         * Set the physics body. Used mainly by the physics engine/plugin
-         */
-        physicsBody: any;
-        parent: PhysicsImpostor;
-        resetUpdateFlags(): void;
-        getObjectExtendSize(): Vector3;
-        getObjectCenter(): Vector3;
-        /**
-         * Get a specific parametes from the options parameter.
-         */
-        getParam(paramName: string): any;
-        /**
-         * Sets a specific parameter in the options given to the physics plugin
-         */
-        setParam(paramName: string, value: number): void;
-        /**
-         * Specifically change the body's mass option. Won't recreate the physics body object
-         */
-        setMass(mass: number): void;
-        getLinearVelocity(): Vector3;
-        /**
-         * Set the body's linear velocity.
-         */
-        setLinearVelocity(velocity: Vector3): void;
-        getAngularVelocity(): Vector3;
-        /**
-         * Set the body's linear velocity.
-         */
-        setAngularVelocity(velocity: Vector3): void;
-        /**
-         * Execute a function with the physics plugin native code.
-         * Provide a function the will have two variables - the world object and the physics body object.
-         */
-        executeNativeFunction(func: (world: any, physicsBody: any) => void): void;
-        /**
-         * Register a function that will be executed before the physics world is stepping forward.
-         */
-        registerBeforePhysicsStep(func: (impostor: PhysicsImpostor) => void): void;
-        unregisterBeforePhysicsStep(func: (impostor: PhysicsImpostor) => void): void;
-        /**
-         * Register a function that will be executed after the physics step
-         */
-        registerAfterPhysicsStep(func: (impostor: PhysicsImpostor) => void): void;
-        unregisterAfterPhysicsStep(func: (impostor: PhysicsImpostor) => void): void;
-        /**
-         * register a function that will be executed when this impostor collides against a different body.
-         */
-        registerOnPhysicsCollide(collideAgainst: PhysicsImpostor | Array<PhysicsImpostor>, func: (collider: PhysicsImpostor, collidedAgainst: PhysicsImpostor) => void): void;
-        unregisterOnPhysicsCollide(collideAgainst: PhysicsImpostor | Array<PhysicsImpostor>, func: (collider: PhysicsImpostor, collidedAgainst: PhysicsImpostor | Array<PhysicsImpostor>) => void): void;
-        private _tmpPositionWithDelta;
-        private _tmpRotationWithDelta;
-        /**
-         * this function is executed by the physics engine.
-         */
-        beforeStep: () => void;
-        /**
-         * this function is executed by the physics engine.
-         */
-        afterStep: () => void;
-        onCollide: (e: {
-            body: any;
-        }) => void;
-        /**
-         * Apply a force
-         */
-        applyForce(force: Vector3, contactPoint: Vector3): void;
-        /**
-         * Apply an impulse
-         */
-        applyImpulse(force: Vector3, contactPoint: Vector3): void;
-        /**
-         * A help function to create a joint.
-         */
-        createJoint(otherImpostor: PhysicsImpostor, jointType: number, jointData: PhysicsJointData): void;
-        /**
-         * Add a joint to this impostor with a different impostor.
-         */
-        addJoint(otherImpostor: PhysicsImpostor, joint: PhysicsJoint): void;
-        /**
-         * Will keep this body still, in a sleep mode.
-         */
-        sleep(): void;
-        /**
-         * Wake the body up.
-         */
-        wakeUp(): void;
-        clone(newObject: IPhysicsEnabledObject): PhysicsImpostor;
-        dispose(): void;
-        setDeltaPosition(position: Vector3): void;
-        setDeltaRotation(rotation: Quaternion): void;
-        static NoImpostor: number;
-        static SphereImpostor: number;
-        static BoxImpostor: number;
-        static PlaneImpostor: number;
-        static MeshImpostor: number;
-        static CylinderImpostor: number;
-        static ParticleImpostor: number;
-        static HeightmapImpostor: number;
-    }
-}
-
-declare module BABYLON {
-    interface PhysicsJointData {
-        mainPivot?: Vector3;
-        connectedPivot?: Vector3;
-        mainAxis?: Vector3;
-        connectedAxis?: Vector3;
-        collision?: boolean;
-        nativeParams?: any;
-    }
-    /**
-     * This is a holder class for the physics joint created by the physics plugin.
-     * It holds a set of functions to control the underlying joint.
-     */
-    class PhysicsJoint {
-        type: number;
-        jointData: PhysicsJointData;
-        private _physicsJoint;
-        protected _physicsPlugin: IPhysicsEnginePlugin;
-        constructor(type: number, jointData: PhysicsJointData);
-        physicsJoint: any;
-        physicsPlugin: IPhysicsEnginePlugin;
-        /**
-         * Execute a function that is physics-plugin specific.
-         * @param {Function} func the function that will be executed.
-         *                        It accepts two parameters: the physics world and the physics joint.
-         */
-        executeNativeFunction(func: (world: any, physicsJoint: any) => void): void;
-        static DistanceJoint: number;
-        static HingeJoint: number;
-        static BallAndSocketJoint: number;
-        static WheelJoint: number;
-        static SliderJoint: number;
-        static PrismaticJoint: number;
-        static UniversalJoint: number;
-        static Hinge2Joint: number;
-        static PointToPointJoint: number;
-        static SpringJoint: number;
-    }
-    /**
-     * A class representing a physics distance joint.
-     */
-    class DistanceJoint extends PhysicsJoint {
-        constructor(jointData: DistanceJointData);
-        /**
-         * Update the predefined distance.
-         */
-        updateDistance(maxDistance: number, minDistance?: number): void;
-    }
-    class MotorEnabledJoint extends PhysicsJoint implements IMotorEnabledJoint {
-        constructor(type: number, jointData: PhysicsJointData);
-=======
         /**
          * This function will completly initialize this impostor.
          * It will create a new body - but only if this mesh has no parent.
@@ -16174,26 +10644,6 @@ declare module BABYLON {
      */
     class HingeJoint extends MotorEnabledJoint {
         constructor(jointData: PhysicsJointData);
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-        /**
-         * Set the motor values.
-         * Attention, this function is plugin specific. Engines won't react 100% the same.
-         * @param {number} force the force to apply
-         * @param {number} maxForce max force for this motor.
-         */
-        setMotor(force?: number, maxForce?: number): void;
-<<<<<<< HEAD
-        /**
-         * Set the motor's limits.
-         * Attention, this function is plugin specific. Engines won't react 100% the same.
-         */
-        setLimit(upperLimit: number, lowerLimit?: number): void;
-    }
-    /**
-     * This class represents a single hinge physics joint
-     */
-    class HingeJoint extends MotorEnabledJoint {
-        constructor(jointData: PhysicsJointData);
         /**
          * Set the motor values.
          * Attention, this function is plugin specific. Engines won't react 100% the same.
@@ -16221,28 +10671,6 @@ declare module BABYLON {
          */
         setMotor(force?: number, maxForce?: number, motorIndex?: number): void;
         /**
-=======
-        /**
-         * Set the motor's limits.
-         * Attention, this function is plugin specific. Engines won't react 100% the same.
-         */
-        setLimit(upperLimit: number, lowerLimit?: number): void;
-    }
-    /**
-     * This class represents a dual hinge physics joint (same as wheel joint)
-     */
-    class Hinge2Joint extends MotorEnabledJoint {
-        constructor(jointData: PhysicsJointData);
-        /**
-         * Set the motor values.
-         * Attention, this function is plugin specific. Engines won't react 100% the same.
-         * @param {number} force the force to apply
-         * @param {number} maxForce max force for this motor.
-         * @param {motorIndex} the motor's index, 0 or 1.
-         */
-        setMotor(force?: number, maxForce?: number, motorIndex?: number): void;
-        /**
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
          * Set the motor limits.
          * Attention, this function is plugin specific. Engines won't react 100% the same.
          * @param {number} upperLimit the upper limit
@@ -16250,7 +10678,6 @@ declare module BABYLON {
          * @param {motorIndex} the motor's index, 0 or 1.
          */
         setLimit(upperLimit: number, lowerLimit?: number, motorIndex?: number): void;
-<<<<<<< HEAD
     }
     interface IMotorEnabledJoint {
         physicsJoint: any;
@@ -16264,20 +10691,28 @@ declare module BABYLON {
         length: number;
         stiffness: number;
         damping: number;
-=======
     }
-    interface IMotorEnabledJoint {
-        physicsJoint: any;
-        setMotor(force?: number, maxForce?: number, motorIndex?: number): any;
-        setLimit(upperLimit: number, lowerLimit?: number, motorIndex?: number): any;
-    }
-    interface DistanceJointData extends PhysicsJointData {
-        maxDistance: number;
-    }
-    interface SpringJointData extends PhysicsJointData {
-        length: number;
-        stiffness: number;
-        damping: number;
+}
+
+declare module BABYLON {
+    class ReflectionProbe {
+        name: string;
+        private _scene;
+        private _renderTargetTexture;
+        private _projectionMatrix;
+        private _viewMatrix;
+        private _target;
+        private _add;
+        private _attachedMesh;
+        invertYAxis: boolean;
+        position: Vector3;
+        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
+        refreshRate: number;
+        getScene(): Scene;
+        cubeTexture: RenderTargetTexture;
+        renderList: AbstractMesh[];
+        attachToMesh(mesh: AbstractMesh): void;
+        dispose(): void;
     }
 }
 
@@ -16386,7 +10821,6 @@ declare module BABYLON {
         render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void, activeMeshes: AbstractMesh[], renderParticles: boolean, renderSprites: boolean): void;
         reset(): void;
         dispatch(subMesh: SubMesh): void;
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     }
 }
 
@@ -17006,143 +11440,47 @@ declare module BABYLON {
     }
 }
 
-declare module BABYLON {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    class ReflectionProbe {
-        name: string;
-        private _scene;
-        private _renderTargetTexture;
-        private _projectionMatrix;
-        private _viewMatrix;
-        private _target;
-        private _add;
-        private _attachedMesh;
-        invertYAxis: boolean;
-        position: Vector3;
-        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
-        refreshRate: number;
-        getScene(): Scene;
-        cubeTexture: RenderTargetTexture;
-        renderList: AbstractMesh[];
-        attachToMesh(mesh: AbstractMesh): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-=======
->>>>>>> vr_room_scale_camera
-    class BoundingBoxRenderer {
-        frontColor: Color3;
-        backColor: Color3;
-        showBackLines: boolean;
-        renderList: SmartArray<BoundingBox>;
-        private _scene;
-        private _colorShader;
-        private _vertexBuffers;
-        private _indexBuffer;
-        constructor(scene: Scene);
-        private _prepareRessources();
+declare module BABYLON.Internals {
+    class _AlphaState {
+        private _isAlphaBlendDirty;
+        private _isBlendFunctionParametersDirty;
+        private _alphaBlend;
+        private _blendFunctionParameters;
+        isDirty: boolean;
+        alphaBlend: boolean;
+        setAlphaBlendFunctionParameters(value0: number, value1: number, value2: number, value3: number): void;
         reset(): void;
-        render(): void;
-        dispose(): void;
+        apply(gl: WebGLRenderingContext): void;
     }
 }
 
-declare module BABYLON {
-    class DepthRenderer {
-        private _scene;
-        private _depthMap;
-        private _effect;
-        private _viewMatrix;
-        private _projectionMatrix;
-        private _transformMatrix;
-        private _worldViewProjection;
-        private _cachedDefines;
-        constructor(scene: Scene, type?: number);
-        isReady(subMesh: SubMesh, useInstances: boolean): boolean;
-        getDepthMap(): RenderTargetTexture;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-    class EdgesRenderer {
-        edgesWidthScalerForOrthographic: number;
-        edgesWidthScalerForPerspective: number;
-        private _source;
-        private _linesPositions;
-        private _linesNormals;
-        private _linesIndices;
-        private _epsilon;
-        private _indicesCount;
-        private _lineShader;
-        private _ib;
-        private _buffers;
-        private _checkVerticesInsteadOfIndices;
-        constructor(source: AbstractMesh, epsilon?: number, checkVerticesInsteadOfIndices?: boolean);
-        private _prepareRessources();
-        dispose(): void;
-        private _processEdgeForAdjacencies(pa, pb, p0, p1, p2);
-        private _processEdgeForAdjacenciesWithVertices(pa, pb, p0, p1, p2);
-        private _checkEdge(faceIndex, edge, faceNormals, p0, p1);
-        _generateEdgesLines(): void;
-        render(): void;
-    }
-}
-
-declare module BABYLON {
-    class OutlineRenderer {
-        private _scene;
-        private _effect;
-        private _cachedDefines;
-        constructor(scene: Scene);
-        render(subMesh: SubMesh, batch: _InstancesBatch, useOverlay?: boolean): void;
-        isReady(subMesh: SubMesh, useInstances: boolean): boolean;
-    }
-}
-
-declare module BABYLON {
-    class RenderingGroup {
-        index: number;
-        private _scene;
-        private _opaqueSubMeshes;
-        private _transparentSubMeshes;
-        private _alphaTestSubMeshes;
-        private _activeVertices;
-        onBeforeTransparentRendering: () => void;
-        constructor(index: number, scene: Scene);
-        render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void): boolean;
-        prepare(): void;
-        dispatch(subMesh: SubMesh): void;
-    }
-}
-
-declare module BABYLON {
-    class RenderingManager {
-        static MAX_RENDERINGGROUPS: number;
-        private _scene;
-        private _renderingGroups;
-        private _depthBufferAlreadyCleaned;
-        private _currentIndex;
-        private _currentActiveMeshes;
-        private _currentRenderParticles;
-        private _currentRenderSprites;
-        constructor(scene: Scene);
-        private _renderParticles(index, activeMeshes);
-        private _renderSprites(index);
-        private _clearDepthBuffer();
-        private _renderSpritesAndParticles();
-        render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void, activeMeshes: AbstractMesh[], renderParticles: boolean, renderSprites: boolean): void;
+declare module BABYLON.Internals {
+    class _DepthCullingState {
+        private _isDepthTestDirty;
+        private _isDepthMaskDirty;
+        private _isDepthFuncDirty;
+        private _isCullFaceDirty;
+        private _isCullDirty;
+        private _isZOffsetDirty;
+        private _depthTest;
+        private _depthMask;
+        private _depthFunc;
+        private _cull;
+        private _cullFace;
+        private _zOffset;
+        isDirty: boolean;
+        zOffset: number;
+        cullFace: number;
+        cull: boolean;
+        depthFunc: number;
+        depthMask: boolean;
+        depthTest: boolean;
         reset(): void;
-        dispatch(subMesh: SubMesh): void;
+        apply(gl: WebGLRenderingContext): void;
     }
 }
 
 declare module BABYLON {
-=======
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
     class Sprite {
         name: string;
         position: Vector3;
@@ -17207,46 +11545,6 @@ declare module BABYLON {
         intersects(ray: Ray, camera: Camera, predicate?: (sprite: Sprite) => boolean, fastCheck?: boolean): PickingInfo;
         render(): void;
         dispose(): void;
-    }
-}
-
-declare module BABYLON.Internals {
-    class _AlphaState {
-        private _isAlphaBlendDirty;
-        private _isBlendFunctionParametersDirty;
-        private _alphaBlend;
-        private _blendFunctionParameters;
-        isDirty: boolean;
-        alphaBlend: boolean;
-        setAlphaBlendFunctionParameters(value0: number, value1: number, value2: number, value3: number): void;
-        reset(): void;
-        apply(gl: WebGLRenderingContext): void;
-    }
-}
-
-declare module BABYLON.Internals {
-    class _DepthCullingState {
-        private _isDepthTestDirty;
-        private _isDepthMaskDirty;
-        private _isDepthFuncDirty;
-        private _isCullFaceDirty;
-        private _isCullDirty;
-        private _isZOffsetDirty;
-        private _depthTest;
-        private _depthMask;
-        private _depthFunc;
-        private _cull;
-        private _cullFace;
-        private _zOffset;
-        isDirty: boolean;
-        zOffset: number;
-        cullFace: number;
-        cull: boolean;
-        depthFunc: number;
-        depthMask: boolean;
-        depthTest: boolean;
-        reset(): void;
-        apply(gl: WebGLRenderingContext): void;
     }
 }
 
@@ -18320,58 +12618,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    interface IOctreeContainer<T> {
-        blocks: Array<OctreeBlock<T>>;
-    }
-    class Octree<T> {
-        maxDepth: number;
-        blocks: Array<OctreeBlock<T>>;
-        dynamicContent: T[];
-        private _maxBlockCapacity;
-        private _selectionContent;
-        private _creationFunc;
-        constructor(creationFunc: (entry: T, block: OctreeBlock<T>) => void, maxBlockCapacity?: number, maxDepth?: number);
-        update(worldMin: Vector3, worldMax: Vector3, entries: T[]): void;
-        addMesh(entry: T): void;
-        select(frustumPlanes: Plane[], allowDuplicate?: boolean): SmartArray<T>;
-        intersects(sphereCenter: Vector3, sphereRadius: number, allowDuplicate?: boolean): SmartArray<T>;
-        intersectsRay(ray: Ray): SmartArray<T>;
-        static _CreateBlocks<T>(worldMin: Vector3, worldMax: Vector3, entries: T[], maxBlockCapacity: number, currentDepth: number, maxDepth: number, target: IOctreeContainer<T>, creationFunc: (entry: T, block: OctreeBlock<T>) => void): void;
-        static CreationFuncForMeshes: (entry: AbstractMesh, block: OctreeBlock<AbstractMesh>) => void;
-        static CreationFuncForSubMeshes: (entry: SubMesh, block: OctreeBlock<SubMesh>) => void;
-    }
-}
-
-declare module BABYLON {
-    class OctreeBlock<T> {
-        entries: T[];
-        blocks: Array<OctreeBlock<T>>;
-        private _depth;
-        private _maxDepth;
-        private _capacity;
-        private _minPoint;
-        private _maxPoint;
-        private _boundingVectors;
-        private _creationFunc;
-        constructor(minPoint: Vector3, maxPoint: Vector3, capacity: number, depth: number, maxDepth: number, creationFunc: (entry: T, block: OctreeBlock<T>) => void);
-        capacity: number;
-        minPoint: Vector3;
-        maxPoint: Vector3;
-        addEntry(entry: T): void;
-        addEntries(entries: T[]): void;
-        select(frustumPlanes: Plane[], selection: SmartArray<T>, allowDuplicate?: boolean): void;
-        intersects(sphereCenter: Vector3, sphereRadius: number, selection: SmartArray<T>, allowDuplicate?: boolean): void;
-        intersectsRay(ray: Ray, selection: SmartArray<T>): void;
-        createInnerBlocks(): void;
-    }
-}
-
-declare module BABYLON {
-=======
->>>>>>> vr_room_scale_camera
     class VRCameraMetrics {
         hResolution: number;
         vResolution: number;
@@ -18407,8 +12653,6 @@ declare module BABYLON {
     }
 }
 
-<<<<<<< HEAD
-=======
 declare module BABYLON {
     class VRRoomScaleCamera extends FreeCamera {
         constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean);
@@ -18471,7 +12715,6 @@ declare module BABYLON {
     }
 }
 
->>>>>>> vr_room_scale_camera
 declare var HMDVRDevice: any;
 declare var PositionSensorVRDevice: any;
 declare module BABYLON {
@@ -18491,10 +12734,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-=======
->>>>>>> vr_room_scale_camera
     class ArcRotateCameraGamepadInput implements ICameraInput<ArcRotateCamera> {
         camera: ArcRotateCamera;
         gamepad: Gamepad;
@@ -18720,7 +12959,6 @@ declare module BABYLON {
     }
 }
 
-<<<<<<< HEAD
 declare module BABYLON {
     class FreeCameraVRDisplayInput implements ICameraInput<FreeCamera> {
         camera: VRRoomScaleCamera;
@@ -18734,128 +12972,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-<<<<<<< HEAD
-    class VRCameraMetrics {
-        hResolution: number;
-        vResolution: number;
-        hScreenSize: number;
-        vScreenSize: number;
-        vScreenCenter: number;
-        eyeToScreenDistance: number;
-        lensSeparationDistance: number;
-        interpupillaryDistance: number;
-        distortionK: number[];
-        chromaAbCorrection: number[];
-        postProcessScaleFactor: number;
-        lensCenterOffset: number;
-        compensateDistortion: boolean;
-        aspectRatio: number;
-        aspectRatioFov: number;
-        leftHMatrix: Matrix;
-        rightHMatrix: Matrix;
-        leftPreViewMatrix: Matrix;
-        rightPreViewMatrix: Matrix;
-        static GetDefault(): VRCameraMetrics;
-    }
-}
-
-declare module BABYLON {
-    class VRDeviceOrientationFreeCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean);
-        getTypeName(): string;
-    }
-    class VRDeviceOrientationArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene, compensateDistortion?: boolean);
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class VRRoomScaleCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean);
-        private _vrDisplay;
-        private _vrEnabled;
-        _viewMatrix: any;
-        private _consoleTimer;
-        private _hmdOrigin;
-        fromRotationTranslation(out: any, q: any, v: any): any;
-        renderSceneView(eye: any): void;
-        _updatePosition2(): void;
-        onAnimationFrame(): void;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        createRigCamera(name: string, cameraIndex: number): Camera;
-        _updateRigCameras(): void;
-        _getViewMatrix(): Matrix;
-        getTypeName(): string;
-    }
-}
-
-declare module BABYLON {
-    class VRRoomScaleMetrics {
-        hResolution: number;
-        vResolution: number;
-        hScreenSize: number;
-        vScreenSize: number;
-        vScreenCenter: number;
-        eyeToScreenDistance: number;
-        lensSeparationDistance: number;
-        interpupillaryDistance: number;
-        distortionK: number[];
-        chromaAbCorrection: number[];
-        postProcessScaleFactor: number;
-        lensCenterOffset: number;
-        compensateDistortion: boolean;
-        leftEyeFOVdownDegrees: number;
-        leftEyeFOVleftDegrees: number;
-        leftEyeFOVrightDegrees: number;
-        leftEyeFOVupDegrees: number;
-        rightEyeFOVdownDegrees: number;
-        rightEyeFOVleftDegrees: number;
-        rightEyeFOVrightDegrees: number;
-        rightEyeFOVupDegrees: number;
-        leftEyeOffset: Float32Array;
-        rightEyeOffset: Float32Array;
-        leftEyeRenderHeight: number;
-        leftEyeRenderWidth: number;
-        rightEyeRenderHeight: number;
-        rightEyeRenderWidth: number;
-        constructor(leftEye: any, rightEye: any);
-        aspectRatio: number;
-        aspectRatioFov: number;
-        leftHMatrix: Matrix;
-        rightHMatrix: Matrix;
-        leftPreViewMatrix: Matrix;
-        rightPreViewMatrix: Matrix;
-        renderingHeight: number;
-        renderingWidth: number;
-    }
-}
-
-declare var HMDVRDevice: any;
-declare var PositionSensorVRDevice: any;
-declare module BABYLON {
-    class WebVRFreeCamera extends FreeCamera {
-        _hmdDevice: any;
-        _sensorDevice: any;
-        private _cacheState;
-        _vrEnabled: boolean;
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean);
-        private _getWebVRDevices(devices);
-        _checkInputs(): void;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        requestVRFullscreen(requestPointerlock: boolean): void;
-        getTypeName(): string;
-    }
-=======
-declare module BABYLON.Internals {
->>>>>>> 1096d98518644627d1728f555efbad007f32dfa1
-}
-
-declare module BABYLON {
-=======
->>>>>>> vr_room_scale_camera
     interface IOctreeContainer<T> {
         blocks: Array<OctreeBlock<T>>;
     }
@@ -18903,7 +13019,11 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class ShadowGenerator {
+    interface IShadowGenerator {
+        getShadowMap(): RenderTargetTexture;
+        dispose(): void;
+    }
+    class ShadowGenerator implements IShadowGenerator {
         private static _FILTER_NONE;
         private static _FILTER_VARIANCESHADOWMAP;
         private static _FILTER_POISSONSAMPLING;

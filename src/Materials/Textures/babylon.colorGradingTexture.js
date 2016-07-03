@@ -170,6 +170,7 @@ var BABYLON;
             var serializationObject = {};
             serializationObject.name = this.name;
             serializationObject.level = this.level;
+            serializationObject.customType = "BABYLON.ColorGradingTexture";
             return serializationObject;
         };
         /**
@@ -177,6 +178,6 @@ var BABYLON;
          */
         ColorGradingTexture._noneEmptyLineRegex = /\S+/;
         return ColorGradingTexture;
-    })(BABYLON.BaseTexture);
+    }(BABYLON.BaseTexture));
     BABYLON.ColorGradingTexture = ColorGradingTexture;
 })(BABYLON || (BABYLON = {}));
