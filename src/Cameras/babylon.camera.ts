@@ -548,7 +548,7 @@ module BABYLON {
                     this._rigCameras[0].viewport = new Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new Matrix();
                     this._rigCameras[0]._cameraRigParams.vrHMatrix = metrics.rightHMatrix;
-                    this._rigCameras[0].getViewMatrix = () => this._myViewMatrix;
+                    this._rigCameras[0].getViewMatrix = () => this._viewMatrix;
                     this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
                     this._rigCameras[0].getEyeFOV = metrics.getLeftEyeFOV.bind(metrics);
                     this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
@@ -556,7 +556,7 @@ module BABYLON {
                     this._rigCameras[1].viewport = new Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new Matrix();
                     this._rigCameras[1]._cameraRigParams.vrHMatrix = metrics.leftHMatrix;
-                    this._rigCameras[1].getViewMatrix = () => this._myViewMatrix;
+                    this._rigCameras[1].getViewMatrix = () => this._viewMatrix;
                     this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
                     this._rigCameras[1].getEyeFOV = metrics.getRightEyeFOV.bind(metrics);
                     this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;

@@ -12235,14 +12235,14 @@ var BABYLON;
                     this._rigCameras[0].viewport = new BABYLON.Viewport(0, 0, 0.5, 1.0);
                     this._rigCameras[0]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
                     this._rigCameras[0]._cameraRigParams.vrHMatrix = metrics.rightHMatrix;
-                    this._rigCameras[0].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[0].getViewMatrix = function () { return _this._viewMatrix; };
                     this._rigCameras[0].getProjectionMatrix = this._rigCameras[0]._getVRRoomScaleProjectionMatrix;
                     this._rigCameras[0].getEyeFOV = metrics.getLeftEyeFOV.bind(metrics);
                     this._rigCameras[0]._cameraRigParams.roomScaleMetrics = metrics;
                     this._rigCameras[1].viewport = new BABYLON.Viewport(0.5, 0, 0.5, 1.0);
                     this._rigCameras[1]._cameraRigParams.vrWorkMatrix = new BABYLON.Matrix();
                     this._rigCameras[1]._cameraRigParams.vrHMatrix = metrics.leftHMatrix;
-                    this._rigCameras[1].getViewMatrix = function () { return _this._myViewMatrix; };
+                    this._rigCameras[1].getViewMatrix = function () { return _this._viewMatrix; };
                     this._rigCameras[1].getProjectionMatrix = this._rigCameras[1]._getVRRoomScaleProjectionMatrix;
                     this._rigCameras[1].getEyeFOV = metrics.getRightEyeFOV.bind(metrics);
                     this._rigCameras[1]._cameraRigParams.roomScaleMetrics = metrics;
@@ -51818,11 +51818,6 @@ var BABYLON;
 })(BABYLON || (BABYLON = {}));
 
 
-
-
-
-
-
 var BABYLON;
 (function (BABYLON) {
     var VRRoomScaleCamera = (function (_super) {
@@ -51831,16 +51826,13 @@ var BABYLON;
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
             this.inputs.addVRDisplay();
-            this._myViewMatrix = BABYLON.Matrix.Identity();
-            this._consoleTimer = 0;
+            this._viewMatrix = BABYLON.Matrix.Identity();
         }
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
             if (navigator.getVRDisplays) {
                 navigator.getVRDisplays().then(function (displays) {
                     if (displays.length > 0) {
-                        // Right now this is only handling the first display,
-                        // But handling of additional displays should be added.
                         _this._vrDisplay = displays[0];
                         _this._vrEnabled = true;
                     }
@@ -51851,11 +51843,8 @@ var BABYLON;
                                 var pose = _this._vrDisplay.getPose();
                                 var leftEye = _this._vrDisplay.getEyeParameters('left');
                                 var rightEye = _this._vrDisplay.getEyeParameters('right');
-                                // setting up camera rig here so that we can get eye parameter
-                                // data into the metrics.
                                 var metrics = new BABYLON.VRRoomScaleMetrics(leftEye, rightEye);
                                 _this.setCameraRigMode(BABYLON.Camera.RIG_MODE_VIVE, { vrRoomScaleMetrics: metrics });
-                                // Will need to update camera rigs with eye parameters
                                 renderingCanvas_1.width = metrics.renderingWidth;
                                 renderingCanvas_1.height = metrics.renderingHeight;
                             }
@@ -51880,7 +51869,7 @@ var BABYLON;
             var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])), new BABYLON.Vector3(x, y, z));
             result = result.multiply(standMatrix);
             result = result.invert();
-            this._myViewMatrix = result;
+            this._viewMatrix = result;
             this._vrDisplay.submitFrame(pose);
             _super.prototype._checkInputs.call(this);
         };
@@ -51895,7 +51884,7 @@ var BABYLON;
             }
         };
         VRRoomScaleCamera.prototype._getViewMatrix = function () {
-            return this._myViewMatrix;
+            return this._viewMatrix;
         };
         VRRoomScaleCamera.prototype.getTypeName = function () {
             return "VRRoomScaleCamera";

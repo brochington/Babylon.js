@@ -5,15 +5,12 @@ module BABYLON {
 
           this.inputs.addVRDisplay();
 
-          this._myViewMatrix = Matrix.Identity();
-
-          this._consoleTimer = 0;
+          this._viewMatrix = Matrix.Identity();
         }
 
         private _vrDisplay; // VRDisplay
         private _vrEnabled; // bool
-        public _myViewMatrix : Matrix;
-        private _consoleTimer;
+        public _viewMatrix: Matrix;
 
         attachControl(element: HTMLElement, noPreventDefault?: boolean) {
           if (navigator.getVRDisplays) {
@@ -75,7 +72,7 @@ module BABYLON {
           result = result.multiply(standMatrix);
           result = result.invert();
 
-          this._myViewMatrix = result;
+          this._viewMatrix = result;
 
           this._vrDisplay.submitFrame(pose);
 
@@ -97,7 +94,7 @@ module BABYLON {
         }
 
         public _getViewMatrix(): Matrix {
-          return this._myViewMatrix;
+          return this._viewMatrix;
         }
 
         public getTypeName(): string {

@@ -11,8 +11,7 @@ var BABYLON;
             if (compensateDistortion === void 0) { compensateDistortion = true; }
             _super.call(this, name, position, scene);
             this.inputs.addVRDisplay();
-            this._myViewMatrix = BABYLON.Matrix.Identity();
-            this._consoleTimer = 0;
+            this._viewMatrix = BABYLON.Matrix.Identity();
         }
         VRRoomScaleCamera.prototype.attachControl = function (element, noPreventDefault) {
             var _this = this;
@@ -60,7 +59,7 @@ var BABYLON;
             var result = BABYLON.Matrix.Compose(new BABYLON.Vector3(1, 1, 1), new BABYLON.Quaternion(orientation[0], orientation[1], (orientation[2]), (orientation[3])), new BABYLON.Vector3(x, y, z));
             result = result.multiply(standMatrix);
             result = result.invert();
-            this._myViewMatrix = result;
+            this._viewMatrix = result;
             this._vrDisplay.submitFrame(pose);
             _super.prototype._checkInputs.call(this);
         };
@@ -75,7 +74,7 @@ var BABYLON;
             }
         };
         VRRoomScaleCamera.prototype._getViewMatrix = function () {
-            return this._myViewMatrix;
+            return this._viewMatrix;
         };
         VRRoomScaleCamera.prototype.getTypeName = function () {
             return "VRRoomScaleCamera";
