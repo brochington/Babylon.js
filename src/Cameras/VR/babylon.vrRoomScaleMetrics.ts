@@ -1,19 +1,5 @@
 module BABYLON {
     export class VRRoomScaleMetrics {
-        public hResolution: number;
-        public vResolution: number;
-        public hScreenSize: number;
-        public vScreenSize: number;
-        public vScreenCenter: number;
-        public eyeToScreenDistance: number;
-        public lensSeparationDistance: number;
-        public interpupillaryDistance: number;
-        public distortionK: number[];
-        public chromaAbCorrection: number[];
-        public postProcessScaleFactor: number;
-        public lensCenterOffset: number;
-        public compensateDistortion = true;
-
         public leftEyeFOVdownDegrees: number = 0;
         public leftEyeFOVleftDegrees: number = 0;
         public leftEyeFOVrightDegrees: number = 0;
@@ -114,14 +100,6 @@ module BABYLON {
 
         public get rightHMatrix(): Matrix {
             return Matrix.Translation(this.rightEyeOffset[0], 0, 0);
-        }
-
-        public get leftPreViewMatrix(): Matrix {
-            return Matrix.Translation(0.5 * this.interpupillaryDistance, 0, 0);
-        }
-
-        public get rightPreViewMatrix(): Matrix {
-            return Matrix.Translation(-0.5 * this.interpupillaryDistance, 0, 0);
         }
 
         public get renderingHeight(): number {

@@ -2,7 +2,6 @@ var BABYLON;
 (function (BABYLON) {
     var VRRoomScaleMetrics = (function () {
         function VRRoomScaleMetrics(leftEye, rightEye) {
-            this.compensateDistortion = true;
             this.leftEyeFOVdownDegrees = 0;
             this.leftEyeFOVleftDegrees = 0;
             this.leftEyeFOVrightDegrees = 0;
@@ -62,20 +61,6 @@ var BABYLON;
         Object.defineProperty(VRRoomScaleMetrics.prototype, "rightHMatrix", {
             get: function () {
                 return BABYLON.Matrix.Translation(this.rightEyeOffset[0], 0, 0);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(VRRoomScaleMetrics.prototype, "leftPreViewMatrix", {
-            get: function () {
-                return BABYLON.Matrix.Translation(0.5 * this.interpupillaryDistance, 0, 0);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(VRRoomScaleMetrics.prototype, "rightPreViewMatrix", {
-            get: function () {
-                return BABYLON.Matrix.Translation(-0.5 * this.interpupillaryDistance, 0, 0);
             },
             enumerable: true,
             configurable: true

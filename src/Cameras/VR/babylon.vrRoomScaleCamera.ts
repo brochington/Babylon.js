@@ -1,49 +1,37 @@
 module BABYLON {
     export class VRRoomScaleCamera extends FreeCamera {
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion = true) {
+        constructor(name: string, position: Vector3, vrDisplay, scene: Scene) {
           super(name, position, scene);
 
+          this._vrDisplay = vrDisplay;
           this.inputs.addVRDisplay();
 
           this._viewMatrix = Matrix.Identity();
         }
 
         private _vrDisplay; // VRDisplay
-        private _vrEnabled; // bool
-        public _viewMatrix: Matrix;
+        public _viewMatrix = new Matrix();
 
         attachControl(element: HTMLElement, noPreventDefault?: boolean) {
-          if (navigator.getVRDisplays) {
-            navigator.getVRDisplays().then(displays => {
-              if (displays.length > 0) {
-                // Right now this is only handling the first display,
-                // But handling of additional displays should be added.
-                this._vrDisplay = displays[0];
-                this._vrEnabled = true;
+          let renderingCanvas: HTMLCanvasElement = <HTMLCanvasElement>element;
+
+          if (this._vrDisplay) {
+            this._vrDisplay.requestPresent([{source: element }]).then(() => {
+              if (this._vrDisplay.isPresenting) {
+                const pose = this._vrDisplay.getPose();
+                const leftEye = this._vrDisplay.getEyeParameters('left');
+                const rightEye = this._vrDisplay.getEyeParameters('right');
+
+                var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
+
+                this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
+                console.log('element');
+                console.dir(element);
+
+                renderingCanvas.width = metrics.renderingWidth;
+                renderingCanvas.height = metrics.renderingHeight;
               }
-
-              if (this._vrEnabled) {
-                const renderingCanvas = this.getEngine().getRenderingCanvas();
-
-                this._vrDisplay.requestPresent([{source: renderingCanvas }]).then(() => {
-                  if (this._vrDisplay.isPresenting) {
-                    const pose = this._vrDisplay.getPose();
-                    const leftEye = this._vrDisplay.getEyeParameters('left');
-                    const rightEye = this._vrDisplay.getEyeParameters('right');
-
-                    // setting up camera rig here so that we can get eye parameter
-                    // data into the metrics.
-                    var metrics = new VRRoomScaleMetrics(leftEye, rightEye);
-
-                    this.setCameraRigMode(Camera.RIG_MODE_VIVE, {vrRoomScaleMetrics: metrics});
-                    // Will need to update camera rigs with eye parameters
-
-                    renderingCanvas.width = metrics.renderingWidth;
-                    renderingCanvas.height = metrics.renderingHeight;
-                  }
-                })
-              }
-            });
+            })
           }
         }
 
@@ -94,7 +82,8 @@ module BABYLON {
         }
 
         public _getViewMatrix(): Matrix {
-          return this._viewMatrix;
+          let viewMatrix = this._viewMatrix;
+          return viewMatrix;
         }
 
         public getTypeName(): string {
